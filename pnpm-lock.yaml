@@ -169,6 +169,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.0
         version: 1.19.17(hono@4.13.14)
+      '@hono/zod-validator':
+        specifier: ^0.9.1
+        version: 0.9.1(hono@4.13.14)(zod@3.25.76)
       chokidar:
         specifier: ^4.0.1
         version: 4.0.3
@@ -809,6 +812,12 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
+
+  '@hono/zod-validator@0.9.1':
+    resolution: {integrity: sha512-iiv6w0qrIc0arfvCtUqBWsvl4fXjzaTcQcCJTTtCnkawF9HHGE+KjEl0ox3gQJ6rKZEgE3mLExlQCF72M+mNuw==}
+    peerDependencies:
+      hono: '>=4.11.2'
+      zod: ^3.25.0 || ^4.0.0
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2181,6 +2190,11 @@ snapshots:
   '@hono/node-server@1.19.17(hono@4.13.14)':
     dependencies:
       hono: 4.13.14
+
+  '@hono/zod-validator@0.9.1(hono@4.13.14)(zod@3.25.76)':
+    dependencies:
+      hono: 4.13.14
+      zod: 3.25.76
 
   '@humanfs/core@0.19.2':
     dependencies:

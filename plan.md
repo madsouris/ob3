@@ -13,9 +13,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 | Spec (brief v1.1.0) | `[x]` |
 | Architecture decisions | `[x]` — [`docs/00-decisions.md`](./docs/00-decisions.md) |
 | Feature documentation | `[x]` — [`docs/`](./docs/README.md) |
-| Source code | `[~]` — M0–M2 landed (tooling, CLI/workspace, data layer); M3 next |
+| Source code | `[~]` — M0–M3 landed (tooling, CLI/workspace, data layer, HTTP API); M4 next |
 
-**Next action:** milestone M3 (HTTP API, security middleware, SSE).
+**Next action:** milestone M4 (UI shell, CRUD views, search index).
 
 ---
 
@@ -86,16 +86,23 @@ Docs: [`docs/03-data-model.md`](./docs/03-data-model.md), [`docs/04-frontmatter-
 
 Goal: a complete, safe, self-describing API for the SPA.
 
-- [ ] Middleware: loopback bind, `Host` allowlist, `Origin`/`Sec-Fetch-Site` validation, `X-OB-Token`, body limit, workspace-confined path resolution
-- [ ] `GET /api/health`, `GET /api/config`, `PATCH /api/config`
-- [ ] Generic record routes per type: list, get, create, patch, delete, `POST /api/tasks/:id/move`, `POST /api/invoices/:id/from-estimate/:estimateId`
-- [ ] `GET /api/issues`, `POST /api/issues/:key/resolve` (explicit actions: assign-id, adopt-path, ignore)
-- [ ] `GET /api/events` SSE: `snapshot`, `record.upsert`, `record.delete`, `issues.changed`, `git.changed`
-- [ ] `GET /api/git/status`, `POST /api/git/sync`, `POST /api/git/init`, `POST /api/git/remote`
-- [ ] Error envelope: `{ error: { code, message, details? } }` with stable codes; never leak stack traces to the client
-- [ ] Consistent validation → 422 with per-field issues
+- [x] Middleware (`src/server/security.ts`): `Host` allowlist, `Origin` + `Sec-Fetch-Site` checks, constant-time `X-OB-Token` comparison, 1 MB body limit, workspace-confined path resolution
+- [x] `GET /api/health` (generation, record count, uptime), `GET /api/config`, `PATCH /api/config` (deep merge, Zod-validated, unknown keys preserved)
+- [x] Generic record routes for all six types: list (with `q`/`status`/`project_id`/`client_id` filters), get (returns `hash`), create, patch (`baseHash` → 409), delete (`?baseHash`)
+- [x] `POST /api/tasks/:id/move` — folder rename + sparse `order` with rebalancing on collision
+- [x] `POST /api/invoices/from-estimate/:estimateId` — server-computed money, back-link, 409 on double conversion
+- [x] `GET /api/issues`, `GET /api/issues/:key{.+}/preview`, `POST /api/issues/:key{.+}/resolve` (`assign-id`, `adopt-path`, `ignore` persisted in `.ob/state/ignored-issues.json`)
+- [x] `GET /api/events` SSE: `snapshot`, `record.upsert`, `record.delete`, `record.moved`, `issues.changed`, `config.changed`, 20 s heartbeat
+- [x] Error envelope `{ error: { code, message, details? } }` with stable codes (`invalid_token`, `host_not_allowed`, `cross_origin`, `validation_failed`, `file_changed_on_disk`, `path_escape`, …); `onError` maps `ApiError`, `HTTPException`, `PathEscapeError`, `ConfigError`
+- [x] `@hono/zod-validator` at the boundary plus service-level Zod (defence in depth; `body`/`baseHash` are server-only fields)
+- [x] Runtime (`src/server/runtime.ts`): index + watcher + bus wired into the server; writes through the API publish their own events and the watcher echo is suppressed
+- [x] Token generated per run and injected into the served HTML (`__OB_TOKEN__`) without touching `dist/`
 
-**Exit criteria:** every mutation is reachable from the UI without a second round-trip; a request from a non-allowed `Origin` or with a wrong/missing token is rejected; path traversal attempts (`../`, absolute, symlink) return 400; SSE reconnects cleanly.
+**Git routes are deferred to M6** (`/api/git/*`), where the sync engine lives; the contract in `brief.md` §7 is unchanged.
+
+**Exit criteria:** met. 276 tests pass (39 new for the API): every mutation is reachable, a foreign `Origin`/`Host` or missing token is rejected, oversized bodies 413, stale `baseHash` 409, issue actions mutate the file only on explicit request, SSE emits a snapshot and mutation events. Verified end-to-end against a real server: create → patch → stale-hash 409 → task move → estimate conversion → graceful shutdown with the lock released.
+
+Docs: [`docs/07-server-api-and-security.md`](./docs/07-server-api-and-security.md), [`docs/10-search.md`](./docs/10-search.md)
 
 Docs: [`docs/07-server-api-and-security.md`](./docs/07-server-api-and-security.md), [`docs/10-search.md`](./docs/10-search.md)
 

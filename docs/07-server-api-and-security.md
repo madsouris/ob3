@@ -84,6 +84,17 @@ Domain actions:
 
 Long-running git work is streamed, not awaited blindly: `POST /api/git/sync` returns step events over SSE (`git.step`) and a final `git.settled`. A 10 s timeout per subprocess applies; on timeout the step is marked failed with partial output.
 
+## Implementation notes (M3)
+
+* **Git routes are not part of M3.** `/api/git/*` lands with the sync engine in M6 so the UI never sees a half-implemented status endpoint.
+* **Validation** runs twice on purpose: `@hono/zod-validator` produces the 422 envelope at the boundary, and the service re-validates with the same schema before touching disk (cheap payloads, single source of truth).
+* **Server-only fields:** `body` (Markdown after the frontmatter) and `baseHash` (optimistic concurrency) are accepted on create/patch but are never written into frontmatter.
+* **Issue keys contain `:` and `/`**, so preview/resolve use the `:key{.+}` param and clients must `encodeURIComponent` the key.
+* **Money is server-computed** on create/patch: `line_items[].total_cents`, `subtotal_cents`, `tax_amount_cents` and `total_cents` are derived and ignore client-supplied values.
+* **Additional error codes** beyond the table below: `invalid_id`, `invalid_json`, `unknown_issue`, `not_a_task`, `invalid_move`, `config_invalid`.
+* **SSE events emitted today:** `snapshot`, `record.upsert`, `record.delete`, `record.moved`, `issues.changed`, `config.changed`, `ping`. `git.changed` arrives with M6.
+* **List `q`** is a temporary case-insensitive substring matcher; FlexSearch replaces it in M4 (docs/10).
+
 ## Error envelope
 
 ```json
@@ -123,10 +134,10 @@ event: server.closing data: {}
 
 ## Acceptance criteria
 
-- [ ] `curl` with a wrong `Host` header → 403.
-- [ ] `fetch` from a page on another origin cannot perform a PATCH (preflight fails; no CORS headers).
-- [ ] Missing/invalid `X-OB-Token` → 401 on every mutating route.
-- [ ] `GET /api/:type/:id` with `..%2f` → 400, never a file outside the workspace.
-- [ ] Two PATCHes with the same `baseHash`: second returns 409.
-- [ ] SSE survives a server restart (client reconnects within 6 s and reconciles).
-- [ ] No route can write outside `contacts|projects|tasks|estimates|invoices|documents|.ob/config.json`.
+- [x] `curl` with a wrong `Host` header → 403.
+- [x] `fetch` from a page on another origin cannot perform a PATCH (foreign `Origin`/`Sec-Fetch-Site` → 403; no CORS headers are ever emitted).
+- [x] Missing/invalid `X-OB-Token` → 401 on every mutating route.
+- [x] `GET /api/:type/:id` with `..%2f` → 400: ids are map keys and never reach the filesystem; anything outside `[A-Za-z0-9_-]` is rejected.
+- [x] Two PATCHes with the same `baseHash`: second returns 409.
+- [ ] SSE survives a server restart (client reconnects within 6 s and reconciles). *(client-side reconnect is M4)*
+- [x] No route can write outside `contacts|projects|tasks|estimates|invoices|documents|.ob/config.json`.

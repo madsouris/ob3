@@ -118,6 +118,15 @@ export const readFrontmatter = (
   return { frontmatter: parsed.data, body: parsed.split.body };
 };
 
+/** Replaces the body after the frontmatter, leaving the block untouched. */
+export const replaceBody = (source: string, body: string): string => {
+  const split = splitFrontmatter(source);
+  if (!split.hadFrontmatter) return body;
+
+  const bom = split.bom ? '\uFEFF' : '';
+  return `${bom}${split.openDelimiter}${split.frontmatterSource}${split.closeDelimiter}${body}`;
+};
+
 /**
  * Applies a shallow patch to the frontmatter and re-serializes only that block.
  * `undefined` deletes a key. An empty patch returns the source unchanged, which

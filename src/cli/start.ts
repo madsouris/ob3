@@ -10,6 +10,8 @@ import { printReport, runPreflight } from './preflight.js';
 import { readPackageVersion } from './usage.js';
 import { chooseInitMode } from './wizard.js';
 import { createApp } from '../server/app.js';
+import type { WorkspaceRuntime } from '../server/runtime.js';
+import { createWorkspaceRuntime } from '../server/runtime.js';
 import { isInitialized, readConfig } from '../workspace/config.js';
 import { initWorkspace } from '../workspace/init.js';
 import { WorkspaceBusyError, acquireLock, releaseLock } from '../workspace/lock.js';
@@ -28,8 +30,8 @@ export type StartOptions = {
 
 /**
  * Full start sequence (docs/01-cli-and-preflight.md):
- * pre-flight → lock → init if needed → config → port → server → session → browser.
- * Resolves only when the server shuts down, so the caller can exit with its code.
+ * pre-flight → lock → init if needed → config → index+watcher → port → server
+ * → session → browser. Resolves only when the server shuts down.
  */
 export async function runStart(options: StartOptions): Promise<number> {
   const root = resolveWorkspace(options.workspace ?? process.cwd());
@@ -47,6 +49,7 @@ export async function runStart(options: StartOptions): Promise<number> {
   }
 
   let server: ServerType | null = null;
+  let runtime: WorkspaceRuntime | null = null;
   let shutdownStarted = false;
   let settle: (code: number) => void = () => undefined;
   const settled = new Promise<number>((resolve) => {
@@ -56,16 +59,29 @@ export async function runStart(options: StartOptions): Promise<number> {
   const shutdown = (code: number): void => {
     if (shutdownStarted) return;
     shutdownStarted = true;
+
     const finish = (): void => {
       settle(code);
     };
+
+    const closeRuntime = (): void => {
+      if (runtime === null) {
+        void releaseLock(root).finally(finish);
+        return;
+      }
+      void runtime
+        .close()
+        .catch(() => undefined)
+        .finally(() => {
+          void releaseLock(root).finally(finish);
+        });
+    };
+
     if (server === null) {
-      void releaseLock(root).finally(finish);
+      closeRuntime();
       return;
     }
-    server.close(() => {
-      void releaseLock(root).finally(finish);
-    });
+    server.close(closeRuntime);
   };
 
   process.once('SIGINT', () => {
@@ -82,7 +98,6 @@ export async function runStart(options: StartOptions): Promise<number> {
     }
 
     if (await isInitialized(root)) {
-      // Folders may have been deleted by hand; recreate them without touching files.
       for (const dir of MANAGED_DIRS) {
         await mkdir(join(root, dir), { recursive: true });
       }
@@ -115,15 +130,27 @@ export async function runStart(options: StartOptions): Promise<number> {
 
     const config = await readConfig(root);
     const port = await findAvailablePort(options.port ?? config.server.port);
+
+    runtime = await createWorkspaceRuntime({ root });
+    const records = runtime.index.list().length;
+    const issues = runtime.index.issues().length;
+    out.ok(`Indexed ${records} records${issues > 0 ? ` (${issues} need attention)` : ''}`);
+
+    const token = createToken();
     const app = createApp({
       workspace: root,
       version: readPackageVersion(),
       startedAt: Date.now(),
+      token,
+      port,
+      index: runtime.index,
+      bus: runtime.bus,
     });
+
     server = await listen(app, port);
 
     await writeSession(root, {
-      token: createToken(),
+      token,
       port,
       pid: process.pid,
       startedAt: new Date().toISOString(),
@@ -141,7 +168,9 @@ export async function runStart(options: StartOptions): Promise<number> {
 
     return await settled;
   } catch (error) {
+    if (runtime !== null) await runtime.close().catch(() => undefined);
     await releaseLock(root);
+
     if (error instanceof WorkspaceBusyError) {
       out.error(error.message);
       out.dim('Stop the running instance, or start a different workspace.');

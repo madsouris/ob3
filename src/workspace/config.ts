@@ -100,6 +100,42 @@ export async function writeConfig(
   );
 }
 
+/** Shallow-merges a partial config (business/server/git are merged one level deep). */
+export const mergeConfig = (current: ObConfig, patch: unknown): ObConfig => {
+  if (typeof patch !== 'object' || patch === null || Array.isArray(patch)) {
+    throw new ConfigError('Config patch must be a JSON object', CONFIG_FILE);
+  }
+
+  const incoming = patch as Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...current };
+
+  for (const [key, value] of Object.entries(incoming)) {
+    if (key === 'version') continue;
+    const existing = (current as Record<string, unknown>)[key];
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      !Array.isArray(value) &&
+      typeof existing === 'object' &&
+      existing !== null &&
+      !Array.isArray(existing)
+    ) {
+      merged[key] = { ...(existing as Record<string, unknown>), ...(value as Record<string, unknown>) };
+    } else {
+      merged[key] = value;
+    }
+  }
+
+  const result = configSchema.safeParse(merged);
+  if (!result.success) {
+    const details = result.error.issues
+      .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+      .join('; ');
+    throw new ConfigError(`Invalid config patch: ${details}`, CONFIG_FILE);
+  }
+  return result.data;
+};
+
 /** A workspace is initialized when `.ob/config.json` exists (doc 02). */
 export async function isInitialized(root: string): Promise<boolean> {
   return exists(workspacePath(root, CONFIG_FILE));

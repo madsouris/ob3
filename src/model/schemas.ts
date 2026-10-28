@@ -434,7 +434,8 @@ const lineItemSchema = z.object({
   description: z.string().min(1),
   quantity: z.number().positive(),
   unit_price_cents: centsSchema,
-  total_cents: centsSchema,
+  // Derived server-side; clients may send it, but it is never trusted.
+  total_cents: centsSchema.optional(),
 });
 
 /**

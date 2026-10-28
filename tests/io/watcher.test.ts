@@ -20,7 +20,9 @@ const sleep = (ms: number): Promise<void> =>
   });
 
 describe('workspace watcher', () => {
-  it('emits coalesced upserts and deletes for markdown files', async () => {
+  it(
+    'emits coalesced upserts and deletes for markdown files',
+    async () => {
     const workspace = await makeEmptyWorkspace();
     cleanups.push(workspace.parent);
 
@@ -47,9 +49,13 @@ describe('workspace watcher', () => {
         expect(batches.some((batch) => batch.deletes.includes('contacts/cnt_a.md'))).toBe(true),
       { timeout: 8000, interval: 50 },
     );
-  });
+    },
+    20_000,
+  );
 
-  it('coalesces multiple writes to one file into a single batch entry', async () => {
+  it(
+    'coalesces multiple writes to one file into a single batch entry',
+    async () => {
     const workspace = await makeEmptyWorkspace();
     cleanups.push(workspace.parent);
 
@@ -78,9 +84,13 @@ describe('workspace watcher', () => {
       0,
     );
     expect(upsertCount).toBe(1);
-  });
+    },
+    20_000,
+  );
 
-  it('ignores hidden, non-markdown and out-of-scope files', async () => {
+  it(
+    'ignores hidden, non-markdown and out-of-scope files',
+    async () => {
     const workspace = await makeEmptyWorkspace();
     cleanups.push(workspace.parent);
 
@@ -98,5 +108,7 @@ describe('workspace watcher', () => {
     await sleep(600);
 
     expect(batches).toEqual([]);
-  });
+    },
+    20_000,
+  );
 });

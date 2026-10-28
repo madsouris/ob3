@@ -2,6 +2,8 @@
 
 Milestone: **M3** (API) / **M4** (UI) · Spec: `brief.md` §4.1 · Code: `src/index/search.ts`
 
+> **Status:** M3 ships a temporary case-insensitive substring matcher for `?q=`. FlexSearch lands in M4 along with the client search UI; this document describes the target behaviour.
+
 ## Purpose
 
 Fast, offline, typo-tolerant-enough search across all records, with zero native bindings and zero persisted state.

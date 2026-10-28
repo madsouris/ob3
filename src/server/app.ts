@@ -1,13 +1,19 @@
 import { readFileSync } from 'node:fs';
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
+import { PathEscapeError } from '../io/path-safety.js';
+import { ConfigError } from '../workspace/config.js';
+import type { AppContext } from './context.js';
+import { ApiError, errorBody } from './errors.js';
+import { createConfigRoutes } from './routes/config.js';
+import { createEventRoutes } from './routes/events.js';
+import { createIssueRoutes } from './routes/issues.js';
+import { createRecordRoutes } from './routes/records.js';
+import { allowedHostsFor, allowedOriginsFor, createSecurityMiddleware } from './security.js';
 
-export interface AppOptions {
-  readonly workspace: string;
-  readonly version: string;
-  readonly startedAt: number;
-}
+const MAX_BODY_BYTES = 1024 * 1024;
 
 const FALLBACK_HTML = `<!doctype html>
 <html lang="en">
@@ -19,6 +25,11 @@ const FALLBACK_HTML = `<!doctype html>
   </body>
 </html>
 `;
+
+const htmlHeaders = {
+  'Cache-Control': 'no-store',
+  'Content-Type': 'text/html; charset=utf-8',
+} as const;
 
 /**
  * Locates the single-file UI without assuming a cwd. From `src/server/app.ts`
@@ -40,55 +51,99 @@ export function resolveClientHtml(moduleUrl: string = import.meta.url): string |
   return null;
 }
 
-const htmlHeaders = {
-  'Cache-Control': 'no-store',
-  'Content-Type': 'text/html; charset=utf-8',
-} as const;
+/** The per-run token is inlined at request time, never written into `dist/`. */
+export const injectToken = (html: string, token: string): string =>
+  html.split('__OB_TOKEN__').join(token);
 
 /**
- * The HTTP surface for the local app. Everything is same-origin and loopback
- * only; security middleware and the token check arrive in M3 (docs/07).
+ * The HTTP surface for the local app: same-origin, loopback only, token-gated
+ * mutations (docs/07). Throws `ApiError`s that `onError` shapes into the
+ * `{ error: { code, message } }` envelope.
  */
-export const createApp = (options: AppOptions): Hono => {
+export const createApp = (context: AppContext): Hono => {
   const app = new Hono();
 
   app.use(
     '*',
     secureHeaders({
-      // Loopback HTTP only: HSTS would be meaningless and can confuse browsers.
       strictTransportSecurity: false,
       xFrameOptions: 'DENY',
+      contentSecurityPolicy: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+        formAction: ["'self'"],
+      },
+    }),
+  );
+
+  app.use(
+    '/api/*',
+    bodyLimit({
+      maxSize: MAX_BODY_BYTES,
+      onError: (c) =>
+        c.json(errorBody('payload_too_large', 'Request body exceeds 1 MB'), 413),
+    }),
+  );
+
+  app.use(
+    '/api/*',
+    createSecurityMiddleware({
+      token: context.token,
+      allowedHosts: allowedHostsFor(context.port),
+      allowedOrigins: allowedOriginsFor(context.port),
     }),
   );
 
   app.get('/api/health', (c) =>
     c.json({
       ok: true,
-      version: options.version,
-      workspace: options.workspace,
-      uptimeSeconds: Math.max(0, Math.round((Date.now() - options.startedAt) / 1000)),
+      version: context.version,
+      workspace: context.workspace,
+      generation: context.index.generation,
+      records: context.index.list().length,
+      uptimeSeconds: Math.max(0, Math.round((Date.now() - context.startedAt) / 1000)),
     }),
   );
 
-  app.get('/', (c) => c.html(resolveClientHtml() ?? FALLBACK_HTML, 200, htmlHeaders));
+  app.route('/api', createEventRoutes(context));
+  app.route('/api', createRecordRoutes(context));
+  app.route('/api', createConfigRoutes(context));
+  app.route('/api', createIssueRoutes(context));
+
+  app.get('/', (c) =>
+    c.html(injectToken(resolveClientHtml() ?? FALLBACK_HTML, context.token), 200, htmlHeaders),
+  );
 
   app.onError((error, c) => {
-    if (error instanceof HTTPException) {
-      return c.json(
-        { error: { code: 'http_error', message: error.message } },
-        error.status,
-      );
+    if (error instanceof ApiError) {
+      return c.json(errorBody(error.code, error.message, error.details), error.status);
     }
+    if (error instanceof PathEscapeError) {
+      return c.json(errorBody('path_escape', 'Path escapes the workspace'), 400);
+    }
+    if (error instanceof ConfigError) {
+      return c.json(errorBody('config_invalid', error.message), 500);
+    }
+    if (error instanceof HTTPException) {
+      return c.json(errorBody('internal', error.message), error.status);
+    }
+
     // Never leak stack traces or filesystem paths to the client.
     console.error(error);
-    return c.json({ error: { code: 'internal', message: 'Internal server error' } }, 500);
+    return c.json(errorBody('internal', 'Internal server error'), 500);
   });
 
   app.notFound((c) => {
     if (c.req.path.startsWith('/api/')) {
-      return c.json({ error: { code: 'not_found', message: 'Unknown route' } }, 404);
+      return c.json(errorBody('not_found', 'Unknown route'), 404);
     }
-    return c.html(resolveClientHtml() ?? FALLBACK_HTML, 200, htmlHeaders);
+    return c.html(injectToken(resolveClientHtml() ?? FALLBACK_HTML, context.token), 200, htmlHeaders);
   });
 
   return app;

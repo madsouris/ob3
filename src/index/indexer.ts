@@ -32,6 +32,15 @@ export interface ApplySummary {
   readonly ignored: boolean;
 }
 
+export interface ApplyOptions {
+  /**
+   * Programmatic writes already know what changed; they must not be dropped by
+   * self-write suppression. The pending marker stays so the watcher echo is
+   * still ignored.
+   */
+  readonly skipSelfWriteCheck?: boolean;
+}
+
 export interface IndexOptions {
   readonly root: string;
   /** Delays between parse retries; `[]` disables retrying (tests). */
@@ -127,6 +136,11 @@ export class RecordIndex {
     return this.byId.get(id) ?? null;
   }
 
+  getByPath(relativePath: string): IndexedRecord | null {
+    const id = this.pathToId.get(relativePath);
+    return id === undefined ? null : (this.byId.get(id) ?? null);
+  }
+
   /** Boards only contain tasks that live inside a column folder. */
   boardTasks(status: TaskStatus): readonly IndexedRecord[] {
     return this.list('task')
@@ -167,11 +181,11 @@ export class RecordIndex {
     return { generation: this.currentGeneration, upserted, deleted: [], ignored: false };
   }
 
-  async applyChange(relativePath: string): Promise<ApplySummary> {
+  async applyChange(relativePath: string, options: ApplyOptions = {}): Promise<ApplySummary> {
     const path = this.safePath(relativePath);
     if (path === null) return this.summary([], [], true);
 
-    const outcome = await this.change(path);
+    const outcome = await this.change(path, options);
     if (outcome === 'ignored') return this.summary([], [], true);
 
     this.recomputeDerivedIssues();
@@ -194,7 +208,7 @@ export class RecordIndex {
     return this.summary([], [path], false);
   }
 
-  async applyBatch(batch: WatchBatch): Promise<ApplySummary> {
+  async applyBatch(batch: WatchBatch, options: ApplyOptions = {}): Promise<ApplySummary> {
     const upserted: string[] = [];
     const deleted: string[] = [];
 
@@ -208,7 +222,7 @@ export class RecordIndex {
     for (const path of batch.upserts) {
       const safe = this.safePath(path);
       if (safe === null) continue;
-      const outcome = await this.change(safe);
+      const outcome = await this.change(safe, options);
       if (outcome === 'indexed') upserted.push(safe);
       if (outcome === 'missing') deleted.push(safe);
     }
@@ -252,7 +266,7 @@ export class RecordIndex {
       .map((entry) => relative(this.root, join(entry.parentPath, entry.name)).split(sep).join('/'));
   }
 
-  private async change(relativePath: string): Promise<ChangeOutcome> {
+  private async change(relativePath: string, options: ApplyOptions = {}): Promise<ChangeOutcome> {
     let absolute: string;
     try {
       absolute = resolveRecordPath(this.root, relativePath);
@@ -269,7 +283,7 @@ export class RecordIndex {
       return 'rejected';
     }
 
-    const parsed = await this.readAndParse(relativePath, absolute);
+    const parsed = await this.readAndParse(relativePath, absolute, options.skipSelfWriteCheck === true);
 
     if (parsed.kind === 'self-write') return 'ignored';
 
@@ -438,7 +452,11 @@ export class RecordIndex {
     return null;
   }
 
-  private async readAndParse(relativePath: string, absolutePath: string): Promise<ParseOutcome> {
+  private async readAndParse(
+    relativePath: string,
+    absolutePath: string,
+    skipSelfWriteCheck: boolean,
+  ): Promise<ParseOutcome> {
     const delays = [0, ...this.retryDelaysMs];
     let lastDetail: string | undefined;
 
@@ -456,7 +474,9 @@ export class RecordIndex {
         };
       }
 
-      if (consumeSelfWrite(relativePath, read.value.hash)) return { kind: 'self-write' };
+      if (!skipSelfWriteCheck && consumeSelfWrite(relativePath, read.value.hash)) {
+        return { kind: 'self-write' };
+      }
 
       try {
         const parsed = parseFrontmatter(read.value.text);
