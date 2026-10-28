@@ -136,8 +136,8 @@ Incremental work is O(1) per file. Search reindex is debounced (doc 10).
 
 ## Acceptance criteria
 
-- [ ] Replaying the watcher event log twice yields an identical index (idempotency).
-- [ ] Every row of the external-edit table passes as an integration test against `fixtures/workspaces/external-edits`.
-- [ ] Deleting a file while its detail view is open shows a "record removed" state, not a crash or a blank screen.
-- [ ] A parse error on one file does not prevent other records from rendering.
-- [ ] `ob` never writes a file as a side effect of scanning.
+- [x] Replaying the watcher event log twice yields an identical index (rescan idempotency test).
+- [x] Every row of the external-edit table passes as an integration test against `fixtures/workspaces/external-edits` (CRLF, BOM, oversized and symlink cases generated in-test).
+- [ ] Deleting a file while its detail view is open shows a "record removed" state, not a crash or a blank screen. *(M4 UI)*
+- [x] A parse error on one file does not prevent other records from rendering.
+- [x] `ob` never writes a file as a side effect of scanning (content-hash snapshot test).

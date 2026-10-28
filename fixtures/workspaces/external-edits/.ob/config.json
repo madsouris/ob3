@@ -1,0 +1,15 @@
+{
+  "version": "1.1.0",
+  "business": {
+    "name": "Fixture Studio",
+    "email": "fixture@example.com",
+    "address": "",
+    "phone": "",
+    "tax_rate_bps": 0,
+    "currency": "USD",
+    "payment_link_url": ""
+  },
+  "default_terms_document": null,
+  "server": { "port": 19731 },
+  "git": { "commit_on_save": true }
+}

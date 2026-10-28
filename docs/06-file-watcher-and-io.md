@@ -84,9 +84,9 @@ All writes for a single record are serialized through a per-path promise chain (
 
 ## Acceptance criteria
 
-- [ ] Writing a file while `ls -la` polls never shows a partially written file.
-- [ ] `ob` saving a record produces no second index update and no SSE echo loop.
-- [ ] An external edit 200 ms after an `ob` save is processed normally (not suppressed).
+- [ ] Writing a file while `ls -la` polls never shows a partially written file. *(atomic writer exists; no fault-injection test yet)*
+- [x] `ob` saving a record produces no second index update and no SSE echo loop (self-write suppression by content hash).
+- [x] An external edit 200 ms after an `ob` save is processed normally (not suppressed).
 - [ ] Deleting a directory externally and recreating it makes `ob` resume watching without a restart.
-- [ ] `..`, absolute paths, and `terms_document: ../../etc/passwd` are all rejected.
-- [ ] 10 concurrent PATCHes to one record produce a consistent final file and no lost fields.
+- [x] `..`, absolute paths, and `terms_document: ../../etc/passwd` are all rejected at the path layer (`resolveInWorkspace`); wiring into the HTTP layer lands in M3.
+- [ ] 10 concurrent PATCHes to one record produce a consistent final file and no lost fields. *(M3)*

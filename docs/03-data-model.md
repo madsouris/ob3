@@ -116,8 +116,8 @@ No cascading deletes, no automatic nulling, no referential enforcement on write 
 
 ## Acceptance criteria
 
-- [ ] `taxCents(250000, 850) === 21250` and `totalCents(250000, 850) === 271250`.
-- [ ] Property test: for random cents and bps, `total === subtotal + tax` and `tax === round(subtotal*bps/10000)`.
-- [ ] Creating a contact twice with the same name produces two ids and two files, no overwrite.
-- [ ] Creating a task in `todo` writes no `status` key.
-- [ ] Renaming a file on disk does not change any id and does not create a duplicate in the index.
+- [x] `taxCents(250000, 850) === 21250` and `totalCents(250000, 850) === 271250`.
+- [x] Property test: for random cents and bps, `total === subtotal + tax` and `tax === round(subtotal*bps/10000)`.
+- [ ] Creating a contact twice with the same name produces two ids and two files, no overwrite. *(M3 API)*
+- [ ] Creating a task in `todo` writes no `status` key. *(M3 API)*
+- [x] Renaming a file on disk does not change any id and does not create a duplicate in the index.

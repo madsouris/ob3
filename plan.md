@@ -13,9 +13,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 | Spec (brief v1.1.0) | `[x]` |
 | Architecture decisions | `[x]` — [`docs/00-decisions.md`](./docs/00-decisions.md) |
 | Feature documentation | `[x]` — [`docs/`](./docs/README.md) |
-| Source code | `[~]` — M0 scaffolding + M1 CLI/workspace landed; M2 next |
+| Source code | `[~]` — M0–M2 landed (tooling, CLI/workspace, data layer); M3 next |
 
-**Next action:** milestone M2 (data layer: schemas, frontmatter round-trip, index, watcher).
+**Next action:** milestone M3 (HTTP API, security middleware, SSE).
 
 ---
 
@@ -64,18 +64,19 @@ Docs: [`docs/01-cli-and-preflight.md`](./docs/01-cli-and-preflight.md), [`docs/0
 
 Goal: files ↔ typed records, correct under concurrent external editing.
 
-- [ ] Zod schemas for `contact`, `project`, `task`, `estimate`, `invoice`, `document` + `config.json`
-- [ ] Money helpers: `cents` integer math, `round_half_up`, `formatCents`, `parseMoney` — unit-tested against edge cases
-- [ ] ULID + slug generator; `ensureId` (explicit "Assign ID" action only)
-- [ ] Frontmatter round-trip service using `yaml` Document API: preserve comments/order/unknown keys, body byte-identical, newline-style preserving
-- [ ] Atomic write: temp-in-same-dir + `rename`; echo-suppression registry
-- [ ] Indexer: full scan, id-keyed map, path cache, soft-ref resolution, orphan/duplicate/unidentified detection
-- [ ] Watcher: chokidar on `contacts|projects|tasks|estimates|invoices|documents`, `awaitWriteFinish`, ~150 ms coalescing, parse retry ×2 over 500 ms, own-write suppression
-- [ ] Issue model + registry (`parse-error`, `duplicate-id`, `missing-id`, `orphan-task-path`, `dangling-ref`, `schema-invalid`, `unreadable`)
-- [ ] Task folder ↔ status mapping helper (`tasks/<status>/`)
-- [ ] Test fixtures: `fixtures/workspaces/{demo,empty,broken,external-edits}`
+- [x] Zod schemas (`src/model/schemas.ts`): strict write schemas + permissive read projector with fallbacks and `schema-invalid` issues
+- [x] Money helpers (`src/model/money.ts`): `roundHalfUp`, `lineTotalCents`, `taxCents`, `totalCents`, `sumLineTotals`, `formatCents`, `parseMoney` — property-tested over 1,000 random inputs
+- [x] ULID + slug generators (`src/model/ids.ts`, `src/model/slug.ts`) with injectable clock/randomness; `RECORD_ID_PATTERN` rejects the v1.0.0 sample ids
+- [x] Frontmatter round-trip (`src/model/frontmatter.ts`): `yaml` Document API, byte-identical body, comments/order/unknown keys preserved, CRLF + BOM preserved, `flowCollectionPadding: false` to avoid reformatting untouched flow arrays
+- [x] Atomic write (`src/io/atomic.ts`) + hash-based self-write suppression (`src/io/self-writes.ts`)
+- [x] Indexer (`src/index/indexer.ts`): full scan, id-keyed map, path cache, canonical-wins duplicate handling with survivor promotion, soft-ref resolution, task column derivation
+- [x] Watcher (`src/io/watcher.ts`): chokidar on the six managed dirs, `awaitWriteFinish`, 150 ms coalescing, hidden/non-`.md`/symlink filtering
+- [x] Issue model + registry (`src/model/issue.ts`): `parse-error`, `unreadable`, `too-large`, `missing-id`, `duplicate-id`, `duplicate-number`, `schema-invalid`, `orphan-task-path`, `dangling-ref`, `conflict-marker`, each with default actions
+- [x] Task folder ↔ status helpers (`src/model/task-status.ts`), including orphan detection
+- [x] Path safety (`src/io/path-safety.ts`): `normalizeRelativePath`, `resolveInWorkspace`, `resolveRecordPath`, symlink-escape detection
+- [x] Fixtures: `demo` (canonical seed) and `external-edits` (9 indexed records + 7 distinct issues); CRLF/BOM/oversized/symlink cases generated in tests
 
-**Exit criteria:** opening the workspace in an external editor and renaming/reordering/moving files never crashes the process, never silently rewrites a file, and always converges the index; `vitest` covers every row of the external-edit table in `brief.md` §6.
+**Exit criteria:** met. 237 tests pass, including a byte-equality frontmatter suite, the full external-edit contract (rename, move, body edit, reordered/unknown keys, duplicate id + promotion, missing id, invalid YAML, dangling refs, conflict markers, duplicate numbers), parse retry, self-write suppression, path-escape rejection, and a snapshot test proving scans never write to disk.
 
 Docs: [`docs/03-data-model.md`](./docs/03-data-model.md), [`docs/04-frontmatter-roundtrip.md`](./docs/04-frontmatter-roundtrip.md), [`docs/05-indexer-and-external-edits.md`](./docs/05-indexer-and-external-edits.md), [`docs/06-file-watcher-and-io.md`](./docs/06-file-watcher-and-io.md)
 

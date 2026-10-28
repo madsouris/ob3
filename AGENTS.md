@@ -187,7 +187,7 @@ Violating any of these is a bug, not a style preference.
 
 ## 8. Working Notes
 
-* **Repo state:** M0 + M1 landed — CLI (`init`/`check`/`start`), pre-flight, init wizard, workspace scaffolding, demo seed, lock, port probing, atomic writes, and a minimal Hono server (`/api/health` + UI shell). `ob sync` intentionally exits 1 until M6. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
+* **Repo state:** M0–M2 landed — CLI (`init`/`check`/`start`), pre-flight, init wizard, workspace scaffolding, demo seed, lock, port probing, atomic writes, record schemas, cents math, frontmatter round-trip, id-keyed index with issue reporting, chokidar watcher, and a minimal Hono server (`/api/health` + UI shell). `ob sync` intentionally exits 1 until M6. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
 * **Demo data:** never add records as code. Edit `fixtures/workspaces/demo/`, then `pnpm build` (postbuild copies it to `dist/demo`). Tests assert the fixture matches what `init --demo` writes.
 * **Dependencies:** no new dependency without justification — must be pure-JS (or optional-native), maintained, and consistent with §4. `js-yaml`, `moment`, `express`, `better-sqlite3` are off-limits.
 * **Known deferrals (v1):** CSV importer, multi-workspace switching, server-side PDF, email sending, payments, encryption at rest.

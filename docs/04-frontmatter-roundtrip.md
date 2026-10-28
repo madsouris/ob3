@@ -83,9 +83,9 @@ Never last-write-wins silently.
 
 Fixture-based tests must assert **byte equality**, not semantic equality:
 
-- [ ] `read → write with no field change` produces a byte-identical file (modulo nothing).
-- [ ] Editing `status` in a file with inline comments preserves every other byte.
-- [ ] A file with unknown keys `foo: { a: [1,2] }` keeps them after an `ob` edit, with order intact.
-- [ ] CRLF file stays CRLF after edit.
-- [ ] Body containing `---` and code fences is untouched.
-- [ ] `js-yaml` import fails lint.
+- [x] `read → write with no field change` produces a byte-identical file (modulo nothing).
+- [x] Editing `status` in a file with inline comments preserves every other byte.
+- [x] A file with unknown keys `foo: { a: [1,2] }` keeps them after an `ob` edit, with order intact.
+- [x] CRLF file stays CRLF after edit.
+- [x] Body containing `---` and code fences is untouched.
+- [x] `js-yaml` import fails lint (ESLint `no-restricted-imports`, ADR-04).
