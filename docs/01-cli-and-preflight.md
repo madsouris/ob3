@@ -28,6 +28,7 @@ Take the user from a terminal command to a running local server, refusing to sta
 | `--no-git` | init | off | Do not `git init` |
 | `--no-open` | start | off | Do not open a browser (CI, remote) |
 | `--verbose` | all | off | Log watcher decisions, git argv, timings |
+| `--json` | check | off | Machine-readable diagnostics (stable field names) |
 | `--version`, `--help` | all | — | Print and exit 0 |
 
 Unknown flags exit `2` with usage. Flags that conflict (`--demo --empty`) exit `2`.
@@ -72,8 +73,8 @@ Stdout carries human status lines only. Diagnostics, git argv, and watcher chatt
 
 ## Acceptance criteria
 
-- [ ] Fresh clone → `node dist/cli/index.js --help` exits 0 and lists all flags.
-- [ ] Missing `git config user.email` prints one copy-pasteable command and exits non-zero; no server starts, no lock file remains.
-- [ ] `--port 19731` with 19731 occupied prints the actual bound port and opens that URL.
+- [x] Fresh clone → `node dist/cli/index.js --help` exits 0 and lists all flags.
+- [x] Missing `git config user.email` prints one copy-pasteable command and exits non-zero; no server starts, no lock file remains.
+- [ ] `--port 19731` with 19731 occupied prints the actual bound port and opens that URL. *(covered by `tests/workspace/port.test.ts`; auto-skips where `listen(2)` is forbidden)*
 - [ ] `Ctrl+C` at any phase leaves no `.ob/state/server.lock` and no listening socket.
-- [ ] `ob check --json` is stable enough to assert in tests (versioned fields).
+- [x] `ob check --json` is stable enough to assert in tests (versioned fields).

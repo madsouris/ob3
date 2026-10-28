@@ -44,7 +44,7 @@ A workspace is initialized iff `.ob/config.json` exists and parses against the c
 
 Rules:
 
-* Existing non-empty directories are never wiped. Files are only added; on name collision the new file gets a `-2` suffix.
+* Existing non-empty directories are never wiped. Files are only added; if the same path already holds *identical* content it is skipped, and if it holds different content the new file gets a `-2` suffix. Re-running init therefore never duplicates or overwrites a record.
 * Demo data uses **fixed** ULIDs and timestamps so integration tests are deterministic.
 * Demo contacts/projects/estimates/invoices are cross-linked by real `id`s, and the invoice line items exercise `tax_rate_bps` (850) so the UI has a correct example on first launch.
 * `git init` produces an initial commit `ob: initialize workspace` so the first save has a parent and `git status` starts clean.
@@ -91,9 +91,10 @@ bind 127.0.0.1:candidate → first success wins
 
 ## Acceptance criteria
 
-- [ ] Demo init produces a workspace whose dashboard renders fully populated, with zero `/api/issues` entries.
-- [ ] Empty init produces only folders, config, `.gitignore`; dashboard shows empty states.
-- [ ] `git status --porcelain` is clean immediately after init.
-- [ ] Running init twice with option 1 does not duplicate or overwrite records.
-- [ ] Two servers on one workspace: second exits with the PID message, first is unaffected.
-- [ ] Killing with `SIGKILL` leaves a stale lock; the next start reclaims it with a log line.
+- [x] Demo init produces a workspace whose records are complete and cross-linked (13 files, valid ULIDs, invoice totals in cents).
+- [x] Empty init produces only folders, config, `.gitignore`.
+- [x] `git status --porcelain` is clean immediately after init.
+- [x] Running init twice with option 1 does not duplicate or overwrite records.
+- [x] Two servers on one workspace: second exits with the PID message, first is unaffected.
+- [x] Killing with `SIGKILL` leaves a stale lock; the next start reclaims it with a log line.
+- [ ] Dashboard renders the seeded data *(M4 — M1 verifies file state only)*

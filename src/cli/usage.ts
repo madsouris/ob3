@@ -15,6 +15,7 @@ Options:
   --no-git       Do not run git init during initialization
   --no-open      Do not open a browser
   --verbose      Verbose diagnostics on stderr
+  --json         Machine-readable output for "ob check"
   -h, --help     Show this help and exit
   -v, --version  Show version and exit
 `;

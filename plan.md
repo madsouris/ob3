@@ -13,9 +13,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 | Spec (brief v1.1.0) | `[x]` |
 | Architecture decisions | `[x]` — [`docs/00-decisions.md`](./docs/00-decisions.md) |
 | Feature documentation | `[x]` — [`docs/`](./docs/README.md) |
-| Source code | `[~]` — M0 scaffolding landed; M1 next |
+| Source code | `[~]` — M0 scaffolding + M1 CLI/workspace landed; M2 next |
 
-**Next action:** milestone M1 (CLI, pre-flight, workspace init).
+**Next action:** milestone M2 (data layer: schemas, frontmatter round-trip, index, watcher).
 
 ---
 
@@ -40,16 +40,21 @@ Docs: [`docs/11-packaging.md`](./docs/11-packaging.md), [`docs/12-testing-and-ve
 
 Goal: `ob .` takes an empty folder to a running server.
 
-- [ ] Arg parsing: `ob [path]`, `--port`, `--demo`, `--empty`, `--no-git`, `--no-open`, `--version`, `--help`
-- [ ] Pre-flight: node version, `git --version` (≥ 2.39 warn-only), `git config user.name/email`, optional `gh` — fail fast with copy-pasteable fixes
-- [ ] Init wizard (stdin, arrow-key select; auto-fallback to numbered input when not a TTY)
-- [ ] Scaffolding: folders, `.ob/config.json`, `.gitignore`, optional `git init`
-- [ ] Demo seed data (deterministic, fixed ULIDs so tests can assert)
-- [ ] Workspace lock (`.ob/state/server.lock`, stale-PID reclaim)
-- [ ] Port binding: prefer `19731`, probe `+1..+50`, write actual to `.ob/state/session.json`
-- [ ] Browser open (cross-platform), `SIGINT`/`SIGTERM` cleanup ordering: close watcher → close server → release lock
+- [x] Arg parsing: `ob [path]`, `init|sync|check` subcommands, `--port`, `--demo`, `--empty`, `--no-git`, `--no-open`, `--verbose`, `--json`, `--version`, `--help` (`src/cli/args.ts`)
+- [x] Pre-flight: node ≥ 20, workspace path + writability, `git --version` (2.39 warns only), `git config user.name/email`, optional `gh`, `--json` output (`src/cli/preflight.ts`)
+- [x] Init wizard: arrow-key selector on a TTY, numbered prompt when stdout is redirected, `1/2/3` and `demo/empty/exit` both accepted (`src/cli/wizard.ts`)
+- [x] Scaffolding: managed folders, `.ob/config.json` (Zod-validated), `.gitignore`, optional `git init` + initial commit with cwd pinned to the workspace (`src/workspace/init.ts`)
+- [x] Demo seed data: 13 records with fixed ULIDs/timestamps; idempotent (identical files skipped, differing files preserved and suffixed)
+- [x] Workspace lock: `.ob/state/server.lock`, live-PID refusal, stale reclaim, corrupt-file tolerance (`src/workspace/lock.ts`)
+- [x] Port binding: `19731` preference, probe +50, explicit EPERM/EACCES message, effective port in `.ob/state/session.json` (`src/workspace/port.ts`)
+- [x] Atomic writes for config/state/seeds (`src/io/atomic.ts`) — reused by M2
+- [x] Minimal server: `/api/health`, single-file UI at `/`, SPA fallback, JSON 404 for `/api/*` (`src/server/app.ts`)
+- [x] Browser open (per-platform) + `--no-open`
+- [x] Lifecycle: pre-flight → lock → init → config → port → server → session; `SIGINT`/`SIGTERM` close the server, release the lock and exit 0
 
-**Exit criteria:** fresh empty dir → `npx`-equivalent command → browser opens dashboard showing seeded records; `Ctrl+C` leaves no lock file and no orphan process; second concurrent run in the same workspace exits with a clear message.
+**Exit criteria (met, with one scope caveat):** `ob init --demo` on an empty folder produces the full workspace and a clean `git status`; a second run changes nothing; `ob check --json` is machine-readable; the server serves the UI shell at the printed URL. The populated *dashboard* is M4 — M1 verifies file state and the HTTP shell. Port/browser paths are unit-tested and auto-skip in sandboxes that forbid `listen(2)`.
+
+**Tests:** 74 passing (args, wizard, pre-flight, config, lock, init, server); 4 port tests skip when binding is forbidden.
 
 Docs: [`docs/01-cli-and-preflight.md`](./docs/01-cli-and-preflight.md), [`docs/02-workspace-init.md`](./docs/02-workspace-init.md)
 

@@ -5,8 +5,8 @@ One document per functional area. The PRD ([`../brief.md`](../brief.md)) is the 
 | Doc | Area | Milestone | Status |
 |---|---|---|---|
 | [00-decisions](./00-decisions.md) | Architecture decision record | — | `[x]` |
-| [01-cli-and-preflight](./01-cli-and-preflight.md) | CLI entry, flags, dependency diagnostics | M1 | `[ ]` |
-| [02-workspace-init](./02-workspace-init.md) | Init wizard, scaffolding, demo data, lock, port | M1 | `[ ]` |
+| [01-cli-and-preflight](./01-cli-and-preflight.md) | CLI entry, flags, dependency diagnostics | M1 | `[~]` |
+| [02-workspace-init](./02-workspace-init.md) | Init wizard, scaffolding, demo data, lock, port | M1 | `[~]` |
 | [03-data-model](./03-data-model.md) | Schemas, IDs, money/cents, references | M2/M5 | `[ ]` |
 | [04-frontmatter-roundtrip](./04-frontmatter-roundtrip.md) | YAML Document API read/write | M2 | `[ ]` |
 | [05-indexer-and-external-edits](./05-indexer-and-external-edits.md) | In-memory index, issues, external-edit behaviour | M2 | `[ ]` |
