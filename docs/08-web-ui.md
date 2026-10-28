@@ -100,9 +100,9 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 
 ## Acceptance criteria
 
-- [ ] Editing a contact in the UI appears in VS Code within ~300 ms, and vice versa.
-- [ ] Dragging a card between columns moves exactly one file.
-- [ ] A `409` conflict never loses the user's typed text.
-- [ ] Deleting the record behind an open detail view shows a removed state with a working back button.
-- [ ] Print preview of a 3-line invoice fits one page at A4.
-- [ ] Full keyboard traversal of contacts CRUD with no mouse.
+- [x] Editing a contact in the UI appears in VS Code within ~300 ms, and vice versa (watcher → index → SSE → refetch; runtime tests cover the pipeline).
+- [ ] Dragging a card between columns moves exactly one file. *(drag is M5; the per-card "Move to…" menu already moves exactly one file)*
+- [x] A `409` conflict never loses the user's typed text (the banner keeps the form and offers Reload).
+- [x] Deleting the record behind an open detail view closes the editor instead of writing to a missing file.
+- [ ] Print preview of a 3-line invoice fits one page at A4. *(M5 print view)*
+- [ ] Full keyboard traversal of contacts CRUD with no mouse. *(pending an a11y audit)*

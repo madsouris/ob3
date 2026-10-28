@@ -28,26 +28,33 @@ Spec version: **1.1.0** (implementation-ready)
 ```
 brief.md                 PRD / spec — locked stack, schemas, invariants
 plan.md                  Milestones M0–M7, checkboxes, exit criteria
+PRODUCT.md               durable product truth (impeccable `init`)
+DESIGN.md                design contract — Operate mode, tokens, type, motion
+components.json          shadcn/ui config (aliases resolve to src/ui)
 docs/README.md           Index + doc status legend
 docs/00-decisions.md     ADRs (AD-01…AD-14) — why each decision won
 docs/01…12-*.md          One document per functional area
 AGENTS.md                This file
 ```
 
-Planned source layout (created progressively as each milestone lands — M0 scaffolded `src/cli/`, `src/ui/`, `tests/`, `scripts/`; M1 added `src/workspace/`, `src/io/`, `src/server/`):
+Source layout (created progressively as each milestone lands — M0 scaffolded `src/cli/`, `src/ui/`, `tests/`, `scripts/`; M1 added `src/workspace/`, `src/io/`, `src/server/`; M2 added `src/model/`, `src/index/`; M3 expanded `src/server/`; M4 filled `src/ui/`):
 
 ```
 src/cli/         arg parsing, pre-flight, init wizard, lifecycle (M1)
 src/workspace/   scaffolding, config, demo data, lock, port (M1)
 src/model/       Zod schemas, ids, cents, frontmatter round-trip (M2)
 src/io/          atomic writes, watcher, echo suppression, path safety (M2)
-src/index/       in-memory index, issues, search (M2/M3)
-src/server/      Hono app, routes, security middleware, SSE (M3)
+src/index/       in-memory index, issues (M2), search (M5)
+src/server/      app, routes/, services/, security, SSE, runtime (M3)
 src/git/         subprocess wrapper, commit-on-save, sync chain (M6)
 src/ui/          React SPA (M4/M5)
-src/shared/      cents helpers, types shared by server + client
+  app.tsx        shell, routing, command palette, nav
+  views/         one file per surface (dashboard, contacts, …)
+  components/    composed components; components/ui/ is registry-generated
+  lib/           api client, SSE store, router, theme, formatting
+  styles.css     Tailwind v4 entry + semantic design tokens
 tests/           vitest unit/integration
-fixtures/        workspaces: demo (canonical seed, shipped as dist/demo), external-edits, broken-config, git-bare
+fixtures/        workspaces: demo (canonical seed, shipped as dist/demo), external-edits
 ```
 
 ---
@@ -187,7 +194,8 @@ Violating any of these is a bug, not a style preference.
 
 ## 8. Working Notes
 
-* **Repo state:** M0–M3 landed — CLI (`init`/`check`/`start`), pre-flight, init wizard, workspace scaffolding, demo seed, lock, port probing, atomic writes, record schemas, cents math, frontmatter round-trip, id-keyed index with issue reporting, chokidar watcher, and the HTTP API (records, config, issues, SSE) with Host/Origin/token hardening. `/api/git/*` and `ob sync` intentionally remain unimplemented until M6. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
+* **Repo state:** M0–M4 landed — CLI, workspace init, data layer (schemas/index/watcher), HTTP API with security, and the React SPA (shell, contacts/projects/documents CRUD, board, billing read views, settings, issue triage). `/api/git/*` and `ob sync` intentionally remain unimplemented until M6. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
+* **UI stack:** Tailwind v4 (`src/ui/styles.css` with `@theme inline`), shadcn/ui in `src/ui/components/ui` generated from the registry — add with `pnpm dlx shadcn@latest add <component>`, never hand-write a primitive. `@/` maps to `src/ui` in both Vite and TypeScript (`moduleResolution: Bundler`). Tokens are semantic only; no raw colours in components.
 * **Demo data:** never add records as code. Edit `fixtures/workspaces/demo/`, then `pnpm build` (postbuild copies it to `dist/demo`). Tests assert the fixture matches what `init --demo` writes.
 * **Dependencies:** no new dependency without justification — must be pure-JS (or optional-native), maintained, and consistent with §4. `js-yaml`, `moment`, `express`, `better-sqlite3` are off-limits.
 * **Known deferrals (v1):** CSV importer, multi-workspace switching, server-side PDF, email sending, payments, encryption at rest.

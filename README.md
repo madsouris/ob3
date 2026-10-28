@@ -6,7 +6,7 @@
 npx @operationbegin/crm .
 ```
 
-> **Status:** pre-release. M0 (tooling) and M1 (CLI + workspace init) are complete; the data layer, API and UI land in M2–M7. See [`plan.md`](./plan.md).
+> **Status:** pre-release. M0–M4 are complete: CLI + workspace init, data layer, HTTP API and the web UI. Kanban drag-and-drop, invoice editing, search and Git sync land in M5–M6. See [`plan.md`](./plan.md).
 
 ## Why
 
@@ -25,7 +25,7 @@ pnpm build
 node dist/cli/index.js ~/ob-demo --demo
 ```
 
-That seeds a demo workspace, starts the server at `http://127.0.0.1:19731` and opens it. Until M4 the page is only a shell — the real output today is the Markdown in `~/ob-demo`, which you can open in any editor.
+That seeds a demo workspace, starts the server at `http://127.0.0.1:19731` and opens the app. Use the sidebar to browse contacts, projects, tasks, estimates, invoices and documents; anything you change is written straight back to the Markdown files in `~/ob-demo`.
 
 ```bash
 node dist/cli/index.js check ~/ob-demo --json   # diagnostics
@@ -55,13 +55,22 @@ pnpm build        # build server (tsc) + single-file UI (vite) + postbuild check
 pnpm typecheck    # tsc --noEmit
 pnpm test         # vitest
 pnpm lint         # eslint
+
+# add a shadcn/ui primitive (never hand-write one)
+pnpm dlx shadcn@latest add <component>
 ```
+
+UI notes:
+
+- Tailwind v4 with semantic tokens in `src/ui/styles.css`; components in `src/ui/components/ui` come from the shadcn registry.
+- `@/` maps to `src/ui` in Vite and TypeScript. All UI code uses that alias.
+- `PRODUCT.md` and `DESIGN.md` record product truth and the visual contract; read them before changing the interface.
 
 pnpm is the development package manager only — end users install via `npx`/`npm i -g`.
 
 Notes:
 
-- ESM only. Relative imports need an explicit `.js` extension (NodeNext resolution), even from `.ts` sources.
+- ESM only. Relative imports keep an explicit `.js` extension: TypeScript uses `moduleResolution: Bundler` for the `@/` alias, but the compiled server runs on Node ESM.
 - Frontmatter is read and written with the `yaml` Document API. `js-yaml` is banned (ADR-04) and lint-enforced.
 - Money is stored as integer cents; tax rates are integer basis points (ADR-07).
 

@@ -12,7 +12,7 @@ One document per functional area. The PRD ([`../brief.md`](../brief.md)) is the 
 | [05-indexer-and-external-edits](./05-indexer-and-external-edits.md) | In-memory index, issues, external-edit behaviour | M2 | `[~]` |
 | [06-file-watcher-and-io](./06-file-watcher-and-io.md) | chokidar, atomic writes, echo suppression | M2 | `[~]` |
 | [07-server-api-and-security](./07-server-api-and-security.md) | Hono routes, error envelope, SSE, security | M3 | `[~]` |
-| [08-web-ui](./08-web-ui.md) | SPA shell, CRUD views, Kanban, print | M4/M5 | `[ ]` |
+| [08-web-ui](./08-web-ui.md) | SPA shell, CRUD views, Kanban, print | M4/M5 | `[~]` |
 | [09-git-sync](./09-git-sync.md) | Commit-on-save, sync lifecycle, recovery | M6 | `[ ]` |
 | [10-search](./10-search.md) | FlexSearch index, query semantics | M3/M4 | `[~]` |
 | [11-packaging](./11-packaging.md) | Single-file bundle, `bin`, package publish | M0/M7 | `[~]` |

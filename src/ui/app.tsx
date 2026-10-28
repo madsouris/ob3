@@ -1,0 +1,279 @@
+import { useEffect, useState } from 'react';
+import type { ComponentType, ReactNode } from 'react';
+import {
+  FileTextIcon,
+  FolderIcon,
+  LayoutDashboardIcon,
+  ListTodoIcon,
+  MenuIcon,
+  MoonIcon,
+  ReceiptIcon,
+  SearchIcon,
+  SettingsIcon,
+  SunIcon,
+  TriangleAlertIcon,
+  UsersIcon,
+} from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CommandPalette } from '@/components/command-palette';
+import { navigate, useRoute } from '@/lib/router';
+import { useTheme } from '@/lib/theme';
+import { useWorkspace } from '@/lib/workspace';
+import { Billing } from '@/views/billing';
+import { Contacts } from '@/views/contacts';
+import { Dashboard } from '@/views/dashboard';
+import { Documents } from '@/views/documents';
+import { Issues } from '@/views/issues';
+import { Projects } from '@/views/projects';
+import { Settings } from '@/views/settings';
+import { Tasks } from '@/views/tasks';
+
+interface NavItem {
+  readonly view: string;
+  readonly label: string;
+  readonly icon: ComponentType<{ readonly 'aria-hidden'?: boolean }>;
+  readonly badge?: number;
+  readonly alert?: boolean;
+}
+
+const NavButton = ({
+  item,
+  active,
+  onNavigate,
+}: {
+  readonly item: NavItem;
+  readonly active: boolean;
+  readonly onNavigate: () => void;
+}) => (
+  <Button
+    variant={active ? 'secondary' : 'ghost'}
+    size="sm"
+    className="w-full justify-start gap-2"
+    onClick={onNavigate}
+    aria-current={active ? 'page' : undefined}
+  >
+    <item.icon aria-hidden />
+    <span className="truncate">{item.label}</span>
+    {item.badge === undefined || item.badge === 0 ? null : (
+      <Badge
+        variant={item.alert === true ? 'destructive' : 'secondary'}
+        className="ml-auto"
+        aria-label={`${item.badge} items`}
+      >
+        {item.badge}
+      </Badge>
+    )}
+  </Button>
+);
+
+const NotFound = ({ view }: { readonly view: string }) => (
+  <Alert variant="destructive">
+    <TriangleAlertIcon aria-hidden />
+    <AlertTitle>Unknown view “{view}”</AlertTitle>
+    <AlertDescription>
+      <Button variant="link" size="sm" className="h-auto px-0" onClick={() => navigate('dashboard')}>
+        Go to the dashboard
+      </Button>
+    </AlertDescription>
+  </Alert>
+);
+
+const LoadingState = () => (
+  <div className="flex flex-col gap-4">
+    <Skeleton className="h-8 w-56" />
+    <Skeleton className="h-4 w-96" />
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {[0, 1, 2, 3].map((key) => (
+        <Skeleton key={key} className="h-28 w-full" />
+      ))}
+    </div>
+    <Skeleton className="h-64 w-full" />
+  </div>
+);
+
+const renderView = (view: string, id: string | null): ReactNode => {
+  switch (view) {
+    case 'dashboard':
+      return <Dashboard />;
+    case 'contacts':
+      return <Contacts initialId={id} />;
+    case 'projects':
+      return <Projects initialId={id} />;
+    case 'tasks':
+      return <Tasks initialId={id} />;
+    case 'estimates':
+      return <Billing type="estimate" initialId={id} />;
+    case 'invoices':
+      return <Billing type="invoice" initialId={id} />;
+    case 'documents':
+      return <Documents initialId={id} />;
+    case 'settings':
+      return <Settings />;
+    case 'issues':
+      return <Issues />;
+    default:
+      return <NotFound view={view} />;
+  }
+};
+
+export const App = () => {
+  const route = useRoute();
+  const { records, issues, config, loading, error } = useWorkspace();
+  const { theme, toggle } = useTheme();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  const workspaceName =
+    config?.business.name === undefined || config.business.name === ''
+      ? 'Untitled workspace'
+      : config.business.name;
+
+  const nav: readonly NavItem[] = [
+    { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboardIcon },
+    { view: 'contacts', label: 'Contacts', icon: UsersIcon, badge: records.contact.length },
+    { view: 'projects', label: 'Projects', icon: FolderIcon, badge: records.project.length },
+    {
+      view: 'tasks',
+      label: 'Tasks',
+      icon: ListTodoIcon,
+      badge: records.task.filter((task) => task.status !== 'done').length,
+    },
+    { view: 'estimates', label: 'Estimates', icon: FileTextIcon, badge: records.estimate.length },
+    { view: 'invoices', label: 'Invoices', icon: ReceiptIcon, badge: records.invoice.length },
+    { view: 'documents', label: 'Documents', icon: FileTextIcon, badge: records.document.length },
+    {
+      view: 'issues',
+      label: 'Needs attention',
+      icon: TriangleAlertIcon,
+      badge: issues.length,
+      alert: true,
+    },
+    { view: 'settings', label: 'Settings', icon: SettingsIcon },
+  ];
+
+  useEffect(() => {
+    document.title = `ob — ${workspaceName}`;
+  }, [workspaceName]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const navList = (onNavigate?: () => void): ReactNode => (
+    <nav className="flex flex-col gap-1" aria-label="Main">
+      {nav.map((item) => (
+        <NavButton
+          key={item.view}
+          item={item}
+          active={route.view === item.view}
+          onNavigate={() => {
+            navigate(item.view);
+            onNavigate?.();
+          }}
+        />
+      ))}
+    </nav>
+  );
+
+  const totalRecords =
+    records.contact.length +
+    records.project.length +
+    records.task.length +
+    records.estimate.length +
+    records.invoice.length +
+    records.document.length;
+
+  return (
+    <div className="flex h-dvh overflow-hidden bg-background">
+      <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar md:flex">
+        <div className="flex h-14 items-center gap-2 border-b px-4">
+          <span className="font-mono text-sm font-semibold tracking-tight">ob</span>
+          <span className="truncate text-xs text-muted-foreground">{workspaceName}</span>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">{navList()}</div>
+        <div className="border-t px-3 py-3">
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            {totalRecords} records in {records.contact.length === 0 ? 'an empty' : 'this'} workspace.
+            Files are the database.
+          </p>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 md:px-4">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label="Open navigation">
+                <MenuIcon aria-hidden />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetHeader className="border-b p-4">
+                <SheetTitle className="font-mono text-sm">ob</SheetTitle>
+                <SheetDescription>{workspaceName}</SheetDescription>
+              </SheetHeader>
+              <div className="p-2">{navList()}</div>
+            </SheetContent>
+          </Sheet>
+
+          <div className="hidden min-w-0 flex-col md:flex">
+            <span className="truncate text-sm font-medium">{workspaceName}</span>
+            <span className="text-[11px] text-muted-foreground">
+              {totalRecords} records · local only
+            </span>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPaletteOpen(true)}>
+              <SearchIcon data-icon="inline-start" />
+              <span className="hidden sm:inline">Search</span>
+              <kbd className="ml-1 rounded border px-1 font-mono text-[10px] text-muted-foreground">
+                ⌘K
+              </kbd>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={toggle}
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            >
+              {theme === 'dark' ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
+            </Button>
+          </div>
+        </header>
+
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8">
+            {error === null ? null : (
+              <Alert variant="destructive">
+                <TriangleAlertIcon aria-hidden />
+                <AlertTitle>Cannot reach the workspace</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            {loading && config === null ? <LoadingState /> : renderView(route.view, route.id)}
+          </div>
+        </main>
+      </div>
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+    </div>
+  );
+};

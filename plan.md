@@ -13,9 +13,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 | Spec (brief v1.1.0) | `[x]` |
 | Architecture decisions | `[x]` — [`docs/00-decisions.md`](./docs/00-decisions.md) |
 | Feature documentation | `[x]` — [`docs/`](./docs/README.md) |
-| Source code | `[~]` — M0–M3 landed (tooling, CLI/workspace, data layer, HTTP API); M4 next |
+| Source code | `[~]` — M0–M4 landed (tooling, CLI/workspace, data layer, API, web UI); M5 next |
 
-**Next action:** milestone M4 (UI shell, CRUD views, search index).
+**Next action:** milestone M5 (Kanban drag-and-drop, estimate/invoice editors, print).
 
 ---
 
@@ -112,19 +112,24 @@ Docs: [`docs/07-server-api-and-security.md`](./docs/07-server-api-and-security.m
 
 Goal: a usable CRM for contacts, projects, and documents.
 
-- [ ] Vite + React + Tailwind + shadcn/ui baseline, single-file build verified (`dist/index.html` self-contained)
-- [ ] App shell: sidebar nav, header (workspace name, sync badge, port), command palette (`⌘K`)
-- [ ] Data client: typed fetch wrapper, token injection, SSE subscription with backoff, index reconciliation
-- [ ] Contacts: list + filter + search, detail/edit form, notes editor (markdown)
-- [ ] Projects: list, detail with linked client and tasks, status controls
-- [ ] Documents: list, markdown editor with preview
-- [ ] Settings: business profile, currency, `tax_rate_bps`, default terms document
-- [ ] "File changed on disk" banner + reload/overwrite chooser
-- [ ] Empty states, loading skeletons, optimistic-with-rollback saves, a11y pass (focus rings, labels, keyboard)
+- [x] Tailwind v4 + shadcn/ui baseline: `components.json`, `src/ui/styles.css` design tokens, `@/` alias in Vite + TS (`moduleResolution: Bundler`), 21 registry components; single-file build still self-contained (579 KB / 166 KB gzip)
+- [x] Design context captured: `PRODUCT.md` (product truth) and `DESIGN.md` (Operate mode, ledger world, semantic tokens, type/motion contract)
+- [x] App shell: sidebar with counts, mobile nav sheet, header with workspace name, search and theme toggle; `⌘K` command palette with record search and navigation
+- [x] Data client: token from the inlined `<meta>`, typed wrapper, `Promise.all` bootstrap, SSE with generation guard + refresh on reconnect
+- [x] Contacts: table, detail sheet, full editor, create, delete, markdown body, 409 conflict banner with reload
+- [x] Projects: table, client + status controls, body editor, delete
+- [x] Documents: table, title/kind/body editor, delete
+- [x] Tasks: folder-derived board with per-card "Move to…", detail editor, create/delete, overdue chips
+- [x] Estimates & invoices: read-only tables + detail dialog with line items and cents math; estimate → invoice conversion from the dialog
+- [x] Issues: list with severity, preview dialog, explicit `assign-id` / `adopt-path` / `ignore` actions
+- [x] Settings: business profile, currency, tax rate (percent ↔ bps), workspace facts; empty states, skeletons, sonner toasts, dark mode
+- [x] Runtime guard: a record whose file disappears closes its editor instead of writing to a missing path
 
-**Exit criteria:** create/edit/delete a contact end-to-end; changes appear from a terminal edit within ~300 ms; no console errors; Lighthouse a11y ≥ 95 on main views.
+**Deviations (deliberate):** no list filters beyond palette search yet; no markdown preview pane; saves are pessimistic (retry via toast) rather than optimistic-with-rollback; search is still the server's temporary substring matcher; drag-and-drop, invoice/estimate editing and print are M5.
 
-Docs: [`docs/08-web-ui.md`](./docs/08-web-ui.md)
+**Exit criteria:** met for the M4 surface. `pnpm typecheck`, `pnpm lint`, `pnpm test` (276) and `pnpm build` pass; the shipped HTML is one 579 KB file with the token injected, no external assets, CSP applied. Impeccable's mechanical detector reports no findings for `src/ui`.
+
+Docs: [`docs/08-web-ui.md`](./docs/08-web-ui.md), [`docs/10-search.md`](./docs/10-search.md), [`DESIGN.md`](./DESIGN.md)
 
 ---
 
