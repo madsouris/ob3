@@ -4,13 +4,16 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { parse } from 'yaml';
 import { afterEach, describe, expect, it } from 'vitest';
-import { readConfig } from '../../src/workspace/config.js';
+import { defaultConfig, readConfig, writeConfig } from '../../src/workspace/config.js';
 import { demoFiles } from '../../src/workspace/demo.js';
 import { initWorkspace } from '../../src/workspace/init.js';
 import { MANAGED_DIRS } from '../../src/workspace/paths.js';
 import { listFiles, makeTempDir, removeTempDir } from '../helpers/tmp.js';
 
 const exec = promisify(execFile);
+
+const demo = await demoFiles();
+const demoRecords = demo.filter((file) => file.path.endsWith('.md'));
 
 let temp: string | null = null;
 
@@ -63,20 +66,20 @@ describe('initWorkspace — empty', () => {
 });
 
 describe('initWorkspace — demo', () => {
-  it('seeds every demo record with valid ids and correct money', async () => {
+  it('seeds the fixture tree with valid ids and correct money', async () => {
     const root = await workspace();
     const result = await initWorkspace({ root, mode: 'demo', git: false });
 
-    expect(result.filesWritten).toBe(demoFiles().length);
+    expect(result.filesWritten).toBe(demo.length);
     expect(result.filesSkipped).toBe(0);
 
     const files = await listFiles(root);
-    expect(files).toHaveLength(demoFiles().length + 2); // + config + gitignore
+    expect(files).toHaveLength(demo.length + 1); // + generated .gitignore
     expect(files).toContain('tasks/todo/tsk_homepage-hero.md');
     expect(files).toContain('documents/doc_default-terms.md');
 
     const ids = new Set<string>();
-    for (const file of demoFiles()) {
+    for (const file of demoRecords) {
       const content = await readFile(join(root, file.path), 'utf8');
       const data = frontmatter(content);
       const id = data['id'];
@@ -108,11 +111,11 @@ describe('initWorkspace — demo', () => {
 
     const second = await initWorkspace({ root, mode: 'demo', git: false });
     expect(second.filesWritten).toBe(0);
-    expect(second.filesSkipped).toBe(demoFiles().length);
+    expect(second.filesSkipped).toBe(demo.length);
     expect(await listFiles(root)).toEqual(before);
   });
 
-  it('keeps a hand-edited file and writes the demo record beside it', async () => {
+  it('keeps a hand-edited record and writes the fixture copy beside it', async () => {
     const root = await workspace();
     const target = join(root, 'contacts/cnt_acme-corp.md');
     await initWorkspace({ root, mode: 'empty', git: false });
@@ -121,8 +124,19 @@ describe('initWorkspace — demo', () => {
     await initWorkspace({ root, mode: 'demo', git: false });
 
     expect(await readFile(target, 'utf8')).toBe('my own file\n');
-    const files = await listFiles(root);
-    expect(files).toContain('contacts/cnt_acme-corp-2.md');
+    expect(await listFiles(root)).toContain('contacts/cnt_acme-corp-2.md');
+  });
+
+  it('never restates an existing workspace config', async () => {
+    const root = await workspace();
+    await initWorkspace({ root, mode: 'empty', git: false });
+    await writeConfig(root, defaultConfig());
+
+    await initWorkspace({ root, mode: 'demo', git: false });
+
+    const config = await readConfig(root);
+    expect(config.business.name).toBe('');
+    expect(await listFiles(root)).not.toContain('.ob/config-2.json');
   });
 });
 

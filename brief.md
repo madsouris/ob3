@@ -83,7 +83,7 @@ Non-interactive equivalents: `ob init --demo`, `ob init --empty`.
 
 #### Initialization Actions
 
-* **Option 1 (Demo):** Creates the folder structure and seeds realistic sample records (contacts, projects, tasks, estimates, invoices, documents) and initializes a Git repository (`git init`) if absent.
+* **Option 1 (Demo):** Creates the folder structure and seeds realistic sample records (contacts, projects, tasks, estimates, invoices, documents) and initializes a Git repository (`git init`) if absent. The seed is shipped as real files (`fixtures/workspaces/demo/`, packaged as `dist/demo`), never as code literals.
 * **Option 2 (Empty):** Creates folders, `.ob/config.json`, `.gitignore`, and (unless `--no-git`) `git init`.
 * **Auto-Launch:** Starts the Hono server on port `19731` (probing upward if occupied) and opens the default browser at the bound URL.
 

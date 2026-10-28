@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   ConfigError,
   defaultConfig,
-  demoConfig,
   isInitialized,
   readConfig,
   writeConfig,
@@ -37,13 +36,6 @@ describe('config defaults', () => {
     expect(config.server.port).toBe(19_731);
     expect(config.git.commit_on_save).toBe(true);
     expect(config.default_terms_document).toBeNull();
-  });
-
-  it('provides the demo business profile', () => {
-    const config = demoConfig();
-    expect(config.business.name).toBe('Acme Digital Studio');
-    expect(config.business.tax_rate_bps).toBe(850);
-    expect(config.default_terms_document).toBe('documents/doc_default-terms.md');
   });
 });
 

@@ -6,7 +6,7 @@
 npx @operationbegin/crm .
 ```
 
-> **Status:** pre-release. M0 (tooling) is complete; the CLI, data layer, API and UI land in M1–M7. See [`plan.md`](./plan.md).
+> **Status:** pre-release. M0 (tooling) and M1 (CLI + workspace init) are complete; the data layer, API and UI land in M2–M7. See [`plan.md`](./plan.md).
 
 ## Why
 
@@ -14,6 +14,25 @@ npx @operationbegin/crm .
 - **No lock-in.** Plain `.md` files you can read in ten years.
 - **No native build.** `npx` never compiles anything.
 - **Local only.** The server binds `127.0.0.1`; nothing leaves your machine unless you run a sync.
+
+## Preview
+
+```bash
+npm install
+npm run build
+
+# always use a directory OUTSIDE this repo
+node dist/cli/index.js ~/ob-demo --demo
+```
+
+That seeds a demo workspace, starts the server at `http://127.0.0.1:19731` and opens it. Until M4 the page is only a shell — the real output today is the Markdown in `~/ob-demo`, which you can open in any editor.
+
+```bash
+node dist/cli/index.js check ~/ob-demo --json   # diagnostics
+node dist/cli/index.js init  ~/ob-demo --empty  # workspace without records
+```
+
+The seeded content is the canonical fixture at [`fixtures/workspaces/demo/`](./fixtures/workspaces/demo) (shipped inside the package as `dist/demo`). **Never initialize a workspace inside this repo**: `/contacts/`, `/projects/`, `/tasks/`, `/estimates/`, `/invoices/`, `/documents/`, `/.ob/` are gitignored, and `tests/repo/hygiene.test.ts` fails if they appear at the root.
 
 ## Documentation
 

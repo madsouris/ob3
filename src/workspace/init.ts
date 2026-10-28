@@ -3,7 +3,7 @@ import { basename, dirname, extname, join } from 'node:path';
 import { execFileResult } from '../cli/exec.js';
 import { exists, writeFileAtomic } from '../io/atomic.js';
 import type { InitMode } from '../cli/args.js';
-import { defaultConfig, demoConfig, writeConfig } from './config.js';
+import { defaultConfig, writeConfig } from './config.js';
 import { demoFiles } from './demo.js';
 import {
   CONFIG_FILE,
@@ -36,11 +36,13 @@ export class InitError extends Error {
 
 /**
  * Creates the workspace skeleton, config and (for demo mode) seed records.
- * Never overwrites an existing file: collisions get a `-2` suffix instead.
+ * Demo content comes from `fixtures/workspaces/demo` — never from code
+ * literals — so the shipped package, the preview and the tests cannot drift.
  */
 export async function initWorkspace(options: InitOptions): Promise<InitResult> {
   const { root, mode } = options;
   const warnings: string[] = [];
+  const configPath = workspacePath(root, CONFIG_FILE);
 
   await mkdir(root, { recursive: true });
   for (const dir of MANAGED_DIRS) {
@@ -48,9 +50,8 @@ export async function initWorkspace(options: InitOptions): Promise<InitResult> {
   }
   await mkdir(join(root, STATE_DIR), { recursive: true });
 
-  const configPath = workspacePath(root, CONFIG_FILE);
-  if (!(await exists(configPath))) {
-    await writeConfig(root, mode === 'demo' ? demoConfig() : defaultConfig(), { exclusive: true });
+  if (mode === 'empty' && !(await exists(configPath))) {
+    await writeConfig(root, defaultConfig(), { exclusive: true });
   }
 
   const gitignorePath = workspacePath(root, GITIGNORE_FILE);
@@ -67,11 +68,21 @@ export async function initWorkspace(options: InitOptions): Promise<InitResult> {
 
   let filesWritten = 0;
   let filesSkipped = 0;
+
   if (mode === 'demo') {
-    for (const file of demoFiles()) {
+    for (const file of await demoFiles()) {
+      // The workspace config is user-owned once it exists: never suffix it.
+      if (file.path === CONFIG_FILE && (await exists(configPath))) {
+        filesSkipped += 1;
+        continue;
+      }
       const written = await writeUnique(workspacePath(root, file.path), file.content);
       if (written) filesWritten += 1;
       else filesSkipped += 1;
+    }
+
+    if (!(await exists(configPath))) {
+      await writeConfig(root, defaultConfig(), { exclusive: true });
     }
   }
 
@@ -87,7 +98,7 @@ export async function initWorkspace(options: InitOptions): Promise<InitResult> {
 /**
  * Idempotent seeding: an identical file is skipped (re-running init must not
  * duplicate records); a different file at the same path is preserved and the
- * demo record is written alongside it with a `-2` suffix.
+ * fixture copy is written alongside it with a `-2` suffix.
  */
 async function writeUnique(absolutePath: string, content: string): Promise<boolean> {
   let candidate = absolutePath;
@@ -111,12 +122,17 @@ async function writeUnique(absolutePath: string, content: string): Promise<boole
 
 async function gitInit(root: string, identity: GitIdentity | undefined): Promise<void> {
   const identityArgs =
-    identity === undefined ? [] : ['-c', `user.name=${identity.name}`, '-c', `user.email=${identity.email}`];
+    identity === undefined
+      ? []
+      : ['-c', `user.name=${identity.name}`, '-c', `user.email=${identity.email}`];
 
   const steps: Array<{ args: string[]; label: string }> = [
     { args: ['init', '--quiet'], label: 'git init' },
     { args: ['add', '-A'], label: 'git add' },
-    { args: [...identityArgs, 'commit', '--quiet', '--no-verify', '-m', 'ob: initialize workspace'], label: 'git commit' },
+    {
+      args: [...identityArgs, 'commit', '--quiet', '--no-verify', '-m', 'ob: initialize workspace'],
+      label: 'git commit',
+    },
   ];
 
   for (const step of steps) {

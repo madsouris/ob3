@@ -102,8 +102,8 @@ async function runInit(args: InitArgs): Promise<number> {
       } else {
         out.ok(`Workspace initialized (${mode ?? 'empty'})`);
       }
-      if (result.filesWritten > 0) out.ok(`Seeded ${result.filesWritten} demo records`);
-      if (result.filesSkipped > 0) out.dim(`Skipped ${result.filesSkipped} existing demo records`);
+      if (result.filesWritten > 0) out.ok(`Seeded ${result.filesWritten} demo files`);
+      if (result.filesSkipped > 0) out.dim(`Skipped ${result.filesSkipped} existing demo files`);
       if (result.gitInitialized) out.ok('Git repository initialized with an initial commit');
       for (const warning of result.warnings) out.warn(warning);
       return 0;

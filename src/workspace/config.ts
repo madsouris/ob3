@@ -59,21 +59,6 @@ export function defaultConfig(): ObConfig {
   return configSchema.parse({});
 }
 
-export function demoConfig(): ObConfig {
-  return configSchema.parse({
-    business: {
-      name: 'Acme Digital Studio',
-      email: 'hello@acmedigital.com',
-      address: '123 Tech Lane, San Francisco, CA',
-      phone: '+1 555-0199',
-      tax_rate_bps: 850,
-      currency: 'USD',
-      payment_link_url: 'https://stripe.com/pay/acme',
-    },
-    default_terms_document: 'documents/doc_default-terms.md',
-  });
-}
-
 export async function readConfig(root: string): Promise<ObConfig> {
   const filePath = workspacePath(root, CONFIG_FILE);
   let raw: string;

@@ -40,7 +40,7 @@ src/git/         subprocess wrapper, commit-on-save, sync chain (M6)
 src/ui/          React SPA (M4/M5)
 src/shared/      cents helpers, types shared by server + client
 tests/           vitest unit/integration
-fixtures/        workspaces: demo, empty, external-edits, broken-config, git-bare
+fixtures/        workspaces: demo (canonical seed, shipped as dist/demo), external-edits, broken-config, git-bare
 ```
 
 ---
@@ -123,6 +123,9 @@ Violating any of these is a bug, not a style preference.
 12. Commit-on-save stages only the paths `ob` just wrote; `git add -A` belongs to explicit sync only.
 13. `ob` never runs destructive git commands on its own (`reset`, `push --force`, `rebase --abort`, `checkout --theirs`). Recovery is always a user click.
 
+**Repo**
+14. This repo never holds a working workspace. Only `fixtures/workspaces/*` may contain workspace files; demo data is real files at `fixtures/workspaces/demo/` (copied to `dist/demo` at build), never string literals in `src/`. `tests/repo/hygiene.test.ts` enforces the root-level ban.
+
 ---
 
 ## 6. Documentation Map
@@ -157,6 +160,7 @@ Violating any of these is a bug, not a style preference.
 ## 8. Working Notes
 
 * **Repo state:** M0 + M1 landed — CLI (`init`/`check`/`start`), pre-flight, init wizard, workspace scaffolding, demo seed, lock, port probing, atomic writes, and a minimal Hono server (`/api/health` + UI shell). `ob sync` intentionally exits 1 until M6. Available scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
+* **Demo data:** never add records as code. Edit `fixtures/workspaces/demo/`, then `npm run build` (postbuild copies it to `dist/demo`). Tests assert the fixture matches what `init --demo` writes.
 * **Dependencies:** no new dependency without justification — must be pure-JS (or optional-native), maintained, and consistent with §4. `js-yaml`, `moment`, `express`, `better-sqlite3` are off-limits.
 * **Known deferrals (v1):** CSV importer, multi-workspace switching, server-side PDF, email sending, payments, encryption at rest.
 * **Ambiguity rule:** if the spec and the request disagree, surface the conflict and propose the fix in one sentence, then wait for approval.

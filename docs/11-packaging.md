@@ -10,17 +10,20 @@ Ship one npm package that runs instantly via `npx` on macOS, Linux, and Windows 
 
 ```
 dist/
-├── cli.js               # shebang + compiled ESM entry
+├── cli/index.js         # shebang + compiled ESM entry
 ├── server/…             # compiled backend
 ├── client/index.html    # single-file SPA (JS + CSS inlined)
-└── shared/…             # cents helpers shared by server & client
+├── shared/…             # cents helpers shared by server & client
+└── demo/                # canonical demo workspace, copied from fixtures/ at build
+fixtures/
+└── workspaces/demo/     # source of truth for demo data (repo only, not published)
 docs/
 README.md
 LICENSE
 package.json
 ```
 
-`files` allowlist: `dist`, `docs`, `README.md`, `LICENSE`. `src/` is never published.
+`files` allowlist: `dist`, `docs`, `README.md`, `LICENSE`. `src/` and `fixtures/` are never published; the demo workspace reaches users as `dist/demo`.
 
 ## `package.json` essentials
 
@@ -56,6 +59,7 @@ Rules:
 1. **Client:** `vite build` with `vite-plugin-singlefile` → `dist/client/index.html`. Verify no `src=`/`href=` points outside the file (except `data:`).
 2. **Server:** `tsc` → `dist/server`, `dist/cli/index.js` (rootDir `src`, outDir `dist`).
 3. **Postbuild** (`scripts/postbuild.mjs`):
+   * copy `fixtures/workspaces/demo/` → `dist/demo/` (fail if `.ob/config.json` is missing)
    * prepend `#!/usr/bin/env node` to `dist/cli/index.js` and `chmod 755`
    * fail if `dist/client/index.html` is missing or references an external asset
    * fail if any `dist/` file imports `js-yaml` (ADR-04)
@@ -74,6 +78,7 @@ Rules:
 | Tarball smoke test | extract tarball → `node dist/cli/index.js --help` → init demo in a temp dir → `GET /api/health` → Ctrl+C |
 | Global alias | `npm i -g ./pkg.tgz` → `ob --version` and `filecrm --version` |
 | Bundle size | `dist/client/index.html` < 800 KB (warn only) |
+| Demo shipped | `dist/demo/.ob/config.json` exists and `dist/demo` holds 13 records |
 | Publish dry run | `npm publish --dry-run` and review the file list |
 
 ## Versioning

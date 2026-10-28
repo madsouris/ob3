@@ -6,6 +6,19 @@ coverage/
 # ob runtime state (per-machine)
 .ob/state/
 
+# Never commit a working workspace at the repo root. Real workspaces live
+# outside this repo; only fixtures/workspaces/* is tracked (see fixtures/README.md).
+/contacts/
+/projects/
+/tasks/
+/estimates/
+/invoices/
+/documents/
+/.ob/
+
+# Local scratch workspaces for manual testing
+/.scratch/
+
 # sandbox/local npm cache used during development
 .npm-cache/
 

@@ -26,14 +26,14 @@ Everything else (CRUD, UI) gets standard coverage.
 
 | Fixture | Purpose |
 |---|---|
-| `demo` | Same content the demo initializer writes (asserted equal) |
+| `demo` | Same content the demo initializer writes (asserted equal) — canonical source at `fixtures/workspaces/demo/`, shipped as `dist/demo` |
 | `empty` | Folders only |
 | `external-edits` | Every row of the external-edit table: renamed file, moved task, body edit, reordered keys, duplicate id, missing id, invalid YAML, duplicate number, dangling ref, unresolved conflict markers, symlink, oversized file, CRLF file, file with BOM |
 | `broken-config` | Invalid `.ob/config.json` |
 | `large` | 10k synthetic records (generated in a setup script, gitignored) |
 | `git-bare` | Bare repo used as `origin` for sync tests |
 
-Fixtures are committed; the 10k one is generated (`npm run fixture:large`).
+Fixtures are committed; the 10k one is generated (`npm run fixture:large`). Nothing in `fixtures/` is user data — see [`fixtures/README.md`](../fixtures/README.md). `tests/repo/hygiene.test.ts` fails if a working workspace appears at the repo root.
 
 ## Non-negotiable test cases
 

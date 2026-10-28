@@ -1,0 +1,15 @@
+{
+  "version": "1.1.0",
+  "business": {
+    "name": "Acme Digital Studio",
+    "email": "hello@acmedigital.com",
+    "address": "123 Tech Lane, San Francisco, CA",
+    "phone": "+1 555-0199",
+    "tax_rate_bps": 850,
+    "currency": "USD",
+    "payment_link_url": "https://stripe.com/pay/acme"
+  },
+  "default_terms_document": "documents/doc_default-terms.md",
+  "server": { "port": 19731 },
+  "git": { "commit_on_save": true }
+}
