@@ -6,7 +6,7 @@
 npx @operationbegin/crm .
 ```
 
-> **Status:** pre-release. M0–M4 are complete: CLI + workspace init, data layer, HTTP API and the web UI. Kanban drag-and-drop, invoice editing, search and Git sync land in M5–M6. See [`plan.md`](./plan.md).
+> **Status:** pre-release. M0–M5 are complete: CLI + workspace init, data layer, HTTP API, the web UI, and the project boards, billing editor, A4 print view and search. Git commit-on-save and sync land in M6. See [`plan.md`](./plan.md).
 
 ## Why
 
@@ -25,7 +25,7 @@ pnpm build
 node dist/cli/index.js ~/ob-demo --demo
 ```
 
-That seeds a demo workspace, starts the server at `http://127.0.0.1:19731` and opens the app. Use the sidebar to browse contacts, projects, tasks, estimates, invoices and documents; anything you change is written straight back to the Markdown files in `~/ob-demo`.
+That seeds a demo workspace, starts the server at `http://127.0.0.1:19731` and opens the app. Use the sidebar to browse contacts, projects, tasks, estimates, invoices and documents; pick a project to open its board. Anything you change is written straight back to the Markdown files in `~/ob-demo`.
 
 ```bash
 node dist/cli/index.js check ~/ob-demo --json   # diagnostics

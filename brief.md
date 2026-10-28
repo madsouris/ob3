@@ -128,6 +128,7 @@ Non-interactive equivalents: `ob init --demo`, `ob init --empty`.
 * **IDs:** `{prefix}_{26-char Crockford Base32 ULID}` (e.g. `cnt_01J8X71000Q4M2N8V3R5T7W9Y0Z`).
 * **Dev/Test:** `tsx` for local runs, `vitest` for unit/integration, Playwright for the E2E smoke flow.
 * **Package manager (dev):** pnpm 12, pinned by the `packageManager` field; `pnpm-lock.yaml` is committed. End users are unaffected (`npx` / `npm i -g`).
+* **Print / PDF:** browser print from a dedicated A4 route with a light-only sheet. No server-side PDF engine, no native dependency.
 
 ---
 
@@ -390,6 +391,13 @@ Payment is due within 15 days of invoice issuance…
 
 `client_id`, `project_id`, `estimate_id`, `terms_document`, and `converted_invoice_id` are **soft** references. A dangling reference never breaks rendering: the UI shows `Unknown <type>` plus the raw id, and the record is reported via `/api/issues` as `dangling-ref`. Cascading deletes never happen.
 
+### 5.3 Billing Document Actions
+
+* **Numbering:** `INV-YYYY-NNN` / `EST-YYYY-NNN`; `NNN` is the highest existing suffix + 1, recomputed on each create (deleting `-003` never causes a collision). Numbers stay editable; duplicates are warned as issues, never blocked.
+* **Estimate → invoice:** creates a new invoice whose `estimate_id` points at the estimate and writes `converted_invoice_id` back to the estimate. An estimate converts once; a second attempt is a `409`.
+* **Duplicate:** estimates and invoices only. The copy gets a new id, the next number for the current year, `status: draft`, `issue_date` today, `due_date` +15 days / `valid_until` +30 days, the same client/project/terms, line items and body, and ` (copy)` in a non-empty title. The source file is never rewritten; an estimate copy starts with `converted_invoice_id: null`, an invoice copy keeps `estimate_id` as provenance.
+* **Print / PDF:** `/invoices/:id/print` and `/estimates/:id/print` render a strict A4 sheet (16 mm margins) in fixed light paper/ink using the business block from `.ob/config.json`, the line table, totals, notes and the linked terms document. The browser's print dialog produces the PDF.
+
 ---
 
 ## 6. Data Integrity Under External Edits
@@ -493,10 +501,10 @@ The native guard fires **only** when `dirty || unpushed`, i.e. when closing the 
 Normative detail: [`docs/08-web-ui.md`](./docs/08-web-ui.md).
 
 * Single-file SPA served by Hono at `/`; no build step at runtime.
-* Views: Dashboard, Contacts, Projects, Tasks (Kanban), Estimates, Invoices, Documents, Settings, "Needs attention".
-* Live updates over **SSE** (`/api/events`), with reconnect + exponential backoff. The UI is optimistic locally but always reconciles from the file-derived index.
+* Views: Dashboard, Contacts, Projects (list → that project's Kanban board), All tasks (cross-project board), Estimates, Invoices, Documents, Settings, "Needs attention".
+* Live updates over **SSE** (`/api/events`), with reconnect + exponential backoff. The UI is a projection of the file-derived index and reconciles from it.
 * An externally-changed record currently open in the editor triggers a non-destructive "This file changed on disk" banner with *Reload* / *Keep mine (overwrite)*.
-* Optimistic writes roll back visibly if the server rejects them (validation error or issue).
+* Writes are pessimistic: the editor keeps the typed text until the server confirms, and keeps it with the server's message if the write is rejected.
 * Empty states, keyboard navigation, and focus management are first-class; no modal-only workflows.
 
 ---

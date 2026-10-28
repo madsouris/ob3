@@ -54,11 +54,12 @@ CLI callers (`ob sync`) bypass HTTP entirely and call the service layer directly
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| GET | `/api/:type` | — | `{ records: [...], generation }`, supports `?q=&status=&project_id=` |
-| GET | `/api/:type/:id` | — | `{ record, generation }`; `404 unknown_id` |
+| GET | `/api/:type` | — | `{ records: [...], generation }`; supports `?status=&project_id=&client_id=` and ranked `?q=` (docs/10) |
+| GET | `/api/:type/:id` | — | `{ record, hash, generation }`; `404 unknown_id` |
 | POST | `/api/:type` | full payload | `201 { record }` |
 | PATCH | `/api/:type/:id` | partial + `baseHash` | `{ record }`; `409 file_changed_on_disk` on hash mismatch |
 | DELETE | `/api/:type/:id` | `?baseHash=` | `204`; `409` on stale hash |
+| POST | `/api/:type/:id/duplicate` | — | `201 { record }`; estimates/invoices only, else `400 invalid_duplicate` |
 
 Task-specific:
 
@@ -70,8 +71,8 @@ Domain actions:
 
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/api/invoices/from-estimate/:estimateId` | Creates an invoice from an accepted estimate; sets `converted_invoice_id` on the estimate (one extra write, same commit) |
-| POST | `/api/estimates/:id/convert` | Alias with explicit target type |
+| GET | `/api/search` | `?q=&type=&limit=` → `{ query, hits: [{ id, type, title, path }], generation }`; `limit` defaults 20, capped 50 |
+| POST | `/api/invoices/from-estimate/:estimateId` | Creates an invoice from an estimate; sets `converted_invoice_id` on the estimate (one extra write, same commit); `409 conflict` on a second conversion |
 
 ### Git
 
@@ -91,9 +92,10 @@ Long-running git work is streamed, not awaited blindly: `POST /api/git/sync` ret
 * **Server-only fields:** `body` (Markdown after the frontmatter) and `baseHash` (optimistic concurrency) are accepted on create/patch but are never written into frontmatter.
 * **Issue keys contain `:` and `/`**, so preview/resolve use the `:key{.+}` param and clients must `encodeURIComponent` the key.
 * **Money is server-computed** on create/patch: `line_items[].total_cents`, `subtotal_cents`, `tax_amount_cents` and `total_cents` are derived and ignore client-supplied values.
-* **Additional error codes** beyond the table below: `invalid_id`, `invalid_json`, `unknown_issue`, `not_a_task`, `invalid_move`, `config_invalid`.
+* **Additional error codes** beyond the table below: `invalid_id`, `invalid_json`, `unknown_issue`, `not_a_task`, `invalid_move`, `invalid_duplicate`, `config_invalid`.
 * **SSE events emitted today:** `snapshot`, `record.upsert`, `record.delete`, `record.moved`, `issues.changed`, `config.changed`, `ping`. `git.changed` arrives with M6.
-* **List `q`** is a temporary case-insensitive substring matcher; FlexSearch replaces it in M4 (docs/10).
+* **List `q`** is ranked by the search service (`src/index/search.ts`): the route resolves matching ids, then keeps the type's natural file order among matches (docs/10).
+* **Duplicates** are handled by the service, not the route: the clone is written with a new id and the next `EST/INV-YYYY-NNN` number, so numbering stays consistent under concurrent creates.
 
 ## Error envelope
 
@@ -110,6 +112,7 @@ Long-running git work is streamed, not awaited blindly: `POST /api/git/sync` ret
 | `validation_failed` | 422 | Zod issues, per-field |
 | `unknown_id` | 404 | No record with that id |
 | `file_changed_on_disk` | 409 | `baseHash` mismatch |
+| `invalid_duplicate` | 400 | Duplicate requested for a non-billing type |
 | `write_locked` | 423 | FS lock (Windows) after retries |
 | `git_not_initialized` | 409 | Sync requested without a repo |
 | `internal` | 500 | Logged with an id; message is generic |

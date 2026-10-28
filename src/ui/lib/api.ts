@@ -37,6 +37,19 @@ export interface HealthResponse {
   readonly uptimeSeconds: number;
 }
 
+export interface SearchHit {
+  readonly id: string;
+  readonly type: RecordType;
+  readonly title: string;
+  readonly path: string;
+}
+
+export interface SearchResponse {
+  readonly query: string;
+  readonly hits: readonly SearchHit[];
+  readonly generation: number;
+}
+
 export class ApiRequestError extends Error {
   override name = 'ApiRequestError';
 
@@ -116,6 +129,16 @@ export const api = {
     payload: { to: 'todo' | 'doing' | 'done'; beforeId?: string; afterId?: string },
   ): Promise<RecordResponse> =>
     request('POST', `/api/tasks/${encodeURIComponent(id)}/move`, payload),
+
+  duplicate: (plural: string, id: string): Promise<RecordResponse> =>
+    request('POST', `/api/${plural}/${encodeURIComponent(id)}/duplicate`),
+
+  search: (query: string, options: { type?: string; limit?: number } = {}): Promise<SearchResponse> => {
+    const params = new URLSearchParams({ q: query });
+    if (options.type !== undefined) params.set('type', options.type);
+    if (options.limit !== undefined) params.set('limit', String(options.limit));
+    return request('GET', `/api/search?${params.toString()}`);
+  },
 
   invoiceFromEstimate: (estimateId: string): Promise<RecordResponse> =>
     request('POST', `/api/invoices/from-estimate/${encodeURIComponent(estimateId)}`),

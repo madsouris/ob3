@@ -4,6 +4,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { PathEscapeError } from '../io/path-safety.js';
+import { createSearchService } from '../index/search.js';
 import { ConfigError } from '../workspace/config.js';
 import type { AppContext } from './context.js';
 import { ApiError, errorBody } from './errors.js';
@@ -11,6 +12,7 @@ import { createConfigRoutes } from './routes/config.js';
 import { createEventRoutes } from './routes/events.js';
 import { createIssueRoutes } from './routes/issues.js';
 import { createRecordRoutes } from './routes/records.js';
+import { createSearchRoutes } from './routes/search.js';
 import { allowedHostsFor, allowedOriginsFor, createSecurityMiddleware } from './security.js';
 
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -112,7 +114,9 @@ export const createApp = (context: AppContext): Hono => {
   );
 
   app.route('/api', createEventRoutes(context));
-  app.route('/api', createRecordRoutes(context));
+  const search = createSearchService(context.index);
+  app.route('/api', createRecordRoutes(context, search));
+  app.route('/api', createSearchRoutes(context, search));
   app.route('/api', createConfigRoutes(context));
   app.route('/api', createIssueRoutes(context));
 

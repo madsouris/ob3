@@ -113,6 +113,7 @@ No cascading deletes, no automatic nulling, no referential enforcement on write 
 * `YYYY` from `issue_date` (fallback: today).
 * `NNN` = highest existing numeric suffix for that year **+ 1**, zero-padded to 3, across all files of that type (gap-tolerant: deleting `-003` does not cause reuse collision because the max is recomputed each time).
 * Numbers are editable after creation; duplicates are reported as `duplicate-number` issues (warning severity), not blocked — the file is still valid.
+* **Duplicating** an estimate or invoice allocates the next number for the *current* year, resets `status` to `draft`, sets `issue_date` to today (and `due_date` +15 / `valid_until` +30), copies line items and body, and appends ` (copy)` to a non-empty title. The source file is never rewritten. An estimate copy has an empty `converted_invoice_id`; an invoice copy keeps `estimate_id` as provenance.
 
 ## Acceptance criteria
 
@@ -121,3 +122,4 @@ No cascading deletes, no automatic nulling, no referential enforcement on write 
 - [ ] Creating a contact twice with the same name produces two ids and two files, no overwrite. *(M3 API)*
 - [ ] Creating a task in `todo` writes no `status` key. *(M3 API)*
 - [x] Renaming a file on disk does not change any id and does not create a duplicate in the index.
+- [x] Duplicating an estimate produces a new file and id, the next `EST-YYYY-NNN`, `status: draft`, and leaves the source byte-identical.

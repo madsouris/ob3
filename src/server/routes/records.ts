@@ -6,11 +6,13 @@ import { RECORD_TYPES, writeSchemas } from '../../model/schemas.js';
 import type { AppContext } from '../context.js';
 import { recordServiceContext } from '../context.js';
 import { ApiError, errorBody } from '../errors.js';
+import type { SearchService } from '../../index/search.js';
 import {
   TYPE_TO_PLURAL,
   createInvoiceFromEstimate,
   createRecord,
   deleteRecord,
+  duplicateRecord,
   listRecords,
   moveTask,
   toApiRecord,
@@ -42,8 +44,8 @@ const validationHook = (
 };
 
 const readFilters = (c: Context): ListFilters => {
-  const filters: { q?: string; status?: string; project_id?: string; client_id?: string } = {};
-  for (const key of ['q', 'status', 'project_id', 'client_id'] as const) {
+  const filters: { status?: string; project_id?: string; client_id?: string } = {};
+  for (const key of ['status', 'project_id', 'client_id'] as const) {
     const value = c.req.query(key);
     if (value !== undefined && value !== '') filters[key] = value;
   }
@@ -62,7 +64,7 @@ const serialize = async (
   generation: context.index.generation,
 });
 
-export const createRecordRoutes = (context: AppContext): Hono => {
+export const createRecordRoutes = (context: AppContext, search: SearchService): Hono => {
   const routes = new Hono();
   const service = recordServiceContext(context);
 
@@ -82,12 +84,20 @@ export const createRecordRoutes = (context: AppContext): Hono => {
       baseHash: z.string().optional(),
     });
 
-    routes.get(`/${plural}`, (c) =>
-      c.json({
-        records: listRecords(service, type, readFilters(c)),
-        generation: context.index.generation,
-      }),
-    );
+    routes.get(`/${plural}`, (c) => {
+      let records = listRecords(service, type, readFilters(c));
+      const query = c.req.query('q');
+
+      if (query !== undefined && query.trim() !== '') {
+        const hits = search.search(query, { type, limit: 200 });
+        const rank = new Map(hits.map((hit, index) => [hit.id, index] as const));
+        records = records
+          .filter((record) => rank.has(record.id))
+          .sort((left, right) => (rank.get(left.id) ?? 0) - (rank.get(right.id) ?? 0));
+      }
+
+      return c.json({ records, generation: context.index.generation });
+    });
 
     routes.get(`/${plural}/:id`, (c) => {
       const id = validateId(c.req.param('id'));
@@ -136,6 +146,13 @@ export const createRecordRoutes = (context: AppContext): Hono => {
       await deleteRecord(service, type, id, baseHash);
       context.bus.publish('record.delete', { generation: context.index.generation, id });
       return c.body(null, 204);
+    });
+
+    routes.post(`/${plural}/:id/duplicate`, async (c) => {
+      const id = validateId(c.req.param('id'));
+      const record = await duplicateRecord(service, type, id);
+      publishUpsert(record);
+      return c.json(await serialize(context, record), 201);
     });
   }
 

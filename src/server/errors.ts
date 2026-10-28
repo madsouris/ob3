@@ -14,6 +14,7 @@ export type ApiErrorCode =
   | 'write_locked'
   | 'not_a_task'
   | 'invalid_move'
+  | 'invalid_duplicate'
   | 'conflict'
   | 'not_found'
   | 'payload_too_large'

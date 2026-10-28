@@ -197,6 +197,163 @@ describe('estimate conversion', () => {
   });
 });
 
+describe('duplicate', () => {
+  const sourceEstimate = 'est_01J8X7000AQ4M2N8V3R5T7W9Y0';
+  const sourceInvoice = 'inv_01J8X7400AQ4M2N8V3R5T7W9Y0';
+
+  it('clones an estimate into a fresh draft and leaves the source byte-identical', async () => {
+    const test = await server('demo');
+    const year = new Date().toISOString().slice(0, 4);
+    const sourcePath = join(test.root, 'estimates/est_2026-001.md');
+    const before = await readFile(sourcePath, 'utf8');
+
+    const seeded = await test.mutate('POST', '/api/estimates', {
+      estimate_number: `EST-${year}-007`,
+      title: 'Numbering seed',
+    });
+    expect(seeded.status).toBe(201);
+
+    const response = await test.mutate('POST', `/api/estimates/${sourceEstimate}/duplicate`);
+    expect(response.status).toBe(201);
+
+    const body = (await response.json()) as {
+      record: {
+        id: string;
+        path: string;
+        estimate_number: string;
+        status: string;
+        title: string;
+        valid_until: string;
+        converted_invoice_id: string;
+        subtotal_cents: number;
+        tax_amount_cents: number;
+        total_cents: number;
+        line_items: { description: string; total_cents: number }[];
+        body: string;
+      };
+    };
+
+    expect(body.record.id).toMatch(/^est_[0-9A-HJKMNP-TV-Z]{26}$/);
+    expect(body.record.id).not.toBe(sourceEstimate);
+    expect(body.record.estimate_number).toBe(`EST-${year}-008`);
+    expect(body.record.status).toBe('draft');
+    expect(body.record.title).toBe('Website Redesign — Proposal (copy)');
+    expect(body.record.valid_until).not.toBe('');
+    expect(body.record.converted_invoice_id).toBe('');
+    expect(body.record.path).toMatch(/^estimates\//);
+    expect(body.record.line_items).toHaveLength(2);
+    expect(body.record.line_items[0]?.description).toBe('Discovery & UX research');
+    expect(body.record.subtotal_cents).toBe(250_000);
+    expect(body.record.tax_amount_cents).toBe(21_250);
+    expect(body.record.total_cents).toBe(271_250);
+    expect(body.record.body).toContain('Three-week engagement');
+
+    expect(await readFile(sourcePath, 'utf8')).toBe(before);
+  });
+
+  it('clones an invoice with a new number and keeps the estimate backlink', async () => {
+    const test = await server('demo');
+    const year = new Date().toISOString().slice(0, 4);
+
+    const seeded = await test.mutate('POST', '/api/invoices', {
+      invoice_number: `INV-${year}-007`,
+      title: 'Numbering seed',
+    });
+    expect(seeded.status).toBe(201);
+
+    const response = await test.mutate('POST', `/api/invoices/${sourceInvoice}/duplicate`);
+    expect(response.status).toBe(201);
+
+    const body = (await response.json()) as {
+      record: {
+        id: string;
+        invoice_number: string;
+        estimate_id: string;
+        status: string;
+        title: string;
+        due_date: string;
+        total_cents: number;
+        body: string;
+      };
+    };
+
+    expect(body.record.invoice_number).toBe(`INV-${year}-008`);
+    expect(body.record.estimate_id).toBe(sourceEstimate);
+    expect(body.record.status).toBe('draft');
+    expect(body.record.title).toBe('Initial Project Deposit (copy)');
+    expect(body.record.due_date).not.toBe('');
+    expect(body.record.total_cents).toBe(271_250);
+    expect(body.record.body).toContain('Payment due within 15 days');
+  });
+
+  it('refuses to duplicate a non-billing record', async () => {
+    const test = await server('demo');
+    const response = await test.mutate(
+      'POST',
+      '/api/contacts/cnt_01J8X7100AQ4M2N8V3R5T7W9Y0/duplicate',
+    );
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe('invalid_duplicate');
+  });
+});
+
+describe('search API', () => {
+  it('searches across types, filters by type, and honours the limit', async () => {
+    const test = await server('demo');
+
+    const all = await test.req('/api/search?q=northwind');
+    expect(all.status).toBe(200);
+    const allBody = (await all.json()) as {
+      query: string;
+      hits: { id: string; type: string; title: string; path: string }[];
+      generation: number;
+    };
+    expect(allBody.query).toBe('northwind');
+    expect(allBody.generation).toBe(test.context.index.generation);
+    expect(allBody.hits.length).toBeGreaterThan(0);
+    expect(allBody.hits.every((hit) => hit.type === 'contact')).toBe(true);
+    expect(allBody.hits[0]?.title).toContain('Jane');
+    expect(allBody.hits[0]?.path).toMatch(/^contacts\//);
+
+    const typed = await test.req('/api/search?q=redesign&type=project');
+    const typedBody = (await typed.json()) as { hits: { type: string; title: string }[] };
+    expect(typedBody.hits).toHaveLength(1);
+    expect(typedBody.hits[0]?.type).toBe('project');
+    expect(typedBody.hits[0]?.title).toBe('Website Redesign');
+
+    const limited = await test.req('/api/search?q=redesign&limit=1');
+    const limitedBody = (await limited.json()) as { hits: unknown[] };
+    expect(limitedBody.hits).toHaveLength(1);
+
+    const empty = await test.req('/api/search?q=');
+    const emptyBody = (await empty.json()) as { hits: unknown[] };
+    expect(emptyBody.hits).toHaveLength(0);
+  });
+
+  it('rebuilds after a mutation and drops a deleted record', async () => {
+    const test = await server('demo');
+
+    const created = await test.mutate('POST', '/api/contacts', {
+      first_name: 'Zephyrine',
+      last_name: 'Quill',
+      company: 'Quillworks',
+    });
+    expect(created.status).toBe(201);
+    const id = ((await created.json()) as { record: { id: string } }).record.id;
+
+    const before = await test.req('/api/search?q=zephyrine');
+    const beforeBody = (await before.json()) as { hits: { id: string }[] };
+    expect(beforeBody.hits.map((hit) => hit.id)).toContain(id);
+
+    const deleted = await test.mutate('DELETE', `/api/contacts/${id}`);
+    expect(deleted.status).toBe(204);
+
+    const after = await test.req('/api/search?q=zephyrine');
+    const afterBody = (await after.json()) as { hits: { id: string }[] };
+    expect(afterBody.hits).toHaveLength(0);
+  });
+});
+
 describe('body updates', () => {
   it('replaces the markdown body without touching frontmatter', async () => {
     const test = await server('demo');

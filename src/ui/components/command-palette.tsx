@@ -19,10 +19,9 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command';
-import type { ApiRecord, RecordType } from '@/lib/api';
+import type { RecordType, SearchHit } from '@/lib/api';
 import { PLURAL, api } from '@/lib/api';
 import { navigate } from '@/lib/router';
-import { recordTitle } from '@/lib/workspace';
 
 const NAV_ITEMS: ReadonlyArray<{ label: string; view: string; icon: typeof UsersIcon }> = [
   { label: 'Dashboard', view: 'dashboard', icon: LayoutDashboardIcon },
@@ -45,14 +44,7 @@ const TYPE_LABEL: Readonly<Record<RecordType, string>> = {
   document: 'Documents',
 };
 
-const SEARCH_TYPES: readonly RecordType[] = [
-  'contact',
-  'project',
-  'task',
-  'estimate',
-  'invoice',
-  'document',
-];
+const SEARCH_LIMIT = 12;
 
 export interface CommandPaletteProps {
   readonly open: boolean;
@@ -62,7 +54,7 @@ export interface CommandPaletteProps {
 export const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
-  const [results, setResults] = useState<readonly ApiRecord[]>([]);
+  const [results, setResults] = useState<readonly SearchHit[]>([]);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -81,14 +73,11 @@ export const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      void Promise.all(
-        SEARCH_TYPES.map((type) => api.list(PLURAL[type], `q=${encodeURIComponent(needle)}`)),
-      )
-        .then((lists) => {
+      void api
+        .search(needle, { limit: SEARCH_LIMIT })
+        .then((response) => {
           if (cancelled) return;
-          startTransition(() => {
-            setResults(lists.flatMap((list) => list.records).slice(0, 12));
-          });
+          startTransition(() => setResults(response.hits));
         })
         .catch(() => {
           if (!cancelled) setResults([]);
@@ -125,16 +114,16 @@ export const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
 
         {query.trim().length < 2 ? null : (
           <CommandGroup heading="Records">
-            {results.map((record) => (
+            {results.map((hit) => (
               <CommandItem
-                key={record.id}
-                value={`${record.id} ${recordTitle(record)}`}
-                onSelect={() => go(`${PLURAL[record.type]}/${record.id}`)}
+                key={hit.id}
+                value={`${hit.id} ${hit.title}`}
+                onSelect={() => go(`${PLURAL[hit.type]}/${hit.id}`)}
               >
                 <SearchIcon aria-hidden />
-                <span className="truncate">{recordTitle(record)}</span>
+                <span className="truncate">{hit.title}</span>
                 <span className="ml-auto text-xs text-muted-foreground">
-                  {TYPE_LABEL[record.type]}
+                  {TYPE_LABEL[hit.type]}
                 </span>
               </CommandItem>
             ))}

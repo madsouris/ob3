@@ -533,27 +533,71 @@ export const createInvoiceFromEstimate = async (
   return invoice;
 };
 
+/** Clones an estimate or invoice with a fresh number, draft status and today's dates. */
+export const duplicateRecord = async (
+  context: RecordServiceContext,
+  type: RecordType,
+  id: string,
+): Promise<ApiRecord> => {
+  if (type !== 'estimate' && type !== 'invoice') {
+    throw new ApiError(400, 'invalid_duplicate', 'Only estimates and invoices can be duplicated');
+  }
+
+  const entry = requireEntry(context, type, id);
+  const record = entry.record;
+  const today = new Date().toISOString().slice(0, 10);
+  const year = Number(today.slice(0, 4));
+  const title = record.type === 'estimate' || record.type === 'invoice' ? record.title : '';
+
+  const common = {
+    title: title === '' ? '' : `${title} (copy)`,
+    status: 'draft',
+    issue_date: today,
+    client_id: 'client_id' in record ? record.client_id : '',
+    project_id: 'project_id' in record ? record.project_id : '',
+    terms_document: 'terms_document' in record ? record.terms_document : '',
+    currency: 'currency' in record ? record.currency : '',
+    tax_rate_bps: 'tax_rate_bps' in record ? record.tax_rate_bps : 0,
+    line_items:
+      'line_items' in record
+        ? record.line_items.map((line) => ({
+            description: line.description,
+            quantity: line.quantity,
+            unit_price_cents: line.unit_price_cents,
+            total_cents: line.total_cents,
+          }))
+        : [],
+  };
+
+  const fields: Record<string, unknown> =
+    type === 'estimate'
+      ? {
+          ...common,
+          estimate_number: nextDocumentNumber(context, 'estimate', year),
+          valid_until: addDays(today, 30),
+          converted_invoice_id: null,
+        }
+      : {
+          ...common,
+          invoice_number: nextDocumentNumber(context, 'invoice', year),
+          due_date: addDays(today, 15),
+          ...('estimate_id' in record && record.estimate_id !== ''
+            ? { estimate_id: record.estimate_id }
+            : {}),
+        };
+
+  return createRecord(context, type, { fields, body: record.body });
+};
+
 export interface ListFilters {
-  readonly q?: string;
   readonly status?: string;
   readonly project_id?: string;
   readonly client_id?: string;
 }
 
-const matchesQuery = (record: AnyRecord, query: string): boolean => {
-  const needle = query.toLowerCase();
-  const haystack = [record.id, record.path, record.body].join(' ').toLowerCase();
-  if (haystack.includes(needle)) return true;
-
-  for (const value of Object.values(record as unknown as Record<string, unknown>)) {
-    if (typeof value === 'string' && value.toLowerCase().includes(needle)) return true;
-  }
-  return false;
-};
-
 /**
- * Lists records with hard filters. `q` is a temporary substring matcher; the
- * FlexSearch index replaces it in M4 (docs/10-search.md).
+ * Lists records with hard filters. Free-text `q` is handled by the ranked
+ * search service in the route layer (docs/10-search.md).
  */
 export const listRecords = (
   context: RecordServiceContext,
@@ -579,10 +623,6 @@ export const listRecords = (
     entries = entries.filter(
       (entry) => 'client_id' in entry.record && entry.record.client_id === clientId,
     );
-  }
-  if (filters.q !== undefined && filters.q.trim() !== '') {
-    const query = filters.q;
-    entries = entries.filter((entry) => matchesQuery(entry.record, query));
   }
 
   return [...entries]

@@ -71,6 +71,12 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] Port collision → binds the next free port and prints it.
 - [ ] `SIGINT` during init, during scan, and during an active sync all exit cleanly.
 
+**Search (M5)**
+- [x] `/api/search` finds a contact by company and honours `type` and `limit`.
+- [x] Empty `q` returns no hits; a deleted record disappears from the next query (generation rebuild).
+- [x] List `?q=` keeps hard filters and returns matches in search rank order.
+- [ ] An external body edit makes a new word findable without manual refresh (watcher → generation → lazy rebuild).
+
 ## Test hygiene rules
 
 * Every test that touches the FS uses `mkdtemp` and asserts on a cleaned-up directory.
@@ -85,7 +91,8 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] Windows: rename while the file is open in Notepad; blocked-write retry path.
 - [ ] Linux: external `git checkout` of a different branch while the UI is open.
 - [ ] NFS/SMB workspace with polling fallback.
-- [ ] Invoice print output at A4 and Letter.
+- [ ] Invoice print output at A4 only (16 mm margins), printed from both light and dark mode; totals stay on page 1.
+- [ ] Project board drag between the three columns, plus the "Move to…" keyboard path, each moves exactly one file.
 - [ ] `npx` from five different cwds (no cwd assumptions).
 - [ ] Kill -9 the server, restart, confirm index rebuild and no lock leak.
 

@@ -176,7 +176,7 @@ Violating any of these is a bug, not a style preference.
 | API routes, auth, SSE, error codes | `docs/07-server-api-and-security.md` |
 | Views, editors, Kanban, print | `docs/08-web-ui.md` |
 | Commit-on-save, sync, recovery | `docs/09-git-sync.md` |
-| Search behaviour | `docs/10-search.md` |
+| Search behaviour, ranking, `/api/search` | `docs/10-search.md` |
 | Build, `bin`, publish | `docs/11-packaging.md` |
 | Test strategy, fixtures, QA | `docs/12-testing-and-verification.md` |
 | A decision reverses | `docs/00-decisions.md` + the owning doc |
@@ -194,7 +194,7 @@ Violating any of these is a bug, not a style preference.
 
 ## 8. Working Notes
 
-* **Repo state:** M0–M4 landed — CLI, workspace init, data layer (schemas/index/watcher), HTTP API with security, and the React SPA (shell, contacts/projects/documents CRUD, board, billing read views, settings, issue triage). `/api/git/*` and `ob sync` intentionally remain unimplemented until M6. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
+* **Repo state:** M0–M5 landed — CLI, workspace init, data layer (schemas/index/watcher), HTTP API with security, the React SPA, and the M5 board/money/print/search work (project → board, drag-and-drop + "Move to…", billing editor with live cents, duplicate, estimate → invoice, A4 browser-print view, FlexSearch `/api/search`). `/api/git/*`, `ob sync` and commit-on-save intentionally remain unimplemented until M6. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
 * **UI stack:** Tailwind v4 (`src/ui/styles.css` with `@theme inline`), shadcn/ui in `src/ui/components/ui` generated from the registry — add with `pnpm dlx shadcn@latest add <component>`, never hand-write a primitive. `@/` maps to `src/ui` in both Vite and TypeScript (`moduleResolution: Bundler`). Tokens are semantic only; no raw colours in components.
 * **Demo data:** never add records as code. Edit `fixtures/workspaces/demo/`, then `pnpm build` (postbuild copies it to `dist/demo`). Tests assert the fixture matches what `init --demo` writes.
 * **Dependencies:** no new dependency without justification — must be pure-JS (or optional-native), maintained, and consistent with §4. `js-yaml`, `moment`, `express`, `better-sqlite3` are off-limits.

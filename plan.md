@@ -13,9 +13,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 | Spec (brief v1.1.0) | `[x]` |
 | Architecture decisions | `[x]` — [`docs/00-decisions.md`](./docs/00-decisions.md) |
 | Feature documentation | `[x]` — [`docs/`](./docs/README.md) |
-| Source code | `[~]` — M0–M4 landed (tooling, CLI/workspace, data layer, API, web UI); M5 next |
+| Source code | `[~]` — M0–M5 landed (tooling, CLI/workspace, data layer, API, web UI, board/money/search); M6 next |
 
-**Next action:** milestone M5 (Kanban drag-and-drop, estimate/invoice editors, print).
+**Next action:** milestone M6 (git sync, commit-on-save, issue triage).
 
 ---
 
@@ -137,18 +137,23 @@ Docs: [`docs/08-web-ui.md`](./docs/08-web-ui.md), [`docs/10-search.md`](./docs/1
 
 Goal: tasks as a filesystem board; estimates and invoices that are arithmetically correct.
 
-- [ ] Kanban board: 3 columns derived from folders, drag-and-drop → single `move` API call, `order` re-normalization (sparse integers, rebalanced on collision)
-- [ ] Keyboard-accessible card moves (no drag required)
-- [ ] Task detail: title, project link, due date, checklist rendered from body
-- [ ] Estimate/invoice editor: line items, live cents math, validation (`subtotal == Σ line totals`), currency from config, `tax_rate_bps` default
-- [ ] Number generation: `INV-YYYY-NNN` / `EST-YYYY-NNN` derived from existing files, gap-tolerant
-- [ ] Estimate → invoice conversion (new id, `estimate_id` backlink, `converted_invoice_id` forward link)
-- [ ] Print/PDF-ready stylesheet for invoices and estimates (no server-side PDF dependency; browser print)
-- [ ] Overdue derivation from `due_date` + `status` (display-only; never rewrites the file)
+- [x] Project → board flow: `/projects` is a list; `/projects/:id` opens that project's board with only its tasks. The cross-project board stays at `/tasks` as "All tasks".
+- [x] Kanban board: 3 columns derived from folders, drag-and-drop → single `move` API call, `order` re-normalization (sparse integers, rebalanced on collision)
+- [x] Keyboard-accessible card moves ("Move to…" menu; drag is never the only path)
+- [ ] Task detail: title, project link, due date, checklist rendered from body — the sheet edits the raw Markdown body; no checklist renderer yet
+- [x] Estimate/invoice editor: line items, live cents math, validation (`subtotal == Σ line totals`), currency from config, `tax_rate_bps` default
+- [x] Number generation: `INV-YYYY-NNN` / `EST-YYYY-NNN` derived from existing files, gap-tolerant
+- [x] Estimate → invoice conversion (new id, `estimate_id` backlink, `converted_invoice_id` forward link)
+- [x] Duplicate estimate/invoice (`POST /api/{estimates,invoices}/:id/duplicate`): next number for the current year, `status: draft`, today + 15/30 days, copies line items and body, writes no new `converted_invoice_id` (an invoice copy keeps `estimate_id` as provenance)
+- [x] Print/PDF-ready view for invoices and estimates (`/invoices/:id/print`, `/estimates/:id/print`): strict A4 `@page`, light-only paper, browser print produces the PDF — no server-side PDF dependency
+- [x] Overdue derivation from `due_date` + `status` (display-only; never rewrites the file)
+- [x] FlexSearch search replacing the temporary substring matcher: `/api/search` (ranked, type-filterable) and ranked `?q=` on list routes
 
-**Exit criteria:** dragging a card moves exactly one file and produces one commit; a 3-line invoice with 8.5% tax renders `21250` tax and `271250` total; print view fits one page at A4/Letter.
+**Deviations (deliberate):** print is A4-only (the brief allows A4/Letter; A4 is the request). The print view renders notes and the linked terms document, but has no signature block. Search uses FlexSearch's prefix tokenizer without typo tolerance, and rebuilds its whole in-memory index when the record index generation changes (no incremental reindex yet).
 
-Docs: [`docs/03-data-model.md`](./docs/03-data-model.md) §Money, [`docs/08-web-ui.md`](./docs/08-web-ui.md) §Kanban
+**Exit criteria:** dragging a card moves exactly one file (commit-on-save follows in M6); a 3-line invoice with 8.5% tax renders `21250` tax and `271250` total (unit + API tests); the print sheet is A4 with 16 mm page margins. One-page fit is confirmed manually per document length, not guaranteed by CSS.
+
+Docs: [`docs/03-data-model.md`](./docs/03-data-model.md) §Money, §Numbering, [`docs/08-web-ui.md`](./docs/08-web-ui.md) §Kanban, §Money rendering, [`docs/10-search.md`](./docs/10-search.md)
 
 ---
 

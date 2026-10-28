@@ -3,14 +3,16 @@ import { useEffect, useState } from 'react';
 export interface Route {
   readonly view: string;
   readonly id: string | null;
+  readonly section: string | null;
 }
 
 export const parseRoute = (hash: string): Route => {
   const clean = hash.replace(/^#\/?/, '').split('?')[0] ?? '';
-  const [view = '', id = ''] = clean.split('/');
+  const [view = '', id = '', section = ''] = clean.split('/');
   return {
     view: view === '' ? 'dashboard' : view,
     id: id === '' ? null : decodeURIComponent(id),
+    section: section === '' ? null : decodeURIComponent(section),
   };
 };
 

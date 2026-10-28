@@ -113,3 +113,29 @@ Preferred port from `.ob/config.json` (`server.port`, default `19731`); if taken
 `ob` never mutates a file to resolve an ambiguity. It reports a typed issue and exposes explicit resolve actions.
 
 **Why:** silent "fixes" are indistinguishable from data corruption. This is the single rule that keeps external editing safe.
+
+---
+
+### AD-15 — Browser print, not server-side PDF
+
+Invoice/estimate PDF is produced by the browser's print dialog from a dedicated route (`/invoices/:id/print`, `/estimates/:id/print`), styled with a strict A4 `@page` and literal light paper/ink values instead of theme tokens.
+
+**Why:** a PDF engine (headless Chromium, wkhtmltopdf, a font bundle) would add tens of megabytes and a native/runtime dependency to an `npx`-first tool, and would render differently from what the user sees. Browser print is offline, zero-dependency, and gives the user the system PDF writer (including font embedding and accessibility). The light-only sheet keeps output identical when printed from dark mode.
+
+The tradeoff is explicit: no unattended server-side PDF for batch/email workflows. That stays a v2 concern (`plan.md` §Known deferrals).
+
+---
+
+### AD-16 — Duplicates are billing-only, and never reuse the source
+
+`POST /api/{estimates,invoices}/:id/duplicate` clones an estimate or invoice into a **new file with a new id and the next number for the current year**; `status` resets to `draft`, dates reset to today (+15 days due / +30 days valid), line items and body are copied. Source files are read, never rewritten. Other record types reject the call with `invalid_duplicate`.
+
+**Why:** duplicating a contact or project has no expected semantics (which children move? which names collide?), so a generic copy would create data the user did not ask for. For billing, a fresh draft with a new number is the behaviour users expect, and `(copy)` in the title makes the origin obvious. Keeping `converted_invoice_id` off the copy prevents a second forward link to one invoice.
+
+---
+
+### AD-17 — The board belongs to a project
+
+`/projects` lists projects; `/projects/:id` is that project's Kanban board. `/tasks` remains a cross-project board labelled "All tasks".
+
+**Why:** the user's mental model is engagement-first ("open the project, see its work"), and a single global board loses project context once there is more than one client. The cross-project board still earns its place for triage. Both derive columns from the same folders, so the file model is unchanged.

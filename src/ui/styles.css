@@ -151,3 +151,211 @@
     }
   }
 }
+
+/* ── Print document (browser print → PDF) ─────────────────────────────
+   A4, light-only. These classes use literal paper/ink values rather than
+   theme tokens, so printing from dark mode yields the same document. */
+
+@page {
+  size: A4;
+  margin: 16mm;
+}
+
+.print-shell {
+  --print-ink: #17150f;
+  --print-muted: #6a6459;
+  --print-rule: #ddd7ca;
+  --print-paper: #fffdf7;
+  background: #e8e5dd;
+  color: var(--print-ink);
+}
+
+.print-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 297mm;
+  padding: 20mm 18mm;
+  background: var(--print-paper);
+  border: 1px solid var(--print-rule);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 6%),
+    0 24px 48px -32px rgb(0 0 0 / 40%);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--print-ink);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.print-business {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.print-doc-type {
+  margin-bottom: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--print-muted);
+}
+
+.print-number {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.print-muted {
+  color: var(--print-muted);
+}
+
+.print-small {
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.print-strong {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.print-label {
+  margin-bottom: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--print-muted);
+}
+
+.print-parties {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 12px 0;
+  border-top: 1px solid var(--print-rule);
+  border-bottom: 1px solid var(--print-rule);
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.print-table th {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--print-ink);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--print-muted);
+}
+
+.print-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--print-rule);
+  vertical-align: top;
+}
+
+.print-cell-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.print-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.print-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 72mm;
+  margin-left: auto;
+}
+
+.print-totals-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.print-total {
+  margin-top: 4px;
+  padding-top: 7px;
+  border-top: 1px solid var(--print-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.print-notes {
+  padding-top: 10px;
+  border-top: 1px solid var(--print-rule);
+}
+
+.print-pre {
+  white-space: pre-wrap;
+}
+
+.print-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--print-rule);
+}
+
+@media (max-width: 640px) {
+  .print-sheet {
+    min-height: 0;
+    padding: 10mm;
+  }
+
+  .print-parties {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-shell {
+    min-height: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  .print-sheet {
+    width: auto;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+  }
+
+  .print-table tr,
+  .print-parties,
+  .print-totals {
+    break-inside: avoid;
+  }
+}

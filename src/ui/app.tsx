@@ -28,6 +28,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { CommandPalette } from '@/components/command-palette';
 import { navigate, useRoute } from '@/lib/router';
+import type { Route } from '@/lib/router';
 import { useTheme } from '@/lib/theme';
 import { useWorkspace } from '@/lib/workspace';
 import { Billing } from '@/views/billing';
@@ -35,6 +36,8 @@ import { Contacts } from '@/views/contacts';
 import { Dashboard } from '@/views/dashboard';
 import { Documents } from '@/views/documents';
 import { Issues } from '@/views/issues';
+import { PrintDocument } from '@/views/print-document';
+import { ProjectWorkspace } from '@/views/project-workspace';
 import { Projects } from '@/views/projects';
 import { Settings } from '@/views/settings';
 import { Tasks } from '@/views/tasks';
@@ -102,29 +105,37 @@ const LoadingState = () => (
   </div>
 );
 
-const renderView = (view: string, id: string | null): ReactNode => {
-  switch (view) {
+const renderView = (route: Route): ReactNode => {
+  switch (route.view) {
     case 'dashboard':
       return <Dashboard />;
     case 'contacts':
-      return <Contacts initialId={id} />;
+      return <Contacts initialId={route.id} />;
     case 'projects':
-      return <Projects initialId={id} />;
+      return route.id === null ? <Projects /> : <ProjectWorkspace projectId={route.id} />;
     case 'tasks':
-      return <Tasks initialId={id} />;
+      return <Tasks initialId={route.id} />;
     case 'estimates':
-      return <Billing type="estimate" initialId={id} />;
+      return <Billing type="estimate" initialId={route.id} />;
     case 'invoices':
-      return <Billing type="invoice" initialId={id} />;
+      return <Billing type="invoice" initialId={route.id} />;
     case 'documents':
-      return <Documents initialId={id} />;
+      return <Documents initialId={route.id} />;
     case 'settings':
       return <Settings />;
     case 'issues':
       return <Issues />;
     default:
-      return <NotFound view={view} />;
+      return <NotFound view={route.view} />;
   }
+};
+
+/** `/invoices/:id/print` and `/estimates/:id/print` render without the app shell. */
+const printTarget = (route: Route): 'invoice' | 'estimate' | null => {
+  if (route.section !== 'print' || route.id === null) return null;
+  if (route.view === 'invoices') return 'invoice';
+  if (route.view === 'estimates') return 'estimate';
+  return null;
 };
 
 export const App = () => {
@@ -137,6 +148,7 @@ export const App = () => {
     config?.business.name === undefined || config.business.name === ''
       ? 'Untitled workspace'
       : config.business.name;
+  const printable = printTarget(route);
 
   const nav: readonly NavItem[] = [
     { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboardIcon },
@@ -144,7 +156,7 @@ export const App = () => {
     { view: 'projects', label: 'Projects', icon: FolderIcon, badge: records.project.length },
     {
       view: 'tasks',
-      label: 'Tasks',
+      label: 'All tasks',
       icon: ListTodoIcon,
       badge: records.task.filter((task) => task.status !== 'done').length,
     },
@@ -191,6 +203,10 @@ export const App = () => {
       ))}
     </nav>
   );
+
+  if (printable !== null && route.id !== null) {
+    return <PrintDocument type={printable} id={route.id} />;
+  }
 
   const totalRecords =
     records.contact.length +
@@ -268,7 +284,7 @@ export const App = () => {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            {loading && config === null ? <LoadingState /> : renderView(route.view, route.id)}
+            {loading && config === null ? <LoadingState /> : renderView(route)}
           </div>
         </main>
       </div>
