@@ -72,7 +72,7 @@ Stdout carries human status lines only. Diagnostics, git argv, and watcher chatt
 
 ## Acceptance criteria
 
-- [ ] Fresh clone → `node dist/cli.js --help` exits 0 and lists all flags.
+- [ ] Fresh clone → `node dist/cli/index.js --help` exits 0 and lists all flags.
 - [ ] Missing `git config user.email` prints one copy-pasteable command and exits non-zero; no server starts, no lock file remains.
 - [ ] `--port 19731` with 19731 occupied prints the actual bound port and opens that URL.
 - [ ] `Ctrl+C` at any phase leaves no `.ob/state/server.lock` and no listening socket.

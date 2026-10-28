@@ -505,7 +505,7 @@ Normative detail: [`docs/08-web-ui.md`](./docs/08-web-ui.md).
 * **Primary npm package:** `@operationbegin/crm` (alias package: `filecrm`).
 * **Zero-install:** `npx @operationbegin/crm .` / `npx filecrm .`
 * **Global alias:** `npm install -g @operationbegin/crm` registers both `ob` and `filecrm`.
-* `bin` entries point at `dist/cli.js` with a `#!/usr/bin/env node` shebang; the SPA ships pre-built so end users never run Vite.
+* `bin` entries point at `dist/cli/index.js` with a `#!/usr/bin/env node` shebang; the SPA ships pre-built so end users never run Vite.
 * Published artifacts: `dist/` (compiled server + bundled `index.html`), `docs/`, `README.md`, `LICENSE`. No `src/`, no dev deps.
 
 ---

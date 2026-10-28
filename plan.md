@@ -13,9 +13,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 | Spec (brief v1.1.0) | `[x]` |
 | Architecture decisions | `[x]` — [`docs/00-decisions.md`](./docs/00-decisions.md) |
 | Feature documentation | `[x]` — [`docs/`](./docs/README.md) |
-| Source code | `[ ]` — repo is still greenfield (no `package.json`) |
+| Source code | `[~]` — M0 scaffolding landed; M1 next |
 
-**Next action:** request approval to scaffold M0.
+**Next action:** milestone M1 (CLI, pre-flight, workspace init).
 
 ---
 
@@ -23,14 +23,14 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 
 Goal: a TypeScript project that builds, tests, and lints from a clean clone.
 
-- [ ] `package.json` — ESM (`"type": "module"`), `engines.node >= 20`, `bin: { ob, filecrm } → dist/cli.js`, `files: [dist, docs, README.md, LICENSE]`
-- [ ] `tsconfig.json` — `strict`, `module: NodeNext`, `target: ES2022`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
-- [ ] Build pipeline: `tsc` for server/CLI + Vite build (`vite-plugin-singlefile`) for the SPA, then copy `index.html` into `dist/`, emit `dist/cli.js` with shebang
-- [ ] Tooling: `tsx` (dev), `vitest` (test), ESLint + Prettier, `npm run typecheck / build / test`
-- [ ] CI workflow (`.github/workflows/ci.yml`): typecheck + test + build on `ubuntu-latest`, `macos-latest`, `windows-latest`, Node 20/22
-- [ ] `.gitignore`, `README.md` skeleton, `LICENSE` already present
+- [x] `package.json` — ESM (`"type": "module"`), `engines.node >= 20`, `bin: { ob, filecrm } → dist/cli/index.js`, `files: [dist, docs, README.md, LICENSE]`
+- [x] `tsconfig.json` — `strict`, `module: NodeNext`, `target: ES2022`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`
+- [x] Build pipeline: `tsc` for server/CLI (`rootDir: src`, `outDir: dist`) + Vite build (`vite-plugin-singlefile`) for the SPA, then `scripts/postbuild.mjs` adds the shebang, `chmod 755`, and fails on a non-self-contained bundle or a `js-yaml` import
+- [x] Tooling: `tsx` (dev), `vitest` (`vitest.config.ts` at root, tests in `tests/`), ESLint (flat config + `js-yaml` ban) + Prettier, `npm run typecheck / build / test / lint`
+- [x] CI workflow (`.github/workflows/ci.yml`): typecheck + lint + test + build on `ubuntu-latest`, `macos-latest`, `windows-latest` × Node 20/22, plus a CLI smoke test
+- [x] `.gitignore`, `README.md` skeleton, `LICENSE` already present
 
-**Exit criteria:** `npm run build && npm run typecheck && npm run test` pass on a clean clone; `node dist/cli.js --help` prints usage.
+**Exit criteria:** `npm run build && npm run typecheck && npm run test` pass on a clean clone; `node dist/cli/index.js --help` prints usage. — **met** (23 tests, 225 KB single-file UI, tarball = 22 files / 103 kB).
 
 Docs: [`docs/11-packaging.md`](./docs/11-packaging.md), [`docs/12-testing-and-verification.md`](./docs/12-testing-and-verification.md)
 

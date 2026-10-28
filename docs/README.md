@@ -15,8 +15,8 @@ One document per functional area. The PRD ([`../brief.md`](../brief.md)) is the 
 | [08-web-ui](./08-web-ui.md) | SPA shell, CRUD views, Kanban, print | M4/M5 | `[ ]` |
 | [09-git-sync](./09-git-sync.md) | Commit-on-save, sync lifecycle, recovery | M6 | `[ ]` |
 | [10-search](./10-search.md) | FlexSearch index, query semantics | M3/M4 | `[ ]` |
-| [11-packaging](./11-packaging.md) | Single-file bundle, `bin`, npm publish | M0/M7 | `[ ]` |
-| [12-testing-and-verification](./12-testing-and-verification.md) | Test strategy, fixtures, manual QA | all | `[ ]` |
+| [11-packaging](./11-packaging.md) | Single-file bundle, `bin`, npm publish | M0/M7 | `[~]` |
+| [12-testing-and-verification](./12-testing-and-verification.md) | Test strategy, fixtures, manual QA | all | `[~]` |
 
 ## Status legend
 

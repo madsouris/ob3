@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.vite/
+
+# ob runtime state (per-machine)
+.ob/state/
+
+# sandbox/local npm cache used during development
+.npm-cache/
+
+.DS_Store
+*.log

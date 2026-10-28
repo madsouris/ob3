@@ -27,7 +27,7 @@ docs/01…12-*.md          One document per functional area
 AGENTS.md                This file
 ```
 
-Planned source layout (not yet scaffolded — repo is greenfield until M0 lands):
+Planned source layout (created progressively as each milestone lands — M0 scaffolded `src/cli/`, `src/ui/`, `tests/`, `scripts/`):
 
 ```
 src/cli/         arg parsing, pre-flight, init wizard, lifecycle (M1)
@@ -156,7 +156,7 @@ Violating any of these is a bug, not a style preference.
 
 ## 8. Working Notes
 
-* **Repo state:** greenfield. No `package.json` until M0. Do not invent scripts that do not exist; if a command is missing, say so.
+* **Repo state:** M0 landed — `package.json`, `tsconfig.json`/`tsconfig.build.json`, `vite.config.ts`, `vitest.config.ts`, ESLint/Prettier, CI, and a CLI shell that resolves `--help`/`--version`. Available scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
 * **Dependencies:** no new dependency without justification — must be pure-JS (or optional-native), maintained, and consistent with §4. `js-yaml`, `moment`, `express`, `better-sqlite3` are off-limits.
 * **Known deferrals (v1):** CSV importer, multi-workspace switching, server-side PDF, email sending, payments, encryption at rest.
 * **Ambiguity rule:** if the spec and the request disagree, surface the conflict and propose the fix in one sentence, then wait for approval.

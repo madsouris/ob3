@@ -30,7 +30,7 @@ package.json
   "version": "1.0.0",
   "type": "module",
   "engines": { "node": ">=20" },
-  "bin": { "ob": "dist/cli.js", "filecrm": "dist/cli.js" },
+  "bin": { "ob": "dist/cli/index.js", "filecrm": "dist/cli/index.js" },
   "files": ["dist", "docs", "README.md", "LICENSE"],
   "dependencies": { "hono": "…", "@hono/node-server": "…", "chokidar": "…", "yaml": "…", "zod": "…", "flexsearch": "…" },
   "scripts": {
@@ -54,15 +54,15 @@ Rules:
 ## Build pipeline
 
 1. **Client:** `vite build` with `vite-plugin-singlefile` → `dist/client/index.html`. Verify no `src=`/`href=` points outside the file (except `data:`).
-2. **Server:** `tsc` → `dist/server`, `dist/cli.js`.
+2. **Server:** `tsc` → `dist/server`, `dist/cli/index.js` (rootDir `src`, outDir `dist`).
 3. **Postbuild** (`scripts/postbuild.mjs`):
-   * prepend `#!/usr/bin/env node` to `dist/cli.js` and `chmod 755`
-   * copy `LICENSE`/`README.md` if needed for the tarball
-   * fail if any `dist/` file imports a `devDependency`
+   * prepend `#!/usr/bin/env node` to `dist/cli/index.js` and `chmod 755`
+   * fail if `dist/client/index.html` is missing or references an external asset
+   * fail if any `dist/` file imports `js-yaml` (ADR-04)
 
 ## Runtime asset resolution
 
-`dist/cli.js` locates the SPA via `new URL('./client/index.html', import.meta.url)` — no `__dirname`, no cwd assumption, works when the package is installed globally, via `npx`, or from a tarball.
+`dist/cli/index.js` locates the SPA via `new URL('../client/index.html', import.meta.url)` — no `__dirname`, no cwd assumption, works when the package is installed globally, via `npx`, or from a tarball.
 
 ## Verification (must pass before publish)
 
@@ -71,7 +71,7 @@ Rules:
 | No native modules | `npm pack`, install in a temp dir with `--ignore-scripts`, assert no `.node` files and no `node-gyp` in the output |
 | Polling fallback | run with `CHOKIDAR_USEPOLLING=1` and complete a CRUD cycle |
 | Cross-platform | CI matrix: `ubuntu-latest`, `macos-latest`, `windows-latest` × Node 20/22 |
-| Tarball smoke test | extract tarball → `node dist/cli.js --help` → init demo in a temp dir → `GET /api/health` → Ctrl+C |
+| Tarball smoke test | extract tarball → `node dist/cli/index.js --help` → init demo in a temp dir → `GET /api/health` → Ctrl+C |
 | Global alias | `npm i -g ./pkg.tgz` → `ob --version` and `filecrm --version` |
 | Bundle size | `dist/client/index.html` < 800 KB (warn only) |
 | Publish dry run | `npm publish --dry-run` and review the file list |
