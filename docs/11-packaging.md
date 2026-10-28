@@ -23,7 +23,16 @@ LICENSE
 package.json
 ```
 
-`files` allowlist: `dist`, `docs`, `README.md`, `LICENSE`. `src/` and `fixtures/` are never published; the demo workspace reaches users as `dist/demo`.
+`files` allowlist: `dist`, `docs`, `README.md`, `LICENSE`. `src/` is never published; the demo workspace reaches users as `dist/demo`.
+
+## Package manager
+
+Development uses **pnpm**; end users still install via `npx` / `npm i -g`.
+
+* `packageManager` pins the version (`pnpm@12.11.2`) — `corepack enable` picks it up, and `pnpm/action-setup@v4` reads it in CI.
+* `pnpm-lock.yaml` is committed; CI installs with `--frozen-lockfile`.
+* `pnpm-workspace.yaml` holds pnpm settings (pnpm 10+ ignores a `pnpm` field in `package.json`). `allowBuilds: { esbuild: true }` is the only approval needed — esbuild's postinstall links its platform binary. Without it pnpm 12 fails the install with `ERR_PNPM_IGNORED_BUILDS`.
+* Scripts are invoked with `pnpm <script>` (or `pnpm run <script>`); chained scripts inside `package.json` call `pnpm run` for consistency.
 
 ## `package.json` essentials
 
@@ -37,12 +46,12 @@ package.json
   "files": ["dist", "docs", "README.md", "LICENSE"],
   "dependencies": { "hono": "…", "@hono/node-server": "…", "chokidar": "…", "yaml": "…", "zod": "…", "flexsearch": "…" },
   "scripts": {
-    "build": "npm run build:client && npm run build:server && node scripts/postbuild.mjs",
+    "build": "pnpm run build:client && pnpm run build:server && node scripts/postbuild.mjs",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
+    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   }
 }
 ```
@@ -72,14 +81,14 @@ Rules:
 
 | Check | How |
 |---|---|
-| No native modules | `npm pack`, install in a temp dir with `--ignore-scripts`, assert no `.node` files and no `node-gyp` in the output |
+| No native modules | `pnpm pack`, install in a temp dir with `--ignore-scripts`, assert no `.node` files and no `node-gyp` in the output |
 | Polling fallback | run with `CHOKIDAR_USEPOLLING=1` and complete a CRUD cycle |
 | Cross-platform | CI matrix: `ubuntu-latest`, `macos-latest`, `windows-latest` × Node 20/22 |
 | Tarball smoke test | extract tarball → `node dist/cli/index.js --help` → init demo in a temp dir → `GET /api/health` → Ctrl+C |
-| Global alias | `npm i -g ./pkg.tgz` → `ob --version` and `filecrm --version` |
+| Global alias | `pnpm add -g ./pkg.tgz` → `ob --version` and `filecrm --version` |
 | Bundle size | `dist/client/index.html` < 800 KB (warn only) |
 | Demo shipped | `dist/demo/.ob/config.json` exists and `dist/demo` holds 13 records |
-| Publish dry run | `npm publish --dry-run` and review the file list |
+| Publish dry run | `pnpm publish --dry-run` and review the file list |
 
 ## Versioning
 
@@ -96,5 +105,5 @@ Rules:
 
 - [ ] A machine with only Node 20 + Git runs the tarball via `npx` and completes a full CRUD + sync cycle.
 - [ ] No native compilation occurs; `node-gyp` is never invoked.
-- [ ] `npm publish --dry-run` lists only `dist/`, `docs/`, `README.md`, `LICENSE`, `package.json`.
+- [ ] `pnpm publish --dry-run` lists only `dist/`, `docs/`, `README.md`, `LICENSE`, `package.json`.
 - [ ] Both `ob` and `filecrm` resolve after a global install.

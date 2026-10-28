@@ -4,6 +4,7 @@
   "description": "Local-first CRM. Markdown files and Git are the database.",
   "license": "MIT",
   "type": "module",
+  "packageManager": "pnpm@12.11.2",
   "engines": {
     "node": ">=20"
   },
@@ -22,7 +23,7 @@
   },
   "scripts": {
     "dev": "tsx src/cli/index.ts",
-    "build": "npm run build:client && npm run build:server && node scripts/postbuild.mjs",
+    "build": "pnpm run build:client && pnpm run build:server && node scripts/postbuild.mjs",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
@@ -30,7 +31,7 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
+    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",

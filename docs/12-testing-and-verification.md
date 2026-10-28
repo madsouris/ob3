@@ -33,7 +33,7 @@ Everything else (CRUD, UI) gets standard coverage.
 | `large` | 10k synthetic records (generated in a setup script, gitignored) |
 | `git-bare` | Bare repo used as `origin` for sync tests |
 
-Fixtures are committed; the 10k one is generated (`npm run fixture:large`). Nothing in `fixtures/` is user data — see [`fixtures/README.md`](../fixtures/README.md). `tests/repo/hygiene.test.ts` fails if a working workspace appears at the repo root.
+Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing in `fixtures/` is user data — see [`fixtures/README.md`](../fixtures/README.md). `tests/repo/hygiene.test.ts` fails if a working workspace appears at the repo root.
 
 ## Non-negotiable test cases
 
@@ -93,6 +93,6 @@ Fixtures are committed; the 10k one is generated (`npm run fixture:large`). Noth
 
 1. All acceptance criteria in the milestone's doc are checked off.
 2. New edge cases have tests, not just manual verification.
-3. `npm run typecheck && npm run test && npm run build` green.
+3. `pnpm typecheck && pnpm test && pnpm build` green.
 4. The owning `docs/` file matches shipped behaviour.
 5. `plan.md` checkboxes updated.

@@ -127,6 +127,7 @@ Non-interactive equivalents: `ob init --demo`, `ob init --empty`.
 * **Validation:** Zod schemas per record `type`.
 * **IDs:** `{prefix}_{26-char Crockford Base32 ULID}` (e.g. `cnt_01J8X71000Q4M2N8V3R5T7W9Y0Z`).
 * **Dev/Test:** `tsx` for local runs, `vitest` for unit/integration, Playwright for the E2E smoke flow.
+* **Package manager (dev):** pnpm 12, pinned by the `packageManager` field; `pnpm-lock.yaml` is committed. End users are unaffected (`npx` / `npm i -g`).
 
 ---
 

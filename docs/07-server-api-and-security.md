@@ -16,7 +16,8 @@ serve({ fetch: app.fetch, hostname: '127.0.0.1', port })
 * No CORS middleware. Absence of `Access-Control-Allow-Origin` is the primary defence against cross-origin reads and custom-header writes.
 * `Content-Type: application/json` on all API responses; `Cache-Control: no-store`.
 * `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy: same-origin`.
-* CSP for the SPA: `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'` (inline styles are required by the single-file bundle's inlined CSS; the script is an external `src` in the built file).
+* `hono/secure-headers` is applied globally from M1: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Cross-Origin-Opener-Policy: same-origin`, and no `Strict-Transport-Security` (loopback HTTP only).
+* CSP for the SPA: `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'`. `vite-plugin-singlefile` inlines both the CSS **and** the JS, so `'unsafe-inline'` is required for scripts — the external-script assumption in earlier drafts was wrong. The risk is bounded by the loopback bind, `Host` validation, and the per-run token. Wired up in M3 with the token middleware.
 
 ## Security middleware (in order)
 

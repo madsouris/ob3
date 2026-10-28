@@ -9,7 +9,14 @@ Spec version: **1.1.0** (implementation-ready)
 ## 1. Core Operating Principles
 
 1. **Plan First, Code Second:** Never modify or write application code without presenting a clear plan and receiving explicit approval ("LGTM", "Go ahead", "Approved"). Doc-only tasks that the user explicitly requested may proceed directly.
-2. **Utilize Skills:** Use installed skills, file search, diagnostics, and CLI tools to gather context before proposing code or architecture changes. Relevant skills for this repo: `hono-typescript`, `vercel-react-best-practices`, `shadcn`, `impeccable`.
+2. **Utilize Skills:** Load the matching skill *before* designing or editing:
+
+   | Work | Skill |
+   |---|---|
+   | Hono routes, middleware, server-side TypeScript | `hono-typescript` |
+   | React components, data fetching, UI performance | `vercel-react-best-practices` |
+   | shadcn/ui primitives and component composition | `shadcn` |
+   | Visual design, UX review, polish | `impeccable` |
 3. **Respect the Brief:** `brief.md` is the contract for stack, schemas, and file structures. `plan.md` is the contract for scope and order. `docs/` is the contract for behaviour. If a request conflicts with any of them, say so before writing code.
 4. **Docs Are Part of the Change:** Any behavioural change updates the owning `docs/` file, `plan.md` checkboxes, and `docs/00-decisions.md` if a decision changed. A change without doc updates is incomplete.
 5. **Be Straight to the Point:** Concise, technical, accurate. No fluff, no restating the request.
@@ -64,7 +71,7 @@ Then **STOP** and wait for approval.
 
 ### Step 3: Execution & Verification
 * Write type-safe, minimal code that matches existing conventions.
-* Verify: `npm run typecheck && npm run test`; run `npm run build` when touching UI or packaging.
+* Verify: `pnpm typecheck && pnpm test`; run `pnpm build` when touching UI or packaging.
 * Update `plan.md` checkboxes and the owning doc's acceptance criteria.
 * Summarize what changed, what was verified, and the logical next step.
 
@@ -94,7 +101,28 @@ Then **STOP** and wait for approval.
 | Storage | Markdown + YAML frontmatter; `.ob/config.json` committed, `.ob/state/` gitignored |
 | Sync | `git add` → `git commit` → `git pull --rebase` → `git push` (commit **before** pull) |
 | Default port | `19731`, probing upward, real URL printed |
+| Package manager (dev) | **pnpm 12** — `packageManager` field pins it, `pnpm-lock.yaml` is committed |
 | Tests | `vitest`; Playwright for the E2E smoke flow |
+
+### 4.1 Code conventions (from the skills)
+
+**TypeScript**
+* kebab-case file names; PascalCase types/interfaces; camelCase functions; UPPERCASE env vars.
+* `interface` for object shapes; union types + `as const` maps instead of `enum`; `import type` for type-only imports.
+* Arrow functions for handlers and middleware; small single-purpose functions; RO-RO (receive an object, return an object).
+* Zod at every boundary (HTTP input, `.ob/config.json`, frontmatter) and infer types from the schema — no hand-written duplicates.
+* No `any`. If the shape is unknown, model it (`unknown` + a narrowing function).
+
+**Hono**
+* Chain route definitions; group with `app.route()`; handlers return `c.json()` / `c.html()`.
+* Fail with `HTTPException`; `app.onError` maps to the `{ error: { code, message } }` envelope (docs/07).
+* `hono/secure-headers` globally; `@hono/zod-validator` for bodies/queries from M3 on.
+
+**React (M4+)**
+* No request waterfalls — `Promise.all` for independent fetches; start fetches early, await late.
+* No barrel imports; import from the concrete module.
+* No components defined inside components; functional `setState`; derive state during render instead of syncing via effects.
+* `useTransition`/deferred values for non-urgent updates; memoize only measured-expensive work.
 
 ---
 
@@ -159,8 +187,8 @@ Violating any of these is a bug, not a style preference.
 
 ## 8. Working Notes
 
-* **Repo state:** M0 + M1 landed — CLI (`init`/`check`/`start`), pre-flight, init wizard, workspace scaffolding, demo seed, lock, port probing, atomic writes, and a minimal Hono server (`/api/health` + UI shell). `ob sync` intentionally exits 1 until M6. Available scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
-* **Demo data:** never add records as code. Edit `fixtures/workspaces/demo/`, then `npm run build` (postbuild copies it to `dist/demo`). Tests assert the fixture matches what `init --demo` writes.
+* **Repo state:** M0 + M1 landed — CLI (`init`/`check`/`start`), pre-flight, init wizard, workspace scaffolding, demo seed, lock, port probing, atomic writes, and a minimal Hono server (`/api/health` + UI shell). `ob sync` intentionally exits 1 until M6. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
+* **Demo data:** never add records as code. Edit `fixtures/workspaces/demo/`, then `pnpm build` (postbuild copies it to `dist/demo`). Tests assert the fixture matches what `init --demo` writes.
 * **Dependencies:** no new dependency without justification — must be pure-JS (or optional-native), maintained, and consistent with §4. `js-yaml`, `moment`, `express`, `better-sqlite3` are off-limits.
 * **Known deferrals (v1):** CSV importer, multi-workspace switching, server-side PDF, email sending, payments, encryption at rest.
 * **Ambiguity rule:** if the spec and the request disagree, surface the conflict and propose the fix in one sentence, then wait for approval.

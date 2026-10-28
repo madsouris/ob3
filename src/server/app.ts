@@ -1,18 +1,20 @@
 import { readFileSync } from 'node:fs';
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import { secureHeaders } from 'hono/secure-headers';
 
-export type AppOptions = {
-  workspace: string;
-  version: string;
-  startedAt: number;
-};
+export interface AppOptions {
+  readonly workspace: string;
+  readonly version: string;
+  readonly startedAt: number;
+}
 
 const FALLBACK_HTML = `<!doctype html>
 <html lang="en">
   <head><meta charset="utf-8" /><title>ob</title></head>
   <body style="font-family: ui-sans-serif, system-ui, sans-serif; padding: 3rem">
     <h1>ob</h1>
-    <p>The UI bundle was not found. Run <code>npm run build</code> to generate
+    <p>The UI bundle was not found. Run <code>pnpm build</code> to generate
     <code>dist/client/index.html</code>, then reload.</p>
   </body>
 </html>
@@ -38,37 +40,56 @@ export function resolveClientHtml(moduleUrl: string = import.meta.url): string |
   return null;
 }
 
-export function createApp(options: AppOptions): Hono {
+const htmlHeaders = {
+  'Cache-Control': 'no-store',
+  'Content-Type': 'text/html; charset=utf-8',
+} as const;
+
+/**
+ * The HTTP surface for the local app. Everything is same-origin and loopback
+ * only; security middleware and the token check arrive in M3 (docs/07).
+ */
+export const createApp = (options: AppOptions): Hono => {
   const app = new Hono();
-  const startedAt = options.startedAt;
+
+  app.use(
+    '*',
+    secureHeaders({
+      // Loopback HTTP only: HSTS would be meaningless and can confuse browsers.
+      strictTransportSecurity: false,
+      xFrameOptions: 'DENY',
+    }),
+  );
 
   app.get('/api/health', (c) =>
     c.json({
       ok: true,
       version: options.version,
       workspace: options.workspace,
-      uptimeSeconds: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
+      uptimeSeconds: Math.max(0, Math.round((Date.now() - options.startedAt) / 1000)),
     }),
   );
 
-  app.get('/', (c) => {
-    const html = resolveClientHtml() ?? FALLBACK_HTML;
-    return c.html(html, 200, {
-      'Cache-Control': 'no-store',
-      'Content-Type': 'text/html; charset=utf-8',
-    });
+  app.get('/', (c) => c.html(resolveClientHtml() ?? FALLBACK_HTML, 200, htmlHeaders));
+
+  app.onError((error, c) => {
+    if (error instanceof HTTPException) {
+      return c.json(
+        { error: { code: 'http_error', message: error.message } },
+        error.status,
+      );
+    }
+    // Never leak stack traces or filesystem paths to the client.
+    console.error(error);
+    return c.json({ error: { code: 'internal', message: 'Internal server error' } }, 500);
   });
 
   app.notFound((c) => {
     if (c.req.path.startsWith('/api/')) {
       return c.json({ error: { code: 'not_found', message: 'Unknown route' } }, 404);
     }
-    const html = resolveClientHtml() ?? FALLBACK_HTML;
-    return c.html(html, 200, {
-      'Cache-Control': 'no-store',
-      'Content-Type': 'text/html; charset=utf-8',
-    });
+    return c.html(resolveClientHtml() ?? FALLBACK_HTML, 200, htmlHeaders);
   });
 
   return app;
-}
+};

@@ -26,6 +26,14 @@ describe('GET /', () => {
     expect((await response.text()).toLowerCase()).toContain('<!doctype html');
   });
 
+  it('applies the security headers from hono/secure-headers', async () => {
+    const response = await app().request('/');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.get('x-frame-options')).toBe('DENY');
+    // Loopback HTTP: HSTS must stay off.
+    expect(response.headers.get('strict-transport-security')).toBeNull();
+  });
+
   it('serves the SPA shell for unknown non-API routes', async () => {
     const response = await app().request('/contacts/cnt_whatever');
     expect(response.status).toBe(200);

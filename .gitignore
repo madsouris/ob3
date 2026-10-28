@@ -3,6 +3,9 @@ dist/
 coverage/
 .vite/
 
+# pnpm
+.pnpm-store/
+
 # ob runtime state (per-machine)
 .ob/state/
 

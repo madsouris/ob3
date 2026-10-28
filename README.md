@@ -18,8 +18,8 @@ npx @operationbegin/crm .
 ## Preview
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm build
 
 # always use a directory OUTSIDE this repo
 node dist/cli/index.js ~/ob-demo --demo
@@ -46,16 +46,18 @@ The seeded content is the canonical fixture at [`fixtures/workspaces/demo/`](./f
 
 ## Development
 
-Requires Node ≥ 20.
+Requires Node ≥ 20 and pnpm (the exact version is pinned by `packageManager`; `corepack enable` is enough).
 
 ```bash
-npm install
-npm run dev        # run the CLI from source via tsx
-npm run build      # build server (tsc) + single-file UI (vite) + postbuild checks
-npm run typecheck  # tsc --noEmit
-npm run test       # vitest
-npm run lint       # eslint
+pnpm install
+pnpm dev          # run the CLI from source via tsx
+pnpm build        # build server (tsc) + single-file UI (vite) + postbuild checks
+pnpm typecheck    # tsc --noEmit
+pnpm test         # vitest
+pnpm lint         # eslint
 ```
+
+pnpm is the development package manager only — end users install via `npx`/`npm i -g`.
 
 Notes:
 

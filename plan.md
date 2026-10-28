@@ -26,11 +26,11 @@ Goal: a TypeScript project that builds, tests, and lints from a clean clone.
 - [x] `package.json` — ESM (`"type": "module"`), `engines.node >= 20`, `bin: { ob, filecrm } → dist/cli/index.js`, `files: [dist, docs, README.md, LICENSE]`
 - [x] `tsconfig.json` — `strict`, `module: NodeNext`, `target: ES2022`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`
 - [x] Build pipeline: `tsc` for server/CLI (`rootDir: src`, `outDir: dist`) + Vite build (`vite-plugin-singlefile`) for the SPA, then `scripts/postbuild.mjs` adds the shebang, `chmod 755`, and fails on a non-self-contained bundle or a `js-yaml` import
-- [x] Tooling: `tsx` (dev), `vitest` (`vitest.config.ts` at root, tests in `tests/`), ESLint (flat config + `js-yaml` ban) + Prettier, `npm run typecheck / build / test / lint`
+- [x] Tooling: `tsx` (dev), `vitest` (`vitest.config.ts` at root, tests in `tests/`), ESLint (flat config + `js-yaml` ban) + Prettier, pnpm 12 pinned via `packageManager`, `pnpm typecheck / build / test / lint`
 - [x] CI workflow (`.github/workflows/ci.yml`): typecheck + lint + test + build on `ubuntu-latest`, `macos-latest`, `windows-latest` × Node 20/22, plus a CLI smoke test
 - [x] `.gitignore`, `README.md` skeleton, `LICENSE` already present
 
-**Exit criteria:** `npm run build && npm run typecheck && npm run test` pass on a clean clone; `node dist/cli/index.js --help` prints usage. — **met** (23 tests, 225 KB single-file UI, tarball = 22 files / 103 kB).
+**Exit criteria:** `pnpm build && pnpm typecheck && pnpm test` pass on a clean clone; `node dist/cli/index.js --help` prints usage. — **met** (23 tests at the time, 225 KB single-file UI, tarball = 22 files / 103 kB).
 
 Docs: [`docs/11-packaging.md`](./docs/11-packaging.md), [`docs/12-testing-and-verification.md`](./docs/12-testing-and-verification.md)
 
@@ -160,11 +160,11 @@ Docs: [`docs/09-git-sync.md`](./docs/09-git-sync.md)
 
 ## Milestone M7 — Packaging & Release
 
-- [ ] `npx` smoke test from a packed tarball (`npm pack` → install in a temp dir) on macOS/Linux/Windows
+- [ ] `npx` smoke test from a packed tarball (`pnpm pack` → install in a temp dir) on macOS/Linux/Windows
 - [ ] Verify zero native compilation (force `chokidar` fallback via `CHOKIDAR_USEPOLLING=1` test)
 - [ ] README: install, quickstart, screenshots, data-format reference
 - [ ] `docs/` consistency pass against shipped behaviour
-- [ ] `v1.0.0` publish dry run (`npm publish --dry-run`), files list verified
+- [ ] `v1.0.0` publish dry run (`pnpm publish --dry-run`), files list verified
 - [ ] Optional: `gh`-based repo bootstrap demo
 
 **Exit criteria:** a machine with only Node 20 + Git installed can run the app from the tarball and complete M4/M5/M6 exit criteria.

@@ -1,0 +1,8 @@
+# pnpm settings live here (pnpm 10+ no longer reads the `pnpm` field in package.json).
+# pnpm 12 renamed the approval list to `allowBuilds`, a name -> boolean map.
+
+# esbuild ships a postinstall that links its platform binary; it is the only
+# dependency with a build script, and approving it keeps `pnpm install`
+# non-interactive (avoids ERR_PNPM_IGNORED_BUILDS).
+allowBuilds:
+  esbuild: true
