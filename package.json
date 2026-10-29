@@ -1,6 +1,6 @@
 {
   "name": "filecrm",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Local-first CRM. Markdown files and Git are the database.",
   "license": "MIT",
   "type": "module",
@@ -23,7 +23,7 @@
   },
   "scripts": {
     "dev": "tsx src/cli/index.ts",
-    "build": "pnpm run build:client && pnpm run build:server && node scripts/postbuild.mjs",
+    "build": "node scripts/clean.mjs && pnpm run build:client && pnpm run build:server && node scripts/postbuild.mjs",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",

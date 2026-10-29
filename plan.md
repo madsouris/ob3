@@ -101,13 +101,13 @@ Metadata and documentation (done):
 
 Release steps (remaining):
 
-- [ ] Bump `version` to `1.0.0`
-- [ ] Tarball smoke test: `pnpm pack` → temp dir install → `init --demo` → `GET /api/health` → stop
-- [ ] Zero-native check: run with `CHOKIDAR_USEPOLLING=1` and complete a CRUD + sync cycle
-- [ ] `pnpm publish --dry-run`: file list is only `dist`, `docs`, `README.md`, `LICENSE`,
-      `package.json`, and contains no `.ob/state` or `src/`
-- [ ] Publish `filecrm@1.0.0` (npm 2FA; prefer trusted publishing from the public repo)
-- [ ] CI: trigger on `master` (currently `main`) and add a tag-triggered publish job
+- [x] Bump `version` to `1.0.0`
+- [x] Tarball smoke test: `pnpm pack` → temp install → `init --demo` → `GET /api/health` → CRUD → stop
+- [x] Zero-native check: ran the installed CLI with `CHOKIDAR_USEPOLLING=1` through a full CRUD cycle
+- [x] `pnpm publish --dry-run`; `npm pack --dry-run` lists only `dist`, `docs`, `README.md`, `LICENSE`, `package.json` (97 files, 382 KB)
+- [x] CI: trigger on `master`
+- [ ] Commit the release, then publish `filecrm@1.0.0` (needs the maintainer's npm login + 2FA)
+- [ ] Add the tag-triggered publish workflow (trusted publishing) after the first release
 - [ ] Post-publish: `npx filecrm@1.0.0` from a clean directory on macOS/Linux/Windows
 
 **Exit criteria:** a machine with only Node ≥ 20 + Git runs the package from npm, completes the
