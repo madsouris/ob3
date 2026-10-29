@@ -383,12 +383,16 @@ id: doc_01J8X75000Q4M2N8V3R5T7W9Y0Z
 type: document
 title: Default Service Terms
 kind: terms  # terms | proposal | note
+scope: global  # global | client
+client_id: ""  # required when scope: client
 created_at: 2026-10-28T09:00:00Z
 updated_at: 2026-10-28T09:00:00Z
 ---
 
 Payment is due within 15 days of invoice issuance…
 ```
+
+Document bodies may contain `{{business.name}}`, `{{client.name}}`, `{{invoice.number}}`, `{{today}}` and similar placeholders. They are rendered when the document is viewed or printed; the file keeps the raw template (docs/13).
 
 #### Referential integrity
 
@@ -508,7 +512,7 @@ The native guard fires **only** when `dirty || unpushed`, i.e. when closing the 
 Normative detail: [`docs/08-web-ui.md`](./docs/08-web-ui.md).
 
 * Single-file SPA served by Hono at `/`; no build step at runtime.
-* Views: Dashboard, Contacts, Projects (list → that project's Kanban board), All tasks (cross-project board), Estimates, Invoices, Documents, Settings, "Needs attention".
+* Views: Dashboard, Contacts (list → contact page), Projects (list → that project's Kanban board), All tasks (cross-project board), Estimates, Invoices, Documents (list → rendered document page / A4 print), Settings, "Needs attention".
 * Live updates over **SSE** (`/api/events`), with reconnect + exponential backoff. The UI is a projection of the file-derived index and reconciles from it.
 * An externally-changed record currently open in the editor triggers a non-destructive "This file changed on disk" banner with *Reload* / *Keep mine (overwrite)*.
 * Writes are pessimistic: the editor keeps the typed text until the server confirms, and keeps it with the server's message if the write is rejected.

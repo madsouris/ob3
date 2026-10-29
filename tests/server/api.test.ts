@@ -99,6 +99,43 @@ describe('record CRUD', () => {
   });
 });
 
+describe('documents', () => {
+  const clientId = 'cnt_01J8X7100BQ4M2N8V3R5T7W9Y0';
+
+  it('stores a client-scoped document and defaults to global otherwise', async () => {
+    const test = await server('demo');
+
+    const scoped = await test.mutate('POST', '/api/documents', {
+      title: 'Onboarding contract',
+      kind: 'proposal',
+      scope: 'client',
+      client_id: clientId,
+      body: '# Welcome',
+    });
+    expect(scoped.status).toBe(201);
+    const scopedBody = (await scoped.json()) as {
+      record: { id: string; scope: string; client_id: string; path: string };
+    };
+    expect(scopedBody.record.scope).toBe('client');
+    expect(scopedBody.record.client_id).toBe(clientId);
+    expect(scopedBody.record.path).toMatch(/^documents\//);
+
+    const global = await test.mutate('POST', '/api/documents', { title: 'Terms' });
+    expect(global.status).toBe(201);
+    const globalBody = (await global.json()) as {
+      record: { scope: string; client_id: string };
+    };
+    expect(globalBody.record.scope).toBe('global');
+    expect(globalBody.record.client_id).toBe('');
+
+    const fetched = await test.req(`/api/documents/${scopedBody.record.id}`);
+    expect(fetched.status).toBe(200);
+    const fetchedBody = (await fetched.json()) as { record: { scope: string; client_id: string } };
+    expect(fetchedBody.record.scope).toBe('client');
+    expect(fetchedBody.record.client_id).toBe(clientId);
+  });
+});
+
 describe('money on write', () => {
   it('computes cents from line items and the configured tax rate', async () => {
     const test = await server('demo');

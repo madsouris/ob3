@@ -103,7 +103,7 @@ const RECORD_REFS: Readonly<Record<RecordType, readonly string[]>> = {
   task: ['project_id'],
   estimate: ['client_id', 'project_id', 'terms_document', 'converted_invoice_id'],
   invoice: ['client_id', 'project_id', 'estimate_id', 'terms_document'],
-  document: [],
+  document: ['client_id'],
 };
 
 /**

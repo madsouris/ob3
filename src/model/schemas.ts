@@ -10,6 +10,8 @@ export const PROJECT_STATUSES = ['active', 'completed', 'archived'] as const;
 export const ESTIMATE_STATUSES = ['draft', 'sent', 'accepted', 'declined', 'expired'] as const;
 export const INVOICE_STATUSES = ['draft', 'sent', 'paid', 'overdue', 'cancelled'] as const;
 export const DOCUMENT_KINDS = ['terms', 'proposal', 'note'] as const;
+export const DOCUMENT_SCOPES = ['global', 'client'] as const;
+export type DocumentScope = (typeof DOCUMENT_SCOPES)[number];
 
 export interface LineItem {
   readonly description: string;
@@ -102,6 +104,9 @@ export interface DocumentRecord extends BaseRecord {
   readonly type: 'document';
   readonly title: string;
   readonly kind: string;
+  /** Global templates are reusable; client-scoped documents belong to one contact. */
+  readonly scope: DocumentScope;
+  readonly client_id: string;
 }
 
 export type AnyRecord =
@@ -185,7 +190,7 @@ const KNOWN_KEYS: Readonly<Record<RecordType, readonly string[]>> = {
     'total_cents',
     'line_items',
   ],
-  document: [...BASE_KEYS, 'title', 'kind'],
+  document: [...BASE_KEYS, 'title', 'kind', 'scope', 'client_id'],
 };
 
 const asString = (value: unknown, fallback = ''): string => {
@@ -397,11 +402,14 @@ export const projectRecord = (input: ProjectionInput): ProjectionResult => {
     case 'document': {
       const title = asString(fm['title']);
       const kind = asString(fm['kind'], 'note');
+      const scope = asString(fm['scope'], 'global') as DocumentScope;
+      const client_id = asString(fm['client_id']);
       requireField(title, 'title', issues);
       checkEnum(kind, DOCUMENT_KINDS, 'kind', issues);
+      checkEnum(scope, DOCUMENT_SCOPES, 'scope', issues);
       return {
         issues,
-        record: { ...base, type: 'document', title, kind },
+        record: { ...base, type: 'document', title, kind, scope, client_id },
       };
     }
   }
@@ -502,5 +510,7 @@ export const writeSchemas = {
   document: z.object({
     title: z.string().min(1),
     kind: z.enum(DOCUMENT_KINDS).optional(),
+    scope: z.enum(DOCUMENT_SCOPES).optional(),
+    client_id: z.string().optional(),
   }),
 } as const;

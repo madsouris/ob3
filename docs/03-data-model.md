@@ -66,7 +66,7 @@ Sorting within a column: `order` asc → `created_at` asc → `id` asc.
 `invoice_number` (req), `client_id`, `project_id`, `estimate_id`, `title`, `status` ∈ `draft|sent|paid|overdue|cancelled`, `issue_date`, `due_date`, `currency`, `terms_document`, money block, `line_items`.
 
 ### document
-`title` (req), `kind` ∈ `terms|proposal|note`. Body is the content.
+`title` (req), `kind` ∈ `terms|proposal|note`, `scope` ∈ `global|client` (default `global`), `client_id` (soft reference, required by the UI for client scope). Body is the content. Templates use `{{variable}}` placeholders rendered at view/print time (see `docs/13-documents.md`).
 
 ## Money (normative)
 

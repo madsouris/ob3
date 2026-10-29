@@ -177,6 +177,7 @@ Violating any of these is a bug, not a style preference.
 | Views, editors, Kanban, print | `docs/08-web-ui.md` |
 | Commit-on-save, sync, recovery | `docs/09-git-sync.md` |
 | Search behaviour, ranking, `/api/search` | `docs/10-search.md` |
+| Documents, scope, templates, document print | `docs/13-documents.md` |
 | Build, `bin`, publish | `docs/11-packaging.md` |
 | Test strategy, fixtures, QA | `docs/12-testing-and-verification.md` |
 | A decision reverses | `docs/00-decisions.md` + the owning doc |
@@ -194,7 +195,7 @@ Violating any of these is a bug, not a style preference.
 
 ## 8. Working Notes
 
-* **Repo state:** M0–M6 landed — CLI, workspace init, data layer (schemas/index/watcher), HTTP API with security, the React SPA, M5 board/money/print/search (project → board, drag-and-drop + "Move to…", billing editor with live cents, duplicate, estimate → invoice, A4 browser-print view, FlexSearch `/api/search`), and M6 git work (subprocess wrapper, path-scoped commit-on-save, manual sync, failure/recovery states, header badge + Git dialog, `ob sync`). The pre-M7 polish track is in progress: P0 (sheet gutters, `Shift+D`, shadcn date picker), P1 (Markdown + contact page) and P2 (business logo) are landed; P3–P7 remain. M7 (packaging/release) follows. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
+* **Repo state:** M0–M6 landed — CLI, workspace init, data layer (schemas/index/watcher), HTTP API with security, the React SPA, M5 board/money/print/search (project → board, drag-and-drop + "Move to…", billing editor with live cents, duplicate, estimate → invoice, A4 browser-print view, FlexSearch `/api/search`), and M6 git work (subprocess wrapper, path-scoped commit-on-save, manual sync, failure/recovery states, header badge + Git dialog, `ob sync`). The pre-M7 polish track is in progress: P0 (sheet gutters, `Shift+D`, shadcn date picker), P1 (Markdown + contact page), P2 (business logo) and P3 (documents scope, templates, document print) are landed; P4–P7 remain. M7 (packaging/release) follows. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
 * **UI stack:** Tailwind v4 (`src/ui/styles.css` with `@theme inline`), shadcn/ui in `src/ui/components/ui` generated from the registry — add with `pnpm dlx shadcn@latest add <component>`, never hand-write a primitive. `@/` maps to `src/ui` in both Vite and TypeScript (`moduleResolution: Bundler`). Tokens are semantic only; no raw colours in components.
 * **Demo data:** never add records as code. Edit `fixtures/workspaces/demo/`, then `pnpm build` (postbuild copies it to `dist/demo`). Tests assert the fixture matches what `init --demo` writes.
 * **Dependencies:** no new dependency without justification — must be pure-JS (or optional-native), maintained, and consistent with §4. `js-yaml`, `moment`, `express`, `better-sqlite3` are off-limits.

@@ -37,6 +37,8 @@ import { ContactDetail } from '@/views/contact-detail';
 import { Contacts } from '@/views/contacts';
 import { Dashboard } from '@/views/dashboard';
 import { Documents } from '@/views/documents';
+import { DocumentDetail } from '@/views/document-detail';
+import { DocumentPrint } from '@/views/document-print';
 import { Issues } from '@/views/issues';
 import { PrintDocument } from '@/views/print-document';
 import { ProjectWorkspace } from '@/views/project-workspace';
@@ -129,7 +131,7 @@ const renderView = (route: Route): ReactNode => {
     case 'invoices':
       return <Billing type="invoice" initialId={route.id} />;
     case 'documents':
-      return <Documents initialId={route.id} />;
+      return route.id === null ? <Documents /> : <DocumentDetail documentId={route.id} />;
     case 'settings':
       return <Settings />;
     case 'issues':
@@ -139,13 +141,16 @@ const renderView = (route: Route): ReactNode => {
   }
 };
 
-/** `/invoices/:id/print` and `/estimates/:id/print` render without the app shell. */
+/** Print routes render without the app shell. */
 const printTarget = (route: Route): 'invoice' | 'estimate' | null => {
   if (route.section !== 'print' || route.id === null) return null;
   if (route.view === 'invoices') return 'invoice';
   if (route.view === 'estimates') return 'estimate';
   return null;
 };
+
+const isDocumentPrint = (route: Route): boolean =>
+  route.view === 'documents' && route.section === 'print' && route.id !== null;
 
 export const App = () => {
   const route = useRoute();
@@ -226,6 +231,10 @@ export const App = () => {
       ))}
     </nav>
   );
+
+  if (isDocumentPrint(route) && route.id !== null) {
+    return <DocumentPrint documentId={route.id} />;
+  }
 
   if (printable !== null && route.id !== null) {
     return <PrintDocument type={printable} id={route.id} />;

@@ -88,7 +88,38 @@ describe('projectRecord — valid records', () => {
     expect(record.ob_schema).toBe(1);
     if (record.type !== 'document') throw new Error('wrong type');
     expect(record.kind).toBe('note');
+    expect(record.scope).toBe('global');
+    expect(record.client_id).toBe('');
     expect(record.created_at).toBe('');
+  });
+
+  it('projects a client-scoped document and flags an unknown scope', () => {
+    const clientScoped = projectRecord({
+      type: 'document',
+      id: 'doc_01J8X7100CQ4M2N8V3R5T7W9Y0',
+      path: 'documents/doc_b.md',
+      body: '',
+      taskStatus: null,
+      frontmatter: {
+        title: 'Contract',
+        kind: 'proposal',
+        scope: 'client',
+        client_id: 'cnt_01J8X7100AQ4M2N8V3R5T7W9Y0',
+      },
+    });
+    if (clientScoped.record.type !== 'document') throw new Error('wrong type');
+    expect(clientScoped.record.scope).toBe('client');
+    expect(clientScoped.record.client_id).toBe('cnt_01J8X7100AQ4M2N8V3R5T7W9Y0');
+
+    const invalid = projectRecord({
+      type: 'document',
+      id: 'doc_01J8X7100DQ4M2N8V3R5T7W9Y0',
+      path: 'documents/doc_c.md',
+      body: '',
+      taskStatus: null,
+      frontmatter: { title: 'Odd', scope: 'team' },
+    });
+    expect(invalid.issues.some((issue) => issue.message.includes('scope'))).toBe(true);
   });
 });
 

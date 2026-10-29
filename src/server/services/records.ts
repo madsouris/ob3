@@ -241,7 +241,7 @@ export const createRecord = async (
     ...(type === 'project' ? { status: 'active' } : {}),
     ...(type === 'estimate' ? { status: 'draft' } : {}),
     ...(type === 'invoice' ? { status: 'draft' } : {}),
-    ...(type === 'document' ? { kind: 'note' } : {}),
+    ...(type === 'document' ? { kind: 'note', scope: 'global', client_id: '' } : {}),
     ...(type === 'task' ? { order: nextOrder(context.index, 'todo') } : {}),
     ...fields,
     created_at: now,

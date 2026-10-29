@@ -17,6 +17,7 @@ One document per functional area. The PRD ([`../brief.md`](../brief.md)) is the 
 | [10-search](./10-search.md) | FlexSearch index, query semantics | M5 | `[x]` |
 | [11-packaging](./11-packaging.md) | Single-file bundle, `bin`, package publish | M0/M7 | `[~]` |
 | [12-testing-and-verification](./12-testing-and-verification.md) | Test strategy, fixtures, manual QA | all | `[~]` |
+| [13-documents](./13-documents.md) | Document scope, templates, A4 print | P3 | `[~]` |
 
 ## Status legend
 
