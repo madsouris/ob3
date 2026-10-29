@@ -18,6 +18,7 @@ One document per functional area. The PRD ([`../brief.md`](../brief.md)) is the 
 | [11-packaging](./11-packaging.md) | Single-file bundle, `bin`, package publish | M0/M7 | `[~]` |
 | [12-testing-and-verification](./12-testing-and-verification.md) | Test strategy, fixtures, manual QA | all | `[~]` |
 | [13-documents](./13-documents.md) | Document scope, templates, A4 print | P3 | `[~]` |
+| [14-csv-import](./14-csv-import.md) | CSV skeleton, import contract, row errors | P5 | `[x]` |
 
 ## Status legend
 

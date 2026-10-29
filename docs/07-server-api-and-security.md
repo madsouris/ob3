@@ -77,6 +77,15 @@ Domain actions:
 | GET | `/api/search` | `?q=&type=&limit=` → `{ query, hits: [{ id, type, title, path }], generation }`; `limit` defaults 20, capped 50 |
 | POST | `/api/invoices/from-estimate/:estimateId` | Creates an invoice from an estimate; sets `converted_invoice_id` on the estimate (one extra write, same commit); `409 conflict` on a second conversion |
 
+### Import
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/import/skeleton` | `?type=contact\|project\|task` → `text/csv` skeleton (header + one example row); `400 unknown_type`; no token needed |
+| POST | `/api/import` | `{ type, csv }` → `{ type, rows, created, failed: [{ line, message }], generation }`; row failures never fail the request; whole-file problems are `422` |
+
+The import contract, columns and limits live in [docs/14](./14-csv-import.md).
+
 ### Git
 
 | Method | Path | Notes |
@@ -105,6 +114,7 @@ Long-running git work: `POST /api/git/sync` returns when the chain settles; `git
 * **Attachments** (`document_ids` on estimates/invoices) are soft references: missing ids are reported as `dangling-ref` and printed as a missing-attachment note; the server never drops unknown ids.
 * **Git failures are data.** `POST /api/git/*` returns 200 with `{ ok: false, error: { code, message, output? } }`; codes are listed in docs/09, not in the envelope table below.
 * **Logo uploads** accept only `image/png` bytes with a valid PNG signature; SVG and HTML are rejected. The server always reads `.ob/assets/logo.png`, so a hand-edited `business.logo` cannot point the API at another file. Uploads over 512 KB return 413.
+* **Import** validates whole-file problems (missing header, unclosed quote, > 1000 rows) before writing, then creates one record per valid row through `createRecord` — the same path as `POST /api/contacts` — so ids, defaults, indexing and commit-on-save are identical. Invalid rows write nothing and return their 1-based spreadsheet line. `type` is restricted to `contact|project|task`; billing is not importable (docs/14).
 
 ## Error envelope
 

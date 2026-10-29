@@ -50,6 +50,20 @@ export interface SearchResponse {
   readonly generation: number;
 }
 
+export interface ImportRowError {
+  readonly line: number;
+  readonly message: string;
+}
+
+export interface ImportReport {
+  readonly type: string;
+  /** Data rows read, including the ones that failed. */
+  readonly rows: number;
+  readonly created: number;
+  readonly failed: readonly ImportRowError[];
+  readonly generation: number;
+}
+
 export type GitSyncState = 'idle' | 'running' | 'error';
 
 export interface GitErrorInfo {
@@ -243,6 +257,12 @@ export const api = {
     uploadLogo: (blob: Blob): Promise<{ config: ObConfig }> =>
       requestBlob('POST', '/api/config/logo', blob, 'image/png'),
     removeLogo: (): Promise<{ config: ObConfig }> => request('DELETE', '/api/config/logo'),
+  },
+
+  import: {
+    skeletonUrl: (type: string): string => `/api/import/skeleton?type=${encodeURIComponent(type)}`,
+    run: (type: string, csv: string): Promise<ImportReport> =>
+      request('POST', '/api/import', { type, csv }),
   },
 
   issues: (): Promise<{ issues: Issue[]; generation: number }> =>

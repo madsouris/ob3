@@ -14,6 +14,7 @@ import { createAssetRoutes } from './routes/assets.js';
 import { createConfigRoutes } from './routes/config.js';
 import { createEventRoutes } from './routes/events.js';
 import { createGitRoutes } from './routes/git.js';
+import { createImportRoutes } from './routes/import.js';
 import { createIssueRoutes } from './routes/issues.js';
 import { createRecordRoutes } from './routes/records.js';
 import { createSearchRoutes } from './routes/search.js';
@@ -136,6 +137,7 @@ export const createApp = (context: AppContext, options: AppOptions = {}): Hono =
   app.route('/api', createSearchRoutes(context, search));
   app.route('/api', createConfigRoutes(context, git));
   app.route('/api', createAssetRoutes(context, git));
+  app.route('/api', createImportRoutes(context, git));
   app.route('/api', createGitRoutes(git));
   app.route('/api', createIssueRoutes(context, git));
 

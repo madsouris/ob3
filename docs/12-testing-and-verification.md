@@ -84,6 +84,15 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [x] List `?q=` keeps hard filters and returns matches in search rank order.
 - [ ] An external body edit makes a new word findable without manual refresh (watcher → generation → lazy rebuild).
 
+**CSV import (P5)**
+- [x] Parser handles quoted commas, `""` escapes, CRLF, a BOM, multiline notes, blank lines and an unclosed quote.
+- [x] The skeleton route returns the definition header and one example row per type; unknown types are rejected.
+- [x] A missing required header rejects the whole file and writes nothing.
+- [x] Invalid rows are skipped with their 1-based spreadsheet line; valid rows in the same file are created.
+- [x] Task `column` places the file in `tasks/todo|doing|done` and computes `order` per column.
+- [x] `client` resolves by email and by full name; unknown references fail the row.
+- [x] One import becomes one commit-on-save commit.
+
 ## Test hygiene rules
 
 * Every test that touches the FS uses `mkdtemp` and asserts on a cleaned-up directory.
@@ -105,6 +114,7 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] Logo upload from a JPEG with EXIF: preview updates immediately, print shows the resized logo, `.ob/assets/logo.png` is committed, and no EXIF survives.
 - [ ] Client-scoped document with `{{client.name}}` / `{{today}}`: detail and A4 print resolve them; an unknown `{{foo.bar}}` stays visible.
 - [ ] Invoice with two attached documents prints both in order with client variables resolved, and a deleted attachment prints a missing-document note.
+- [ ] Download the contacts skeleton, paste three rows in Excel/Numbers (one with a comma inside a quoted note, one with a blank name), re-save as CSV, import: two records appear and the blank row is reported with its line.
 - [ ] Rebase conflict in the Git dialog: conflicted paths listed, Abort sync returns to `idle`.
 - [ ] `npx` from five different cwds (no cwd assumptions).
 - [ ] Kill -9 the server, restart, confirm index rebuild and no lock leak.

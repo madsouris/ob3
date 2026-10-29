@@ -33,7 +33,7 @@ DESIGN.md                design contract — Operate mode, tokens, type, motion
 components.json          shadcn/ui config (aliases resolve to src/ui)
 docs/README.md           Index + doc status legend
 docs/00-decisions.md     ADRs (AD-01…AD-14) — why each decision won
-docs/01…12-*.md          One document per functional area
+docs/01…14-*.md          One document per functional area
 AGENTS.md                This file
 ```
 
@@ -45,6 +45,7 @@ src/workspace/   scaffolding, config, demo data, lock, port (M1)
 src/model/       Zod schemas, ids, cents, frontmatter round-trip (M2)
 src/io/          atomic writes, watcher, echo suppression, path safety (M2)
 src/index/       in-memory index, issues (M2), search (M5)
+src/import/      CSV parser, import definitions, row importer (P5)
 src/server/      app, routes/, services/, security, SSE, runtime (M3)
 src/git/         subprocess wrapper, commit-on-save, sync chain (M6)
 src/ui/          React SPA (M4/M5)
@@ -178,6 +179,7 @@ Violating any of these is a bug, not a style preference.
 | Commit-on-save, sync, recovery | `docs/09-git-sync.md` |
 | Search behaviour, ranking, `/api/search` | `docs/10-search.md` |
 | Documents, scope, templates, document print | `docs/13-documents.md` |
+| CSV import, skeleton, row errors, limits | `docs/14-csv-import.md` |
 | Build, `bin`, publish | `docs/11-packaging.md` |
 | Test strategy, fixtures, QA | `docs/12-testing-and-verification.md` |
 | A decision reverses | `docs/00-decisions.md` + the owning doc |
@@ -187,7 +189,7 @@ Violating any of these is a bug, not a style preference.
 
 ## 7. Public API Contract (do not rename without an ADR)
 
-`/api/health` · `/api/config` · `/api/config/logo` · `/api/logo` · `/api/issues` · `/api/events` · `/api/:type` · `/api/:type/:id` · `/api/tasks/:id/move` · `/api/invoices/from-estimate/:estimateId` · `/api/git/status|sync|init|remote|recover` · `/api/search`
+`/api/health` · `/api/config` · `/api/config/logo` · `/api/logo` · `/api/issues` · `/api/events` · `/api/:type` · `/api/:type/:id` · `/api/tasks/:id/move` · `/api/invoices/from-estimate/:estimateId` · `/api/git/status|sync|init|remote|recover` · `/api/search` · `/api/import` · `/api/import/skeleton`
 
 `type` ∈ `contacts | projects | tasks | estimates | invoices | documents`.
 
@@ -195,9 +197,9 @@ Violating any of these is a bug, not a style preference.
 
 ## 8. Working Notes
 
-* **Repo state:** M0–M6 landed — CLI, workspace init, data layer (schemas/index/watcher), HTTP API with security, the React SPA, M5 board/money/print/search (project → board, drag-and-drop + "Move to…", billing editor with live cents, duplicate, estimate → invoice, A4 browser-print view, FlexSearch `/api/search`), and M6 git work (subprocess wrapper, path-scoped commit-on-save, manual sync, failure/recovery states, header badge + Git dialog, `ob sync`). The pre-M7 polish track is in progress: P0 (sheet gutters, `Shift+D`, shadcn date picker), P1 (Markdown + contact page), P2 (business logo), P3 (documents scope, templates, document print) and P4 (billing attachments) are landed; P5–P7 remain. M7 (packaging/release) follows. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
+* **Repo state:** M0–M6 landed — CLI, workspace init, data layer (schemas/index/watcher), HTTP API with security, the React SPA, M5 board/money/print/search (project → board, drag-and-drop + "Move to…", billing editor with live cents, duplicate, estimate → invoice, A4 browser-print view, FlexSearch `/api/search`), and M6 git work (subprocess wrapper, path-scoped commit-on-save, manual sync, failure/recovery states, header badge + Git dialog, `ob sync`). The pre-M7 polish track is in progress: P0 (sheet gutters, `Shift+D`, shadcn date picker), P1 (Markdown + contact page), P2 (business logo), P3 (documents scope, templates, document print), P4 (billing attachments) and P5 (CSV import for contacts/projects/tasks, skeleton download, per-row errors) are landed; P6–P7 remain. M7 (packaging/release) follows. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
 * **UI stack:** Tailwind v4 (`src/ui/styles.css` with `@theme inline`), shadcn/ui in `src/ui/components/ui` generated from the registry — add with `pnpm dlx shadcn@latest add <component>`, never hand-write a primitive. `@/` maps to `src/ui` in both Vite and TypeScript (`moduleResolution: Bundler`). Tokens are semantic only; no raw colours in components.
 * **Demo data:** never add records as code. Edit `fixtures/workspaces/demo/`, then `pnpm build` (postbuild copies it to `dist/demo`). Tests assert the fixture matches what `init --demo` writes.
 * **Dependencies:** no new dependency without justification — must be pure-JS (or optional-native), maintained, and consistent with §4. `js-yaml`, `moment`, `express`, `better-sqlite3` are off-limits.
-* **Known deferrals (v1):** CSV importer, multi-workspace switching, server-side PDF, email sending, payments, encryption at rest, `gh repo create` bootstrap (M7).
+* **Known deferrals (v1):** multi-workspace switching, server-side PDF, email sending, payments, encryption at rest, `gh repo create` bootstrap (M7).
 * **Ambiguity rule:** if the spec and the request disagree, surface the conflict and propose the fix in one sentence, then wait for approval.

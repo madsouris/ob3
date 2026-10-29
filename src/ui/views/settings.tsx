@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { BusinessLogo } from '@/components/business-logo';
 import { Field, FieldGrid } from '@/components/field';
+import { ImportCard } from '@/components/import-card';
 import { PageHeader } from '@/components/page-header';
 import { api } from '@/lib/api';
 import type { HealthResponse } from '@/lib/api';
@@ -284,6 +285,8 @@ export const Settings = () => {
           />
         </CardContent>
       </Card>
+
+      <ImportCard />
 
       <Card>
         <CardHeader>

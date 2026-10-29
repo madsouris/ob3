@@ -75,6 +75,8 @@ export type ApiRecord = AnyRecord & { readonly degraded: boolean };
 export interface CreateInput {
   readonly fields: unknown;
   readonly body?: string;
+  /** Tasks only: the column folder to create in. Status is the folder (ADR-06). */
+  readonly column?: TaskStatus;
 }
 
 export interface UpdateInput extends CreateInput {
@@ -233,6 +235,8 @@ export const createRecord = async (
   const now = nowIso();
   const id = createId(PREFIX[type]);
 
+  const column: TaskStatus = type === 'task' ? (input.column ?? 'todo') : 'todo';
+
   const frontmatter: Record<string, unknown> = {
     ob_schema: 1,
     id,
@@ -243,7 +247,7 @@ export const createRecord = async (
     ...(type === 'invoice' ? { status: 'draft' } : {}),
     ...(type === 'estimate' || type === 'invoice' ? { document_ids: [] } : {}),
     ...(type === 'document' ? { kind: 'note', scope: 'global', client_id: '' } : {}),
-    ...(type === 'task' ? { order: nextOrder(context.index, 'todo') } : {}),
+    ...(type === 'task' ? { order: nextOrder(context.index, column) } : {}),
     ...fields,
     created_at: now,
     updated_at: now,
@@ -251,7 +255,7 @@ export const createRecord = async (
 
   const relativePath = await writeNewFile(
     context,
-    FOLDER[type],
+    type === 'task' ? `tasks/${column}` : FOLDER[type],
     recordFileName(PREFIX[type], fileNameBase(type, fields)),
     serializeNew(frontmatter, input.body ?? ''),
   );
