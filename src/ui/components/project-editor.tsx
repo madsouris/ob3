@@ -30,8 +30,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Textarea } from '@/components/ui/textarea';
 import { Field, FieldGrid } from '@/components/field';
+import { MarkdownField } from '@/components/markdown-field';
 import { SheetBody } from '@/components/sheet-body';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
@@ -214,21 +214,14 @@ export const ProjectEditor = ({ projectId, open, onOpenChange }: ProjectEditorPr
               </Field>
             </FieldGrid>
 
-            <Field
+            <MarkdownField
+              id="project_body"
               label="Description"
-              htmlFor="project_body"
+              value={form.body}
+              onChange={(value) => setForm((current) => ({ ...current, body: value }))}
+              rows={8}
               hint="Markdown body, preserved as written."
-            >
-              <Textarea
-                id="project_body"
-                value={form.body}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, body: event.target.value }))
-                }
-                rows={8}
-                className="font-mono text-xs"
-              />
-            </Field>
+            />
             </SheetBody>
 
             <SheetFooter className="flex-row justify-between gap-2">

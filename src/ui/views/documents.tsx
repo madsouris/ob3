@@ -31,9 +31,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/field';
+import { MarkdownField } from '@/components/markdown-field';
 import { PageHeader } from '@/components/page-header';
 import { SheetBody } from '@/components/sheet-body';
 import { StatusBadge } from '@/components/status-badge';
@@ -267,15 +267,14 @@ export const Documents = ({ initialId }: DocumentsProps) => {
                 </Field>
               </div>
 
-              <Field label="Content" htmlFor="body" hint="Markdown. Saved as the file body.">
-                <Textarea
-                  id="body"
-                  value={form.body}
-                  onChange={(event) => setForm((c) => ({ ...c, body: event.target.value }))}
-                  rows={20}
-                  className="font-mono text-xs"
-                />
-              </Field>
+              <MarkdownField
+                id="body"
+                label="Content"
+                value={form.body}
+                onChange={(value) => setForm((c) => ({ ...c, body: value }))}
+                rows={20}
+                hint="Markdown. Saved as the file body."
+              />
               </SheetBody>
 
               <SheetFooter className="flex-row justify-between gap-2">

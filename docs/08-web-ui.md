@@ -39,7 +39,8 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | View | Contents | Key interactions |
 |---|---|---|
 | Dashboard | Counts, open tasks by column, unpaid invoices total, recent activity, issue banner | Click-through to filtered lists |
-| Contacts | Table + side detail; search, status filter | Inline edit, create, archive |
+| Contacts | Table; click a row → contact page | Create; edit from the contact page |
+| Contact page (`/contacts/:id`) | Avatar, name, role/company, status, rendered notes, related projects and billing, contact links, metadata | Edit (sheet), jump to project/invoice/estimate |
 | Projects | Table; linked client; task count | Pick a project → its board; create; edit |
 | Project workspace (`/projects/:id`) | Header, client, status, task counts, project body, that project's board | Add/edit task, drag or "Move to…", edit project |
 | All tasks (`/tasks`) | Cross-project board with the project name on each card | Drag or "Move to…", open task |
@@ -64,7 +65,7 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 ## Editors
 
 * **Forms** (contacts, projects, tasks, billing, settings): a sheet with explicit Save/Cancel; `Esc` or Cancel discards, and a failed save keeps the typed values with the server's message in a toast. Date fields use the shadcn `Calendar` popover (`DateField`), never the native browser picker.
-* **Markdown** (document body, task notes, invoice notes): plain textarea — no rich-text editor and no preview pane. The file on disk is the artifact.
+* **Markdown** (contact/project/task notes, document body, invoice notes): a Write / Preview field. Preview renders GFM Markdown (tables, task lists, strikethrough) with `react-markdown`; raw HTML is never rendered. The textarea remains the source of truth — no rich-text editor, no preview pane state stored anywhere.
 * **Line items** (estimate/invoice): rows with description/qty/unit price; totals recompute live using the same cents helpers as the server (shared module, single implementation).
 * **Conflict banner (contacts):** "This file changed on disk" → *Reload from disk* (discard local edits) or save again to overwrite. Never auto-merges.
 * **Degraded records** are not given a separate read-only view yet; they surface in *Needs attention*, where the raw file can be previewed before an explicit resolve.
@@ -124,6 +125,8 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] A `409` conflict never loses the user's typed text (the banner keeps the form and offers Reload).
 - [x] Deleting the record behind an open detail view closes the editor instead of writing to a missing file.
 - [x] A save produces one path-scoped commit after the debounce; an unrelated external edit stays unstaged (integration tests in `tests/git/commit-on-save.test.ts`).
+- [x] Contact rows open a read-only contact page with Markdown notes and an Edit sheet; creating a contact stays on the list.
+- [x] Notes/descriptions/terms render as Markdown on screen and in the A4 print sheet (GFM tables and task lists included).
 - [x] Sync reports its four steps, surfaces a rebase conflict with paths, and recovers through an explicit Abort action (`tests/git/sync.test.ts`).
 - [x] The badge reflects real `git status`; `beforeunload` is registered only for `dirty || unpushed` (manual check — no browser automation in the suite).
 - [ ] Print preview of a 3-line invoice fits one page at A4 — the sheet is A4 with 16 mm margins and totals/rows are unbreakable; final one-page fit depends on content length and needs a manual print check per document.

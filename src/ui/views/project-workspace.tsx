@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/page-header';
+import { Markdown } from '@/components/markdown';
 import { ProjectEditor } from '@/components/project-editor';
 import { StatusBadge } from '@/components/status-badge';
 import { TaskBoard, type TaskMove } from '@/components/task-board';
@@ -113,7 +114,7 @@ export const ProjectWorkspace = ({ projectId }: ProjectWorkspaceProps) => {
             <CardDescription>The project file body, as written.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm whitespace-pre-wrap text-muted-foreground">{project.body}</p>
+            <Markdown emptyText="No description written yet.">{project.body}</Markdown>
           </CardContent>
         </Card>
       )}

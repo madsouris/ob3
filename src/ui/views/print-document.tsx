@@ -1,5 +1,6 @@
 import { ArrowLeftIcon, PrinterIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Markdown } from '@/components/markdown';
 import { formatDate, formatMoney } from '@/lib/format';
 import { navigate } from '@/lib/router';
 import { recordTitle, useWorkspace } from '@/lib/workspace';
@@ -165,14 +166,14 @@ export const PrintDocument = ({ type, id }: PrintDocumentProps) => {
         {record.body.trim() === '' ? null : (
           <section className="print-notes">
             <p className="print-label">Notes</p>
-            <p className="print-small print-pre">{record.body}</p>
+            <Markdown className="print-small">{record.body}</Markdown>
           </section>
         )}
 
         {terms === null ? null : (
           <section className="print-notes">
             <p className="print-label">{recordTitle(terms)}</p>
-            <p className="print-small print-pre">{terms.body}</p>
+            <Markdown className="print-small">{terms.body}</Markdown>
           </section>
         )}
 

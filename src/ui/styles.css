@@ -358,4 +358,70 @@
   .print-totals {
     break-inside: avoid;
   }
+
+  /* Markdown inside the sheet uses literal ink, never theme tokens. */
+  .print-sheet .markdown {
+    color: var(--print-ink);
+    font-size: 10.5px;
+  }
+
+  .print-sheet .markdown h1,
+  .print-sheet .markdown h2,
+  .print-sheet .markdown h3,
+  .print-sheet .markdown h4,
+  .print-sheet .markdown strong {
+    color: var(--print-ink);
+  }
+
+  .print-sheet .markdown h1 {
+    font-size: 15px;
+  }
+
+  .print-sheet .markdown h2 {
+    font-size: 13px;
+  }
+
+  .print-sheet .markdown h3,
+  .print-sheet .markdown h4 {
+    font-size: 11.5px;
+  }
+
+  .print-sheet .markdown p,
+  .print-sheet .markdown li,
+  .print-sheet .markdown td,
+  .print-sheet .markdown th {
+    color: var(--print-ink);
+    font-size: 10.5px;
+  }
+
+  .print-sheet .markdown a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  .print-sheet .markdown code,
+  .print-sheet .markdown pre {
+    background: #f4f0e6;
+    color: var(--print-ink);
+  }
+
+  .print-sheet .markdown blockquote,
+  .print-sheet .markdown table,
+  .print-sheet .markdown th,
+  .print-sheet .markdown td,
+  .print-sheet .markdown hr {
+    border-color: var(--print-rule);
+  }
+
+  .print-sheet .markdown blockquote {
+    color: var(--print-ink);
+  }
+
+  .print-sheet .markdown thead {
+    background: transparent;
+  }
+
+  .print-sheet .markdown div {
+    border-color: var(--print-rule);
+  }
 }

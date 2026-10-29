@@ -33,6 +33,7 @@ import type { Route } from '@/lib/router';
 import { useTheme } from '@/lib/theme';
 import { useWorkspace } from '@/lib/workspace';
 import { Billing } from '@/views/billing';
+import { ContactDetail } from '@/views/contact-detail';
 import { Contacts } from '@/views/contacts';
 import { Dashboard } from '@/views/dashboard';
 import { Documents } from '@/views/documents';
@@ -118,7 +119,7 @@ const renderView = (route: Route): ReactNode => {
     case 'dashboard':
       return <Dashboard />;
     case 'contacts':
-      return <Contacts initialId={route.id} />;
+      return route.id === null ? <Contacts /> : <ContactDetail contactId={route.id} />;
     case 'projects':
       return route.id === null ? <Projects /> : <ProjectWorkspace projectId={route.id} />;
     case 'tasks':

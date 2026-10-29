@@ -30,8 +30,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Textarea } from '@/components/ui/textarea';
 import { Field } from '@/components/field';
+import { MarkdownField } from '@/components/markdown-field';
 import { DateField } from '@/components/date-field';
 import { SheetBody } from '@/components/sheet-body';
 import { api } from '@/lib/api';
@@ -246,17 +246,14 @@ export const TaskEditor = ({ taskId, defaultProjectId, open, onOpenChange }: Tas
               </Field>
             ) : null}
 
-            <Field label="Notes" htmlFor="task-body" hint="Markdown body, preserved as written.">
-              <Textarea
-                id="task-body"
-                value={form.body}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, body: event.target.value }))
-                }
-                rows={8}
-                className="font-mono text-xs"
-              />
-            </Field>
+            <MarkdownField
+              id="task-body"
+              label="Notes"
+              value={form.body}
+              onChange={(value) => setForm((current) => ({ ...current, body: value }))}
+              rows={8}
+              hint="Markdown body, preserved as written."
+            />
             </SheetBody>
 
             <SheetFooter className="flex-row justify-between gap-2">

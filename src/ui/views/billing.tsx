@@ -34,10 +34,10 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/empty-state';
 import { DateField } from '@/components/date-field';
 import { Field } from '@/components/field';
+import { MarkdownField } from '@/components/markdown-field';
 import { LineItemsEditor, computeTotals, draftsFrom, emptyLine } from '@/components/line-items';
 import type { LineItemDraft } from '@/components/line-items';
 import { PageHeader } from '@/components/page-header';
@@ -615,19 +615,16 @@ export const Billing = ({ type, initialId }: BillingProps) => {
                     />
                   </div>
 
-                  <Field label="Notes" htmlFor="billing-body" hint="Markdown body, preserved as written.">
-                    <Textarea
-                      id="billing-body"
-                      value={form.body}
-                      onChange={(event) =>
-                        setForm((current) =>
-                          current === null ? current : { ...current, body: event.target.value },
-                        )
-                      }
-                      rows={5}
-                      className="font-mono text-xs"
-                    />
-                  </Field>
+                  <MarkdownField
+                    id="billing-body"
+                    label="Notes"
+                    value={form.body}
+                    onChange={(value) =>
+                      setForm((current) => (current === null ? current : { ...current, body: value }))
+                    }
+                    rows={5}
+                    hint="Markdown body, preserved as written."
+                  />
 
                   </SheetBody>
 
