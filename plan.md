@@ -44,7 +44,7 @@ Goal: `ob .` takes an empty folder to a running server.
 - [x] Pre-flight: node ≥ 20, workspace path + writability, `git --version` (2.39 warns only), `git config user.name/email`, optional `gh`, `--json` output (`src/cli/preflight.ts`)
 - [x] Init wizard: arrow-key selector on a TTY, numbered prompt when stdout is redirected, `1/2/3` and `demo/empty/exit` both accepted (`src/cli/wizard.ts`)
 - [x] Scaffolding: managed folders, `.ob/config.json` (Zod-validated), `.gitignore`, optional `git init` + initial commit with cwd pinned to the workspace (`src/workspace/init.ts`)
-- [x] Demo seed data: sourced from `fixtures/workspaces/demo/` (13 records + config), copied to `dist/demo` at build; idempotent (identical files skipped, differing files preserved and suffixed)
+- [x] Demo seed data: sourced from `fixtures/workspaces/demo/` (15 records + config), copied to `dist/demo` at build; idempotent (identical files skipped, differing files preserved and suffixed)
 - [x] Workspace lock: `.ob/state/server.lock`, live-PID refusal, stale reclaim, corrupt-file tolerance (`src/workspace/lock.ts`)
 - [x] Port binding: `19731` preference, probe +50, explicit EPERM/EACCES message, effective port in `.ob/state/session.json` (`src/workspace/port.ts`)
 - [x] Atomic writes for config/state/seeds (`src/io/atomic.ts`) — reused by M2
@@ -189,10 +189,10 @@ Goal: close the UI/UX gaps in [`POLISH.md`](./POLISH.md) before packaging. Order
 - [x] **P3 — Documents model:** `scope: global|client` + `client_id`, document detail (`/documents/:id`) and A4 print (`/documents/:id/print`), `{{variable}}` renderer (`business.*`, `client.*`, `project.*`, `invoice.number`, `estimate.number`, `today`; unknown stays literal)
 - [x] **P4 — Attachments:** `document_ids: string[]` on estimates/invoices, multi-select tags in the billing editor, all attached documents rendered on view/print with the billing context, legacy `terms_document` as fallback, copied by duplicate/convert
 - [x] **P5 — CSV import:** contacts/projects/tasks only (billing needs a different shape), RFC4180 parser, skeleton download, partial import with per-row errors, Settings card (`docs/14-csv-import.md`)
-- [ ] **P6 — Insight:** paid revenue total + current month (by `issue_date`) + outstanding on the dashboard; `GET /api/system` (uptime, RSS/heap, CPU cores/load, memory, workspace disk) in Settings
+- [x] **P6 — Insight:** paid revenue total + current month (by `issue_date`) + outstanding on the dashboard; `GET /api/system` (uptime, RSS/heap, CPU cores/load, memory, workspace disk) in Settings
 - [ ] **P7 — Final pass:** impeccable detect/critique, A4 print in light + dark, keyboard traversal, docs consistency, full verification
 
-**Decisions:** logo lives in the user's repo under `.ob/assets/` (only `.ob/state/` is ignored); uploads are normalized client-side to PNG and re-validated server-side. Attachments use document **ids**; old `terms_document` paths remain readable. Document templates are rendered at view/print time and never rewritten into files. CSV billing import is out of scope. Import always creates new records (no merge, no dedupe), resolves `client`/`project` only against existing records, and creates tasks directly in the chosen column folder. Revenue has no `paid_at` field yet, so the month is by `issue_date`. No persistent server log viewer; the Git step log is the activity log.
+**Decisions:** logo lives in the user's repo under `.ob/assets/` (only `.ob/state/` is ignored); uploads are normalized client-side to PNG and re-validated server-side. Attachments use document **ids**; old `terms_document` paths remain readable. Document templates are rendered at view/print time and never rewritten into files. CSV billing import is out of scope. Import always creates new records (no merge, no dedupe), resolves `client`/`project` only against existing records, and creates tasks directly in the chosen column folder. Revenue has no `paid_at` field yet, so the month is by `issue_date` (UTC). Outstanding is `sent` + derived `overdue`; drafts and cancelled are excluded. System facts are read on demand from `os`/`statfs`, never polled. No persistent server log viewer; the Git step log is the activity log.
 
 Docs: [`docs/08-web-ui.md`](./docs/08-web-ui.md), [`docs/03-data-model.md`](./docs/03-data-model.md), new `docs/13-documents.md` and `docs/14-csv-import.md`
 

@@ -18,6 +18,7 @@ import { createImportRoutes } from './routes/import.js';
 import { createIssueRoutes } from './routes/issues.js';
 import { createRecordRoutes } from './routes/records.js';
 import { createSearchRoutes } from './routes/search.js';
+import { createSystemRoutes } from './routes/system.js';
 import { allowedHostsFor, allowedOriginsFor, createSecurityMiddleware } from './security.js';
 
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -140,6 +141,7 @@ export const createApp = (context: AppContext, options: AppOptions = {}): Hono =
   app.route('/api', createImportRoutes(context, git));
   app.route('/api', createGitRoutes(git));
   app.route('/api', createIssueRoutes(context, git));
+  app.route('/api', createSystemRoutes(context));
 
   app.get('/', (c) =>
     c.html(injectToken(resolveClientHtml() ?? FALLBACK_HTML, context.token), 200, htmlHeaders),

@@ -38,7 +38,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 
 | View | Contents | Key interactions |
 |---|---|---|
-| Dashboard | Counts, open tasks by column, unpaid invoices total, recent activity, issue banner | Click-through to filtered lists |
+| Dashboard | Counts, open tasks by column, outstanding total, paid revenue (total + this month), recent activity, issue banner | Click-through to filtered lists |
 | Contacts | Table; click a row → contact page | Create; edit from the contact page |
 | Contact page (`/contacts/:id`) | Avatar, name, role/company, status, rendered notes, related projects and billing, contact links, metadata | Edit (sheet), jump to project/invoice/estimate |
 | Projects | Table; linked client; task count | Pick a project → its board; create; edit |
@@ -50,7 +50,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | Documents | Table with All / Global / Client filters | Create; open the document page |
 | Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (sheet), print |
 | Document print (`/documents/:id/print`) | A4 sheet with logo, client block and rendered Markdown | Browser print / Save as PDF |
-| Settings | Business profile, logo, currency, `tax_rate_bps`, default terms, `commit_on_save`, CSV import | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; import → POST `/api/import` |
+| Settings | Business profile, logo, currency, `tax_rate_bps`, default terms, `commit_on_save`, CSV import, workspace/system facts | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; import → POST `/api/import`; facts from GET `/api/health` + `/api/system` |
 | Needs attention | Issue list with file preview and resolve actions | Explicit resolve only |
 
 ## Data layer
@@ -106,6 +106,14 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * The skeleton link is a plain anchor with `download`, so it needs no token and never touches React state.
 * Contacts → projects → tasks is the useful order: `client` and `project` references must already exist (docs/14).
 
+## Dashboard money (P6)
+
+* **Revenue** is `status: paid` invoices summed by `total_cents`, bucketed by `issue_date` (UTC month). There is no `paid_at` field, so the month is the issue month — documented, not guessed.
+* **Outstanding** is issued but unpaid: `sent`, plus the derived `overdue` state (`sent` past `due_date`). Drafts and cancelled invoices are excluded because neither is owed yet.
+* The stats row shows Outstanding as a money card with the open-invoice count in its hint; the Revenue card shows total and current month. Amounts are formatted with `business.currency` using integer cents.
+* Settings → Workspace adds server uptime, process memory (RSS + heap), system memory, CPU cores/load and workspace disk from `GET /api/system`. Disk renders "Unavailable" when `statfs` cannot answer; Windows load averages are always 0 and are shown as reported.
+* Values are read once when Settings opens; there is no polling and no metric history (no persistent server log viewer, by decision).
+
 ## Git (M6)
 
 * Header badge states: `clean` (branch name, muted dot), `dirty` (accent dot, "Uncommitted"), `unpushed` ("N to push"), `syncing` (spinner), `error` (destructive dot).
@@ -143,6 +151,7 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] Uploading a logo in Settings previews it immediately, stores `.ob/assets/logo.png`, and prints it on invoices/estimates; with no logo, a monogram is used.
 - [x] Documents list filters All/Global/Client, open a rendered detail page, and print to A4; templates resolve `{{business.*}}`, `{{client.*}}` and `{{today}}` with unknown keys left literal.
 - [x] Settings → Import creates contacts, projects and tasks from a CSV skeleton, reports skipped rows with their spreadsheet line, and leaves the UI lists updated without a reload.
+- [x] The dashboard shows paid revenue (total and current month by `issue_date`) and outstanding (sent/overdue) as integer-cent sums, and Settings → Workspace shows uptime, memory, CPU and disk from `GET /api/system`.
 - [x] Sync reports its four steps, surfaces a rebase conflict with paths, and recovers through an explicit Abort action (`tests/git/sync.test.ts`).
 - [x] The badge reflects real `git status`; `beforeunload` is registered only for `dirty || unpushed` (manual check — no browser automation in the suite).
 - [ ] Print preview of a 3-line invoice fits one page at A4 — the sheet is A4 with 16 mm margins and totals/rows are unbreakable; final one-page fit depends on content length and needs a manual print check per document.

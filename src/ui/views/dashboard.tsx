@@ -15,15 +15,35 @@ const COLUMNS = [
   { status: 'done', label: 'Done' },
 ] as const;
 
+const sumTotals = (invoices: readonly { readonly total_cents: number }[]): number =>
+  invoices.reduce((sum, invoice) => sum + invoice.total_cents, 0);
+
 export const Dashboard = () => {
   const { records, issues, config } = useWorkspace();
   const currency = config?.business.currency ?? 'USD';
 
   const activeProjects = records.project.filter((project) => project.status === 'active');
   const openTasks = records.task.filter((task) => task.status !== 'done');
-  const unpaid = records.invoice
-    .filter((invoice) => invoice.type === 'invoice' && invoiceStatus(invoice) !== 'paid')
-    .reduce((sum, invoice) => sum + (invoice.type === 'invoice' ? invoice.total_cents : 0), 0);
+
+  // Revenue is paid invoices, bucketed by `issue_date` (UTC). Outstanding is
+  // issued but unpaid: sent or derived-overdue. Drafts are not owed yet.
+  const paidInvoices = records.invoice.filter((invoice) => invoice.status === 'paid');
+  const openInvoices = records.invoice.filter((invoice) => {
+    const status = invoiceStatus(invoice);
+    return status === 'sent' || status === 'overdue';
+  });
+
+  const monthPrefix = new Date().toISOString().slice(0, 7);
+  const totalRevenue = sumTotals(paidInvoices);
+  const monthRevenue = sumTotals(
+    paidInvoices.filter((invoice) => invoice.issue_date.startsWith(monthPrefix)),
+  );
+  const outstanding = sumTotals(openInvoices);
+  const monthLabel = new Intl.DateTimeFormat(undefined, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date());
 
   const clients = new Map(
     records.contact.map((contact) => [contact.id, recordTitle(contact)] as const),
@@ -49,10 +69,23 @@ export const Dashboard = () => {
       view: 'tasks',
     },
     {
-      label: 'Unpaid',
-      value: formatMoney(unpaid, currency),
-      hint: pluralize(records.invoice.length, 'invoice'),
+      label: 'Outstanding',
+      value: formatMoney(outstanding, currency),
+      hint: pluralize(openInvoices.length, 'open invoice'),
       view: 'invoices',
+    },
+  ] as const;
+
+  const revenue = [
+    {
+      label: 'Total revenue',
+      value: formatMoney(totalRevenue, currency),
+      hint: pluralize(paidInvoices.length, 'paid invoice'),
+    },
+    {
+      label: 'This month',
+      value: formatMoney(monthRevenue, currency),
+      hint: monthLabel,
     },
   ] as const;
 
@@ -123,6 +156,25 @@ export const Dashboard = () => {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue</CardTitle>
+          <CardDescription>
+            Paid invoices, by issue date (UTC). Outstanding counts invoices that are sent or
+            overdue.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          {revenue.map((figure) => (
+            <div key={figure.label} className="flex flex-col gap-1">
+              <span className="text-sm text-muted-foreground">{figure.label}</span>
+              <span className="tabular text-2xl font-semibold">{figure.value}</span>
+              <span className="text-xs text-muted-foreground">{figure.hint}</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

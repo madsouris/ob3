@@ -14,7 +14,8 @@ import { Field, FieldGrid } from '@/components/field';
 import { ImportCard } from '@/components/import-card';
 import { PageHeader } from '@/components/page-header';
 import { api } from '@/lib/api';
-import type { HealthResponse } from '@/lib/api';
+import type { HealthResponse, SystemStats } from '@/lib/api';
+import { formatBytes, formatDuration, pluralize } from '@/lib/format';
 import { prepareLogo } from '@/lib/logo';
 import { useWorkspace } from '@/lib/workspace';
 
@@ -42,6 +43,7 @@ export const Settings = () => {
   const { config, setConfig } = useWorkspace();
   const [form, setForm] = useState<SettingsForm>(EMPTY);
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [system, setSystem] = useState<SystemStats | null>(null);
   const [saving, setSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [logoVersion, setLogoVersion] = useState(0);
@@ -61,9 +63,11 @@ export const Settings = () => {
   }, [config]);
 
   useEffect(() => {
-    void api
-      .health()
-      .then(setHealth)
+    void Promise.all([api.health(), api.system()])
+      .then(([healthResponse, systemResponse]) => {
+        setHealth(healthResponse);
+        setSystem(systemResponse.system);
+      })
       .catch(() => undefined);
   }, []);
 
@@ -136,6 +140,33 @@ export const Settings = () => {
       setSaving(false);
     }
   };
+
+  const uptimeLabel = system === null ? '…' : formatDuration(system.uptimeSeconds);
+  const memoryLabel =
+    system === null
+      ? '…'
+      : `${formatBytes(system.memory.rssBytes)} RSS · ${formatBytes(
+          system.memory.heapUsedBytes,
+        )} / ${formatBytes(system.memory.heapTotalBytes)} heap`;
+  const systemMemoryLabel =
+    system === null
+      ? '…'
+      : `${formatBytes(system.memory.freeBytes)} free of ${formatBytes(system.memory.totalBytes)}`;
+  const cpuLabel =
+    system === null
+      ? '…'
+      : `${pluralize(system.cpu.cores, 'core')} · load ${system.cpu.load1.toFixed(
+          2,
+        )} / ${system.cpu.load5.toFixed(2)} / ${system.cpu.load15.toFixed(2)}`;
+  const diskLabel =
+    system === null
+      ? '…'
+      : system.disk === null
+        ? 'Unavailable'
+        : `${formatBytes(system.disk.availableBytes)} free of ${formatBytes(
+            system.disk.totalBytes,
+          )}`;
+  const runtimeLabel = system === null ? '…' : `${system.node} · ${system.platform}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -314,6 +345,36 @@ export const Settings = () => {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-muted-foreground">Config file</span>
             <span className="font-mono text-xs">.ob/config.json</span>
+          </div>
+          <Separator />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-muted-foreground">Uptime</span>
+            <span className="tabular">{uptimeLabel}</span>
+          </div>
+          <Separator />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-muted-foreground">Process memory</span>
+            <span className="tabular text-xs">{memoryLabel}</span>
+          </div>
+          <Separator />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-muted-foreground">System memory</span>
+            <span className="tabular text-xs">{systemMemoryLabel}</span>
+          </div>
+          <Separator />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-muted-foreground">CPU</span>
+            <span className="tabular text-xs">{cpuLabel}</span>
+          </div>
+          <Separator />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-muted-foreground">Workspace disk</span>
+            <span className="tabular text-xs">{diskLabel}</span>
+          </div>
+          <Separator />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-muted-foreground">Runtime</span>
+            <span className="font-mono text-xs">{runtimeLabel}</span>
           </div>
         </CardContent>
       </Card>

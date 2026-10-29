@@ -41,6 +41,7 @@ CLI callers (`ob sync`) bypass HTTP entirely and call the service layer directly
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/health` | `{ ok, version, uptime, workspace }` |
+| GET | `/api/system` | `{ system }`: server uptime, Node/platform, CPU cores + load, process and system memory, workspace disk (`statfs`), record and generation counts |
 | GET | `/api/config` | parsed + validated `.ob/config.json` |
 | PATCH | `/api/config` | partial merge; unknown keys preserved, key order kept |
 | GET | `/api/logo` | PNG bytes for the configured logo; `404` when none is set |
@@ -115,6 +116,7 @@ Long-running git work: `POST /api/git/sync` returns when the chain settles; `git
 * **Git failures are data.** `POST /api/git/*` returns 200 with `{ ok: false, error: { code, message, output? } }`; codes are listed in docs/09, not in the envelope table below.
 * **Logo uploads** accept only `image/png` bytes with a valid PNG signature; SVG and HTML are rejected. The server always reads `.ob/assets/logo.png`, so a hand-edited `business.logo` cannot point the API at another file. Uploads over 512 KB return 413.
 * **Import** validates whole-file problems (missing header, unclosed quote, > 1000 rows) before writing, then creates one record per valid row through `createRecord` — the same path as `POST /api/contacts` — so ids, defaults, indexing and commit-on-save are identical. Invalid rows write nothing and return their 1-based spreadsheet line. `type` is restricted to `contact|project|task`; billing is not importable (docs/14).
+* **`GET /api/system`** is read-only and cheap: `os` + `process.memoryUsage()` plus one `statfs` on the workspace. It never scans, never shells out to git, and never blocks on the network. `disk` is `null` when the filesystem cannot answer (some network mounts), which the UI renders as "Unavailable".
 
 ## Error envelope
 

@@ -1,8 +1,9 @@
 import type { Issue } from '../../model/issue.js';
 import type { AnyRecord, RecordType } from '../../model/schemas.js';
+import type { SystemStats } from '../../server/routes/system.js';
 import type { ObConfig } from '../../workspace/config.js';
 
-export type { RecordType };
+export type { RecordType, SystemStats };
 
 export type ApiRecord = AnyRecord & { readonly degraded: boolean };
 export type ApiRecordOf<T extends RecordType> = Extract<AnyRecord, { type: T }> & {
@@ -195,6 +196,8 @@ const throwApiError = async (response: Response): Promise<never> => {
 
 export const api = {
   health: (): Promise<HealthResponse> => request('GET', '/api/health'),
+
+  system: (): Promise<{ system: SystemStats }> => request('GET', '/api/system'),
 
   list: (plural: string, query?: string): Promise<RecordListResponse> =>
     request('GET', `/api/${plural}${query === undefined || query === '' ? '' : `?${query}`}`),

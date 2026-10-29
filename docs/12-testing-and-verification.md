@@ -93,6 +93,12 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [x] `client` resolves by email and by full name; unknown references fail the row.
 - [x] One import becomes one commit-on-save commit.
 
+**Insight (P6)**
+- [x] `GET /api/system` returns uptime, Node/platform, CPU cores and load, process/system memory, and workspace disk; `disk` may be `null`.
+- [x] The endpoint is read-only, needs no token, and reports the same record/generation counts as the index.
+- [ ] Revenue equals the sum of `paid` invoice totals; the month bucket uses `issue_date` in UTC (manual check against a demo workspace).
+- [ ] Outstanding excludes drafts and cancelled invoices (manual check against a demo workspace).
+
 ## Test hygiene rules
 
 * Every test that touches the FS uses `mkdtemp` and asserts on a cleaned-up directory.
@@ -115,6 +121,7 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] Client-scoped document with `{{client.name}}` / `{{today}}`: detail and A4 print resolve them; an unknown `{{foo.bar}}` stays visible.
 - [ ] Invoice with two attached documents prints both in order with client variables resolved, and a deleted attachment prints a missing-document note.
 - [ ] Download the contacts skeleton, paste three rows in Excel/Numbers (one with a comma inside a quoted note, one with a blank name), re-save as CSV, import: two records appear and the blank row is reported with its line.
+- [ ] Dashboard against the demo workspace: paid invoices roll into revenue (total + current month), a sent-past-due invoice lands in outstanding, and Settings → Workspace shows non-zero memory/CPU/disk figures.
 - [ ] Rebase conflict in the Git dialog: conflicted paths listed, Abort sync returns to `idle`.
 - [ ] `npx` from five different cwds (no cwd assumptions).
 - [ ] Kill -9 the server, restart, confirm index rebuild and no lock leak.
