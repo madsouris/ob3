@@ -12,9 +12,9 @@ describe('demo fixture', () => {
     expect(dir).toMatch(/fixtures[/\\]workspaces[/\\]demo$/);
   });
 
-  it('contains the workspace config and 15 records', () => {
+  it('contains the workspace config and 16 records', () => {
     expect(files.map((file) => file.path)).toContain('.ob/config.json');
-    expect(records).toHaveLength(15);
+    expect(records).toHaveLength(16);
   });
 
   it('has a valid, non-empty workspace config', () => {

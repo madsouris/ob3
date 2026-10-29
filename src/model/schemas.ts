@@ -9,7 +9,16 @@ export const CONTACT_STATUSES = ['lead', 'active', 'inactive', 'archived'] as co
 export const PROJECT_STATUSES = ['active', 'completed', 'archived'] as const;
 export const ESTIMATE_STATUSES = ['draft', 'sent', 'accepted', 'declined', 'expired'] as const;
 export const INVOICE_STATUSES = ['draft', 'sent', 'paid', 'overdue', 'cancelled'] as const;
-export const DOCUMENT_KINDS = ['terms', 'proposal', 'note'] as const;
+export const DOCUMENT_KINDS = [
+  'terms',
+  'proposal',
+  'contract',
+  'sow',
+  'nda',
+  'brief',
+  'note',
+  'other',
+] as const;
 export const DOCUMENT_SCOPES = ['global', 'client'] as const;
 export type DocumentScope = (typeof DOCUMENT_SCOPES)[number];
 

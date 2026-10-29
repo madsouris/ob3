@@ -16,12 +16,14 @@ Both are ordinary Markdown files in `documents/`; scope is frontmatter, not a fo
 | Field | Type | Default | Notes |
 |---|---|---|---|
 | `title` | string (required) | — | |
-| `kind` | `terms \| proposal \| note` | `note` | |
+| `kind` | `terms \| proposal \| contract \| sow \| nda \| brief \| note \| other` | `note` | |
 | `scope` | `global \| client` | `global` | Invalid values are reported as a `schema-invalid` issue but the record still projects |
 | `client_id` | string | `''` | Soft reference to a contact; a missing target is a `dangling-ref` warning |
 | body | Markdown | `''` | Stored byte-for-byte; never rewritten by rendering |
 
 Creating through the API writes `scope` and `client_id` explicitly. Old files without the keys read as global with no client.
+
+Kinds are a **fixed** set on purpose — free text would break filtering and badges. `other` is the catch-all when none of the business kinds fit. Files store the short token (`sow`, `nda`); the UI renders display labels ("Statement of work", "NDA") from `src/ui/lib/document-kinds.ts`, and a test keeps that list identical to `DOCUMENT_KINDS` in the model. An unrecognised kind is reported as a `schema-invalid` issue but the record still projects.
 
 ## Templates
 
@@ -42,6 +44,7 @@ Rules:
 * An **unknown** key, or a context that is not present (a global document with no client), stays visible exactly as written. This makes a missing link obvious instead of silently producing a blank line.
 * Rendering never edits the file. The template remains editable in any text editor.
 * The preview in the editor shows the raw template; the detail and print views show the rendered result.
+* Placeholders are resolved **only** in document bodies (the editor and its detail/print views) and in attached documents on a bill. Contact, project, task and invoice notes are rendered literally, so the reference panel appears only in the document editor.
 
 ## Attachments on estimates and invoices
 
@@ -57,7 +60,7 @@ Estimates and invoices carry `document_ids: string[]` (document ids, ordered).
 
 * **List** — All / Global / Client tabs with counts; title, kind, scope/client, updated.
 * **Detail** (`/documents/:id`) — rendered content, kind/scope/client badges, metadata, Edit and Print buttons.
-* **Editor** — title, kind, scope, client (required for client scope), Markdown with Write/Preview.
+* **Editor** — title, kind, scope, client (required for client scope), Markdown with Write/Preview, and a collapsed **Variable references** accordion under the field. The accordion is generated from `TEMPLATE_VARIABLE_GROUPS` in `src/ui/lib/template.ts` and lists Company, Client, Project, Billing and Date placeholders; a test asserts it matches exactly what `buildTemplateVariables` fills.
 * **Print** (`/documents/:id/print`) — A4 sheet with the business logo block, document title/date, client block when present, rendered Markdown, and the file path footer. No server-side PDF; the browser print dialog produces it.
 
 ## API

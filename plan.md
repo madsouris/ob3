@@ -44,7 +44,7 @@ Goal: `ob .` takes an empty folder to a running server.
 - [x] Pre-flight: node ≥ 20, workspace path + writability, `git --version` (2.39 warns only), `git config user.name/email`, optional `gh`, `--json` output (`src/cli/preflight.ts`)
 - [x] Init wizard: arrow-key selector on a TTY, numbered prompt when stdout is redirected, `1/2/3` and `demo/empty/exit` both accepted (`src/cli/wizard.ts`)
 - [x] Scaffolding: managed folders, `.ob/config.json` (Zod-validated), `.gitignore`, optional `git init` + initial commit with cwd pinned to the workspace (`src/workspace/init.ts`)
-- [x] Demo seed data: sourced from `fixtures/workspaces/demo/` (15 records + config), copied to `dist/demo` at build; idempotent (identical files skipped, differing files preserved and suffixed)
+- [x] Demo seed data: sourced from `fixtures/workspaces/demo/` (16 records + config), copied to `dist/demo` at build; idempotent (identical files skipped, differing files preserved and suffixed)
 - [x] Workspace lock: `.ob/state/server.lock`, live-PID refusal, stale reclaim, corrupt-file tolerance (`src/workspace/lock.ts`)
 - [x] Port binding: `19731` preference, probe +50, explicit EPERM/EACCES message, effective port in `.ob/state/session.json` (`src/workspace/port.ts`)
 - [x] Atomic writes for config/state/seeds (`src/io/atomic.ts`) — reused by M2

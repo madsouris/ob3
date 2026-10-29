@@ -39,13 +39,13 @@ A workspace is initialized iff `.ob/config.json` exists and parses against the c
 | `.ob/state/` | ✓ | ✓ |
 | `.gitignore` | ✓ | ✓ |
 | `contacts/`, `projects/`, `tasks/{todo,doing,done}/`, `estimates/`, `invoices/`, `documents/` | ✓ | ✓ (empty) |
-| Demo records | 2 contacts, 2 projects, 5 tasks, 1 estimate, 3 invoices, 2 documents + `.ob/config.json` | — |
+| Demo records | 2 contacts, 2 projects, 5 tasks, 1 estimate, 3 invoices, 3 documents + `.ob/config.json` | — |
 | `git init` (+ initial commit) | ✓ unless `--no-git` | ✓ unless `--no-git` |
 
 Rules:
 
 * Existing non-empty directories are never wiped. Files are only added; if the same path already holds *identical* content it is skipped, and if it holds different content the new file gets a `-2` suffix. Re-running init therefore never duplicates or overwrites a record.
-* **Demo data is files, not code.** The canonical workspace lives at `fixtures/workspaces/demo/` (15 records + `.ob/config.json`), is copied to `dist/demo/` at build time, and is shipped inside the package. `ob init --demo` copies that tree verbatim, so the preview, the package and the tests cannot drift. `.ob/config.json` from the fixture is treated as user-owned once it exists — it is never suffixed or overwritten.
+* **Demo data is files, not code.** The canonical workspace lives at `fixtures/workspaces/demo/` (16 records + `.ob/config.json`), is copied to `dist/demo/` at build time, and is shipped inside the package. `ob init --demo` copies that tree verbatim, so the preview, the package and the tests cannot drift. `.ob/config.json` from the fixture is treated as user-owned once it exists — it is never suffixed or overwritten.
 * Demo data uses **fixed** ULIDs and timestamps so integration tests are deterministic.
 * Demo contacts/projects/estimates/invoices are cross-linked by real `id`s, and the invoice line items exercise `tax_rate_bps` (850) so the UI has a correct example on first launch. One invoice is `paid` and one is `sent` past its due date, so the dashboard's revenue and outstanding cards have real numbers on first launch.
 * `git init` produces an initial commit `ob: initialize workspace` so the first save has a parent and `git status` starts clean.
@@ -92,7 +92,7 @@ bind 127.0.0.1:candidate → first success wins
 
 ## Acceptance criteria
 
-- [x] Demo init produces a workspace whose records are complete and cross-linked (15 files, valid ULIDs, invoice totals in cents).
+- [x] Demo init produces a workspace whose records are complete and cross-linked (16 files, valid ULIDs, invoice totals in cents).
 - [x] Empty init produces only folders, config, `.gitignore`.
 - [x] `git status --porcelain` is clean immediately after init.
 - [x] Running init twice with option 1 does not duplicate or overwrite records.

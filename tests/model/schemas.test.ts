@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { projectRecord, recordTitle, writeSchemas } from '../../src/model/schemas.js';
+import {
+  DOCUMENT_KINDS,
+  projectRecord,
+  recordTitle,
+  writeSchemas,
+} from '../../src/model/schemas.js';
 
 const base = { createdAt: '2026-10-28T09:00:00Z' };
 
@@ -121,6 +126,30 @@ describe('projectRecord — valid records', () => {
       frontmatter: { title: 'Odd', scope: 'team' },
     });
     expect(invalid.issues.some((issue) => issue.message.includes('scope'))).toBe(true);
+  });
+
+  it('accepts every documented kind and flags an unknown one', () => {
+    for (const kind of DOCUMENT_KINDS) {
+      const { issues } = projectRecord({
+        type: 'document',
+        id: 'doc_01J8X7100EQ4M2N8V3R5T7W9Y0',
+        path: 'documents/doc_kind.md',
+        body: '',
+        taskStatus: null,
+        frontmatter: { title: 'Kind', kind },
+      });
+      expect(issues.some((issue) => issue.message.includes('kind'))).toBe(false);
+    }
+
+    const unknown = projectRecord({
+      type: 'document',
+      id: 'doc_01J8X7100EQ4M2N8V3R5T7W9Y0',
+      path: 'documents/doc_kind.md',
+      body: '',
+      taskStatus: null,
+      frontmatter: { title: 'Kind', kind: 'invoice' },
+    });
+    expect(unknown.issues.some((issue) => issue.message.includes('kind'))).toBe(true);
   });
 });
 

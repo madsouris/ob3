@@ -5,6 +5,7 @@ import {
   ArrowUpRightIcon,
   Building2Icon,
   CalendarIcon,
+  FileTextIcon,
   FolderIcon,
   MailIcon,
   PencilIcon,
@@ -95,6 +96,9 @@ export const ContactDetail = ({ contactId }: ContactDetailProps) => {
   const fullName = `${contact.first_name} ${contact.last_name}`.trim();
   const subtitle = [contact.job_role, contact.company].filter((value) => value !== '').join(' · ');
   const projects = records.project.filter((project) => project.client_id === contact.id);
+  const documents = records.document.filter(
+    (document) => document.scope === 'client' && document.client_id === contact.id,
+  );
   const estimates = records.estimate.filter((estimate) => estimate.client_id === contact.id);
   const invoices = records.invoice.filter((invoice) => invoice.client_id === contact.id);
   const billing = [...estimates, ...invoices].sort((left, right) =>
@@ -128,7 +132,8 @@ export const ContactDetail = ({ contactId }: ContactDetailProps) => {
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={contact.status} />
               <Badge variant="outline">{pluralize(projects.length, 'project')}</Badge>
-              <Badge variant="outline">{pluralize(billing.length, 'document')}</Badge>
+              <Badge variant="outline">{pluralize(documents.length, 'document')}</Badge>
+              <Badge variant="outline">{pluralize(billing.length, 'billing record')}</Badge>
             </div>
           </div>
         </div>
@@ -144,7 +149,6 @@ export const ContactDetail = ({ contactId }: ContactDetailProps) => {
           <Card>
             <CardHeader>
               <CardTitle>Notes</CardTitle>
-              <CardDescription>The contact file body, rendered as Markdown.</CardDescription>
             </CardHeader>
             <CardContent>
               <Markdown emptyText="No notes for this contact yet.">{contact.body}</Markdown>
@@ -175,6 +179,38 @@ export const ContactDetail = ({ contactId }: ContactDetailProps) => {
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       <StatusBadge status={project.status} />
+                      <ArrowUpRightIcon aria-hidden className="text-muted-foreground" />
+                    </span>
+                  </button>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Documents</CardTitle>
+              <CardDescription>
+                {pluralize(documents.length, 'document')} for this client.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {documents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No documents for this client yet.</p>
+              ) : (
+                documents.map((document) => (
+                  <button
+                    key={document.id}
+                    type="button"
+                    onClick={() => navigate(`documents/${document.id}`)}
+                    className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-left transition-colors hover:bg-accent"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <FileTextIcon aria-hidden className="text-muted-foreground" />
+                      <span className="truncate text-sm font-medium">{recordTitle(document)}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <StatusBadge status={document.kind} />
                       <ArrowUpRightIcon aria-hidden className="text-muted-foreground" />
                     </span>
                   </button>
@@ -236,6 +272,18 @@ export const ContactDetail = ({ contactId }: ContactDetailProps) => {
             <CardDescription>Read from the frontmatter.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
+            {contact.primary_link === '' ? null : (
+              <Button asChild className="w-full justify-start">
+                <a
+                  href={externalHref(contact.primary_link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ArrowUpRightIcon data-icon="inline-start" />
+                  <span className="truncate">{contact.primary_link}</span>
+                </a>
+              </Button>
+            )}
             {contact.email === '' ? null : (
               <DetailRow icon={<MailIcon aria-hidden />} label="Email">
                 <LinkValue href={`mailto:${contact.email}`}>{contact.email}</LinkValue>
@@ -251,13 +299,6 @@ export const ContactDetail = ({ contactId }: ContactDetailProps) => {
             {contact.website === '' ? null : (
               <DetailRow icon={<Building2Icon aria-hidden />} label="Website">
                 <LinkValue href={externalHref(contact.website)}>{contact.website}</LinkValue>
-              </DetailRow>
-            )}
-            {contact.primary_link === '' ? null : (
-              <DetailRow icon={<ArrowUpRightIcon aria-hidden />} label="Primary link">
-                <LinkValue href={externalHref(contact.primary_link)}>
-                  {contact.primary_link}
-                </LinkValue>
               </DetailRow>
             )}
             <DetailRow icon={<CalendarIcon aria-hidden />} label="Created">

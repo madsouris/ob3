@@ -34,13 +34,13 @@ describe('full scan', () => {
   it('indexes the demo workspace with no issues', async () => {
     const { index } = await demoIndex();
 
-    expect(index.list()).toHaveLength(15);
+    expect(index.list()).toHaveLength(16);
     expect(index.list('contact')).toHaveLength(2);
     expect(index.list('project')).toHaveLength(2);
     expect(index.list('task')).toHaveLength(5);
     expect(index.list('estimate')).toHaveLength(1);
     expect(index.list('invoice')).toHaveLength(3);
-    expect(index.list('document')).toHaveLength(2);
+    expect(index.list('document')).toHaveLength(3);
     expect(index.issues()).toEqual([]);
     expect(index.generation).toBe(1);
   });
@@ -85,7 +85,7 @@ describe('external edits', () => {
     });
 
     expect(index.getById(id)?.record.path).toBe('contacts/cnt_renamed.md');
-    expect(index.list()).toHaveLength(15);
+    expect(index.list()).toHaveLength(16);
     expect(index.issues()).toEqual([]);
   });
 
@@ -126,7 +126,7 @@ describe('external edits', () => {
     await index.applyDelete('contacts/cnt_acme-corp.md');
 
     expect(index.getById('cnt_01J8X7100AQ4M2N8V3R5T7W9Y0')).toBeNull();
-    expect(index.list()).toHaveLength(14);
+    expect(index.list()).toHaveLength(15);
     expect(index.issues().some((issue) => issue.code === 'dangling-ref')).toBe(true);
   });
 

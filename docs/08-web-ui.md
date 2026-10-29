@@ -31,6 +31,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 ```
 
 * Header: workspace name and record count, Git badge, `⌘K` palette, theme toggle (`Shift+D`, ignored while typing in a form control). The badge is a button that opens the Git dialog.
+* Sidebar: the business logo (or its monogram fallback) and workspace name sit at the top; the record count, "Files are the database", and the `ob` mark sit at the bottom.
 * Sidebar collapses under 900 px into a sheet; below 768 px the board's three columns stack vertically instead of scrolling sideways.
 * `⌘K` palette: navigate and ranked search. "Create" and "run sync" actions are planned; today creation lives on each view and sync lives in the Git dialog.
 
@@ -40,7 +41,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 |---|---|---|
 | Dashboard | Counts, open tasks by column, outstanding total, paid revenue (total + this month), recent activity, issue banner | Click-through to filtered lists |
 | Contacts | Table; click a row → contact page | Create; edit from the contact page |
-| Contact page (`/contacts/:id`) | Avatar, name, role/company, status, rendered notes, related projects and billing, contact links, metadata | Edit (sheet), jump to project/invoice/estimate |
+| Contact page (`/contacts/:id`) | Avatar, name, role/company, status, project/document/billing badges, rendered notes, projects, client documents, billing, primary-link button and contact facts | Edit (sheet), jump to project/document/invoice/estimate |
 | Projects | Table; linked client; task count | Pick a project → its board; create; edit |
 | Project workspace (`/projects/:id`) | Header, client, status, task counts, project body, that project's board | Add/edit task, drag or "Move to…", edit project |
 | All tasks (`/tasks`) | Cross-project board with the project name on each card | Drag or "Move to…", open task |
@@ -67,7 +68,7 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 ## Editors
 
 * **Forms** (contacts, projects, tasks, billing, settings): a sheet with explicit Save/Cancel; `Esc` or Cancel discards, and a failed save keeps the typed values with the server's message in a toast. Date fields use the shadcn `Calendar` popover (`DateField`), never the native browser picker.
-* **Markdown** (contact/project/task notes, document body, invoice notes): a Write / Preview field. Preview renders GFM Markdown (tables, task lists, strikethrough) with `react-markdown`; raw HTML is never rendered. The textarea remains the source of truth — no rich-text editor, no preview pane state stored anywhere.
+* **Markdown** (contact/project/task notes, document body, invoice notes): a Write / Preview field. Preview renders GFM Markdown (tables, task lists, strikethrough) with `react-markdown`; raw HTML is never rendered. The textarea remains the source of truth — no rich-text editor, no preview pane state stored anywhere. The document editor adds a collapsed **Variable references** accordion listing every supported placeholder (company and client first), generated from `template.ts` so it cannot drift.
 * **Line items** (estimate/invoice): rows with description/qty/unit price; totals recompute live using the same cents helpers as the server (shared module, single implementation).
 * **Conflict banner (contacts):** "This file changed on disk" → *Reload from disk* (discard local edits) or save again to overwrite. Never auto-merges.
 * **Degraded records** are not given a separate read-only view yet; they surface in *Needs attention*, where the raw file can be previewed before an explicit resolve.
@@ -148,6 +149,7 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] Deleting the record behind an open detail view closes the editor instead of writing to a missing file.
 - [x] A save produces one path-scoped commit after the debounce; an unrelated external edit stays unstaged (integration tests in `tests/git/commit-on-save.test.ts`).
 - [x] Contact rows open a read-only contact page with Markdown notes and an Edit sheet; creating a contact stays on the list.
+- [x] The contact page counts projects, client-scoped documents and billing separately, lists that client's documents under Projects, and opens the primary link from a button at the top of Details.
 - [x] Notes/descriptions/terms render as Markdown on screen and in the A4 print sheet (GFM tables and task lists included).
 - [x] Uploading a logo in Settings previews it immediately, stores `.ob/assets/logo.png`, and prints it on invoices/estimates; with no logo, a monogram is used.
 - [x] Documents list filters All/Global/Client, open a rendered detail page, and print to A4; templates resolve `{{business.*}}`, `{{client.*}}` and `{{today}}` with unknown keys left literal.

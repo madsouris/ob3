@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildTemplateVariables, renderTemplate } from '../../src/ui/lib/template.js';
+import {
+  TEMPLATE_VARIABLE_GROUPS,
+  buildTemplateVariables,
+  renderTemplate,
+} from '../../src/ui/lib/template.js';
 
 const business = { name: 'Acme', email: 'hi@acme.test', phone: '+1', address: 'Lane 1' };
 const client = {
@@ -47,5 +51,32 @@ describe('renderTemplate', () => {
 
   it('does not touch text without placeholders', () => {
     expect(renderTemplate('Plain text', {})).toBe('Plain text');
+  });
+});
+
+describe('variable reference', () => {
+  it('documents exactly the placeholders the renderer can fill', () => {
+    const variables = buildTemplateVariables({
+      business,
+      client,
+      projectName: 'Redesign',
+      invoice: { number: 'INV-2026-001', title: 'Deposit' },
+      estimate: { number: 'EST-2026-001', title: 'Scope' },
+      today: '2026-10-29',
+    });
+
+    const documented = TEMPLATE_VARIABLE_GROUPS.flatMap((group) =>
+      group.variables.map((variable) => variable.token),
+    );
+
+    expect([...documented].sort()).toEqual(Object.keys(variables).sort());
+    expect(new Set(documented).size).toBe(documented.length);
+  });
+
+  it('labels the company and client groups first', () => {
+    expect(TEMPLATE_VARIABLE_GROUPS.slice(0, 2).map((group) => group.label)).toEqual([
+      'Company',
+      'Client',
+    ]);
   });
 });

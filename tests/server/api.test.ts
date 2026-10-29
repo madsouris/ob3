@@ -102,6 +102,26 @@ describe('record CRUD', () => {
 describe('documents', () => {
   const clientId = 'cnt_01J8X7100BQ4M2N8V3R5T7W9Y0';
 
+  it('accepts a new kind and rejects an unknown one', async () => {
+    const test = await server('demo');
+
+    const accepted = await test.mutate('POST', '/api/documents', {
+      title: 'Signed statement of work',
+      kind: 'sow',
+    });
+    expect(accepted.status).toBe(201);
+    const acceptedBody = (await accepted.json()) as { record: { kind: string } };
+    expect(acceptedBody.record.kind).toBe('sow');
+
+    const rejected = await test.mutate('POST', '/api/documents', {
+      title: 'Mystery',
+      kind: 'invoice',
+    });
+    expect(rejected.status).toBe(422);
+    const rejectedBody = (await rejected.json()) as { error: { code: string } };
+    expect(rejectedBody.error.code).toBe('validation_failed');
+  });
+
   it('stores a client-scoped document and defaults to global otherwise', async () => {
     const test = await server('demo');
 

@@ -33,11 +33,13 @@ import {
 import { Field } from '@/components/field';
 import { MarkdownField } from '@/components/markdown-field';
 import { SheetBody } from '@/components/sheet-body';
+import { VariableReference } from '@/components/variable-reference';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
+import { DOCUMENT_KIND_OPTIONS, documentKindLabel } from '@/lib/document-kinds';
+import { TEMPLATE_VARIABLE_GROUPS } from '@/lib/template';
 import { recordTitle, useWorkspace } from '@/lib/workspace';
 
-const KINDS = ['terms', 'proposal', 'note'] as const;
 const SCOPES = ['global', 'client'] as const;
 const NO_CLIENT = '__none__';
 
@@ -194,9 +196,9 @@ export const DocumentEditor = ({ documentId, open, onOpenChange }: DocumentEdito
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {KINDS.map((kind) => (
-                        <SelectItem key={kind} value={kind} className="capitalize">
-                          {kind}
+                      {DOCUMENT_KIND_OPTIONS.map((kind) => (
+                        <SelectItem key={kind} value={kind}>
+                          {documentKindLabel(kind)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -268,8 +270,10 @@ export const DocumentEditor = ({ documentId, open, onOpenChange }: DocumentEdito
                 value={form.body}
                 onChange={(value) => setForm((current) => ({ ...current, body: value }))}
                 rows={20}
-                hint="Markdown. Variables like {{client.name}} are filled when the document is viewed or printed."
+                hint="Markdown. Placeholders are filled when the document is viewed or printed."
               />
+
+              <VariableReference groups={TEMPLATE_VARIABLE_GROUPS} />
             </SheetBody>
 
             <SheetFooter className="flex-row justify-between gap-2">

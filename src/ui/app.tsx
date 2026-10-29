@@ -26,6 +26,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BusinessLogo } from '@/components/business-logo';
 import { CommandPalette } from '@/components/command-palette';
 import { GitBadge } from '@/components/git-badge';
 import { navigate, useRoute } from '@/lib/router';
@@ -252,8 +253,12 @@ export const App = () => {
     <div className="flex h-dvh overflow-hidden bg-background">
       <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar md:flex">
         <div className="flex h-14 items-center gap-2 border-b px-4">
-          <span className="font-mono text-sm font-semibold tracking-tight">ob</span>
-          <span className="truncate text-xs text-muted-foreground">{workspaceName}</span>
+          <BusinessLogo
+            name={workspaceName}
+            logo={config?.business.logo ?? ''}
+            className="size-7 rounded-md border bg-muted/30 p-0.5"
+          />
+          <span className="truncate text-sm font-medium">{workspaceName}</span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-2">{navList()}</div>
         <div className="border-t px-3 py-3">
@@ -261,6 +266,7 @@ export const App = () => {
             {totalRecords} records in {records.contact.length === 0 ? 'an empty' : 'this'} workspace.
             Files are the database.
           </p>
+          <p className="mt-2 font-mono text-[11px] text-muted-foreground">ob</p>
         </div>
       </aside>
 
@@ -274,8 +280,8 @@ export const App = () => {
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0">
               <SheetHeader className="border-b p-4">
-                <SheetTitle className="font-mono text-sm">ob</SheetTitle>
-                <SheetDescription>{workspaceName}</SheetDescription>
+                <SheetTitle className="truncate">{workspaceName}</SheetTitle>
+                <SheetDescription className="font-mono">ob</SheetDescription>
               </SheetHeader>
               <div className="p-2">{navList()}</div>
             </SheetContent>

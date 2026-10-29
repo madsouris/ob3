@@ -87,7 +87,7 @@ Rules:
 | Tarball smoke test | extract tarball → `node dist/cli/index.js --help` → init demo in a temp dir → `GET /api/health` → Ctrl+C |
 | Global alias | `pnpm add -g ./pkg.tgz` → `ob --version` and `filecrm --version` |
 | Bundle size | `dist/client/index.html` < 800 KB (warn only) |
-| Demo shipped | `dist/demo/.ob/config.json` exists and `dist/demo` holds 15 records |
+| Demo shipped | `dist/demo/.ob/config.json` exists and `dist/demo` holds 16 records |
 | Publish dry run | `pnpm publish --dry-run` and review the file list |
 
 ## Versioning
