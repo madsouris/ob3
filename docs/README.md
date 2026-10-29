@@ -1,6 +1,20 @@
-# `ob` — Feature Documentation
+# `ob` — Documentation
 
-One document per functional area. The PRD ([`../brief.md`](../brief.md)) is the contract; these documents describe *how* each area satisfies it and what "correct" means for it.
+Two audiences, two indexes. End users start with the manual; contributors read the feature docs.
+
+## For users
+
+| Document | Contents |
+|---|---|
+| [`user-manual.md`](./user-manual.md) | Step-by-step guide: first run, daily flow, billing, printing, documents, CSV import, sync, troubleshooting |
+| [`../brief.md`](../brief.md) | White paper: the problem, principles, architecture, data model, stack, distribution |
+| [`../README.md`](../README.md) | Install, requirements, quickstart, development commands |
+
+## For developers
+
+One document per functional area. The white paper ([`../brief.md`](../brief.md)) states the
+principles and the locked stack; these documents are the **normative behaviour contracts** — what
+"correct" means for each area.
 
 | Doc | Area | Milestone | Status |
 |---|---|---|---|
@@ -17,13 +31,14 @@ One document per functional area. The PRD ([`../brief.md`](../brief.md)) is the 
 | [10-search](./10-search.md) | FlexSearch index, query semantics | M5 | `[x]` |
 | [11-packaging](./11-packaging.md) | Single-file bundle, `bin`, package publish | M0/M7 | `[~]` |
 | [12-testing-and-verification](./12-testing-and-verification.md) | Test strategy, fixtures, manual QA | all | `[~]` |
-| [13-documents](./13-documents.md) | Document scope, templates, A4 print | P3 | `[~]` |
+| [13-documents](./13-documents.md) | Document scope, kinds, templates, A4 print | P3 | `[~]` |
 | [14-csv-import](./14-csv-import.md) | CSV skeleton, import contract, row errors | P5 | `[x]` |
+| [15-data-migration](./15-data-migration.md) | `ob_schema` policy, compatibility rules, future `ob migrate` | M7 | `[x]` |
 
 ## Status legend
 
 * `[ ]` documented, not implemented
-* `[~]` implemented, documentation or tests pending
+* `[~]` implemented, documentation or manual checks pending
 * `[x]` implemented, tested, documentation current
 
 ## Conventions used in these docs
@@ -31,8 +46,12 @@ One document per functional area. The PRD ([`../brief.md`](../brief.md)) is the 
 * **MUST / MUST NOT** — required for spec compliance; a deviation is a bug.
 * "Record" means one Markdown file with YAML frontmatter.
 * "Index" means the in-memory, rebuildable projection of the filesystem. It is never persisted.
-* All paths are workspace-relative POSIX paths (`contacts/cnt_x.md`), normalized for Windows on the boundary.
+* All paths are workspace-relative POSIX paths (`contacts/cnt_x.md`), normalized for Windows on the
+  boundary.
 
 ## Editing these docs
 
-When a decision changes, update the owning doc **and** `00-decisions.md`, then adjust `plan.md` if scope moves. Docs must describe shipped behaviour, never aspiration — planned work belongs in `plan.md`.
+When a decision changes, update the owning doc **and** `00-decisions.md`, then adjust `plan.md` if
+scope moves. Docs must describe shipped behaviour, never aspiration — planned work belongs in
+`plan.md`. The user manual is written for end users: no internals, no file paths beyond the workspace
+tree, no ADR references.

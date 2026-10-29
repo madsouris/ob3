@@ -1,6 +1,6 @@
 # 13 — Documents & Templates
 
-Milestone: **Pre-M7 polish (P3)** · Spec: `brief.md` §5.2, §9 · Code: `src/model/schemas.ts`, `src/ui/views/document-*`, `src/ui/components/document-editor.tsx`, `src/ui/lib/template.ts`
+Milestone: **Pre-M7 polish (P3)** · Spec: `brief.md` (data model), `docs/03` · Code: `src/model/schemas.ts`, `src/ui/views/document-*`, `src/ui/components/document-editor.tsx`, `src/ui/lib/template.ts`
 
 ## Purpose
 

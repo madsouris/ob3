@@ -14,7 +14,7 @@ TypeScript (strict, ESM), Hono on Node 20+, React 19 + Tailwind + shadcn/ui, bun
 
 Technical freelancers, solo developers, and lean agencies who run client work out of local files. They are comfortable with a terminal and a text editor, keep their work in Git, dislike being forced into a hosted SaaS, and often work on a client machine or offline.
 
-> Inferred from `brief.md` §1–§2; not separately confirmed with a human.
+> Inferred from `brief.md` (problem and users); not separately confirmed with a human.
 
 ## Product Purpose
 
@@ -30,7 +30,7 @@ The data model *is* the file tree. Any text editor, `grep`, `git log`, or a diff
 * Tasks are organised as a filesystem Kanban: `tasks/todo`, `tasks/doing`, `tasks/done`. Moving a card moves a file.
 * Estimates become invoices; invoices are printed to PDF from the browser.
 * Sync is an explicit action over `git add / commit / pull --rebase / push`.
-* The app runs on `127.0.0.1` only, opened from the terminal by `npx @operationbegin/crm .`.
+* The app runs on `127.0.0.1` only, opened from the terminal by `npx filecrm .`.
 
 ## Capabilities and Constraints
 
@@ -46,10 +46,10 @@ The data model *is* the file tree. Any text editor, `grep`, `git log`, or a diff
 
 Name is `ob` (OperationBegin). Voice is plain, technical, unhyped — it explains a mechanic rather than selling an outcome. No taglines or marketing superlatives inside the app.
 
-> Voice inferred from `brief.md` §1; the name is fixed by the brief.
+> Voice inferred from `brief.md`; the name is fixed by the white paper.
 
 ## Evidence on Hand
 
-* `brief.md` — product spec, schemas, invariants.
+* `brief.md` — white paper: problem, principles, stack, data model.
 * `docs/` — behavioural contracts per feature area.
 * `fixtures/workspaces/demo/` — real records that double as the demo workspace and the UI's reference content.

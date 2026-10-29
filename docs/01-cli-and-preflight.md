@@ -1,6 +1,6 @@
 # 01 — CLI, Flags & Pre-flight
 
-Milestone: **M1** · Spec: `brief.md` §3.1, §10 · Code: `src/cli/`
+Milestone: **M1** · Spec: `brief.md` (distribution, CLI) · Code: `src/cli/`
 
 ## Purpose
 

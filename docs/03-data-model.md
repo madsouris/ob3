@@ -1,6 +1,6 @@
 # 03 — Data Model: IDs, Schemas, Money
 
-Milestone: **M2** (schemas) / **M5** (money UI) · Spec: `brief.md` §5.2 · Code: `src/model/`
+Milestone: **M2** (schemas) / **M5** (money UI) · Spec: `brief.md` (data model) · Code: `src/model/`
 
 ## Purpose
 

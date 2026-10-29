@@ -1,10 +1,10 @@
 # 11 — Packaging & Distribution
 
-Milestone: **M0** (pipeline) / **M7** (release) · Spec: `brief.md` §10 · Code: `package.json`, `vite.config.ts`, `scripts/`
+Milestone: **M0** (pipeline) / **M7** (release) · Spec: `brief.md` (distribution) · Code: `package.json`, `vite.config.ts`, `scripts/`
 
 ## Purpose
 
-Ship one npm package that runs instantly via `npx` on macOS, Linux, and Windows with no compiler, no postinstall step, and no runtime build.
+Ship one npm package, **`filecrm`**, that runs instantly via `npx` on macOS, Linux, and Windows with no compiler, no postinstall step, and no runtime build. The repository is `ob3`; the package name is what users type (`npx filecrm .`), and the installed commands are `ob` and `filecrm`.
 
 ## Package layout
 
@@ -38,7 +38,7 @@ Development uses **pnpm**; end users still install via `npx` / `npm i -g`.
 
 ```json
 {
-  "name": "@operationbegin/crm",
+  "name": "filecrm",
   "version": "1.0.0",
   "type": "module",
   "engines": { "node": ">=20" },

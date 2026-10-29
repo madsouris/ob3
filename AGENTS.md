@@ -1,8 +1,8 @@
 # Agent Instructions & Operating Rules
 
-Project: `ob` / `filecrm` — Local-First Offline CRM
+Project: `ob` / package `filecrm` — Local-First Offline CRM (repo `ob3`)
 Stack: TypeScript (strict, ESM) · Node 20+ · Hono · React 19 + Tailwind + shadcn/ui · Vite (`vite-plugin-singlefile`) · chokidar · FlexSearch · `yaml` Document API
-Spec version: **1.1.0** (implementation-ready)
+Spec version: **1.1.0** (white paper + normative docs)
 
 ---
 
@@ -17,7 +17,7 @@ Spec version: **1.1.0** (implementation-ready)
    | React components, data fetching, UI performance | `vercel-react-best-practices` |
    | shadcn/ui primitives and component composition | `shadcn` |
    | Visual design, UX review, polish | `impeccable` |
-3. **Respect the Brief:** `brief.md` is the contract for stack, schemas, and file structures. `plan.md` is the contract for scope and order. `docs/` is the contract for behaviour. If a request conflicts with any of them, say so before writing code.
+3. **Respect the Brief:** `brief.md` is the white paper — problem, principles, locked stack and data model. `plan.md` is the contract for scope and order. `docs/` is the contract for behaviour (and `docs/user-manual.md` for end-user flows). If a request conflicts with any of them, say so before writing code.
 4. **Docs Are Part of the Change:** Any behavioural change updates the owning `docs/` file, `plan.md` checkboxes, and `docs/00-decisions.md` if a decision changed. A change without doc updates is incomplete.
 5. **Be Straight to the Point:** Concise, technical, accurate. No fluff, no restating the request.
 
@@ -26,14 +26,16 @@ Spec version: **1.1.0** (implementation-ready)
 ## 2. Repository Map
 
 ```
-brief.md                 PRD / spec — locked stack, schemas, invariants
-plan.md                  Milestones M0–M7, checkboxes, exit criteria
+brief.md                 White paper — problem, principles, stack, data model
+plan.md                  Status, shipped scope, M7 checklist, post-v1 backlog
+README.md                Install, requirements, quickstart, development
 PRODUCT.md               durable product truth (impeccable `init`)
 DESIGN.md                design contract — Operate mode, tokens, type, motion
 components.json          shadcn/ui config (aliases resolve to src/ui)
 docs/README.md           Index + doc status legend
-docs/00-decisions.md     ADRs (AD-01…AD-14) — why each decision won
-docs/01…14-*.md          One document per functional area
+docs/user-manual.md      End-user, step-by-step guide
+docs/00-decisions.md     ADRs (AD-01…AD-19) — why each decision won
+docs/01…15-*.md          One document per functional area
 AGENTS.md                This file
 ```
 
@@ -170,7 +172,7 @@ Violating any of these is a bug, not a style preference.
 |---|---|
 | CLI flags, pre-flight, lifecycle | `docs/01-cli-and-preflight.md` |
 | Init, scaffolding, demo data, lock, port | `docs/02-workspace-init.md` |
-| Schemas, ids, money, references | `docs/03-data-model.md` (+ `brief.md` §5.2) |
+| Schemas, ids, money, references | `docs/03-data-model.md` (+ `brief.md`) |
 | Frontmatter read/write | `docs/04-frontmatter-roundtrip.md` |
 | Index, issues, external-edit behaviour | `docs/05-indexer-and-external-edits.md` |
 | Watcher, atomic IO, path safety | `docs/06-file-watcher-and-io.md` |
@@ -178,12 +180,15 @@ Violating any of these is a bug, not a style preference.
 | Views, editors, Kanban, print | `docs/08-web-ui.md` |
 | Commit-on-save, sync, recovery | `docs/09-git-sync.md` |
 | Search behaviour, ranking, `/api/search` | `docs/10-search.md` |
-| Documents, scope, templates, document print | `docs/13-documents.md` |
+| Documents, scope, kinds, templates, document print | `docs/13-documents.md` |
 | CSV import, skeleton, row errors, limits | `docs/14-csv-import.md` |
-| Build, `bin`, publish | `docs/11-packaging.md` |
+| Schema versions, compatibility, future `ob migrate` | `docs/15-data-migration.md` |
+| Build, `bin`, publish, package name | `docs/11-packaging.md` |
 | Test strategy, fixtures, QA | `docs/12-testing-and-verification.md` |
+| End-user steps and flows | `docs/user-manual.md` |
 | A decision reverses | `docs/00-decisions.md` + the owning doc |
-| Scope/order changes | `plan.md` + `brief.md` §11 |
+| Scope/order changes | `plan.md` + `brief.md` |
+| Install, requirements, quickstart | `README.md` |
 
 ---
 
@@ -197,9 +202,9 @@ Violating any of these is a bug, not a style preference.
 
 ## 8. Working Notes
 
-* **Repo state:** M0–M6 landed — CLI, workspace init, data layer (schemas/index/watcher), HTTP API with security, the React SPA, M5 board/money/print/search (project → board, drag-and-drop + "Move to…", billing editor with live cents, duplicate, estimate → invoice, A4 browser-print view, FlexSearch `/api/search`), and M6 git work (subprocess wrapper, path-scoped commit-on-save, manual sync, failure/recovery states, header badge + Git dialog, `ob sync`). The pre-M7 polish track is in progress: P0 (sheet gutters, `Shift+D`, shadcn date picker), P1 (Markdown + contact page), P2 (business logo), P3 (documents scope, templates, document print), P4 (billing attachments), P5 (CSV import for contacts/projects/tasks, skeleton download, per-row errors), P6 (dashboard revenue/outstanding, `GET /api/system` in Settings) and P7 (impeccable audit, print light/dark, keyboard reorder, docs pass) are landed. M7 (packaging/release) is next. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
+* **Repo state:** M0–M6 and the pre-M7 polish waves P0–P7 are landed (sheets/date picker, Markdown + contact page, business logo, document scope/kinds/templates, attachments, CSV import, dashboard revenue + `GET /api/system`, print light/dark and keyboard reorder). M7 (packaging/release) is in progress: package renamed to `filecrm` (bins `ob`, `filecrm`), README/user manual/migration policy written, `POLISH.md` retired. Remaining: version bump, tarball smoke test, publish dry run, first publish, CI branch trigger. Tooling is pnpm (`pnpm install`, `pnpm <script>`); scripts: `dev`, `build`, `build:client`, `build:server`, `typecheck`, `test`, `test:watch`, `lint`, `format`, `prepublishOnly`. Do not invent scripts that do not exist; if a command is missing, say so.
 * **UI stack:** Tailwind v4 (`src/ui/styles.css` with `@theme inline`), shadcn/ui in `src/ui/components/ui` generated from the registry — add with `pnpm dlx shadcn@latest add <component>`, never hand-write a primitive. `@/` maps to `src/ui` in both Vite and TypeScript (`moduleResolution: Bundler`). Tokens are semantic only; no raw colours in components.
 * **Demo data:** never add records as code. Edit `fixtures/workspaces/demo/`, then `pnpm build` (postbuild copies it to `dist/demo`). Tests assert the fixture matches what `init --demo` writes.
 * **Dependencies:** no new dependency without justification — must be pure-JS (or optional-native), maintained, and consistent with §4. `js-yaml`, `moment`, `express`, `better-sqlite3` are off-limits.
-* **Known deferrals (v1):** multi-workspace switching, server-side PDF, email sending, payments, encryption at rest, `gh repo create` bootstrap (M7); post-v1 UX (see `plan.md` P7): dirty-guard for unsaved sheet edits, live-updates-paused indicator, list sorting, inline field errors (`aria-invalid`), recovery hints after an aborted rebase.
+* **Known deferrals (v1):** multi-workspace switching, server-side PDF, email sending, payments, encryption at rest, `gh repo create` bootstrap; post-v1 UX is tracked in `plan.md` (dirty-guard for unsaved sheet edits, live-updates-paused indicator, list sorting, inline field errors, recovery hints after an aborted rebase). Schema changes follow `docs/15-data-migration.md`.
 * **Ambiguity rule:** if the spec and the request disagree, surface the conflict and propose the fix in one sentence, then wait for approval.

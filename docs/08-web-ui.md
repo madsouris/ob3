@@ -1,6 +1,6 @@
 # 08 — Web UI
 
-Milestone: **M4** (shell/CRUD) · **M5** (boards/money/print) · Spec: `brief.md` §9 · Code: `src/ui/`
+Milestone: **M4** (shell/CRUD) · **M5** (boards/money/print) · Spec: `brief.md` (data model) · Code: `src/ui/`
 
 ## Purpose
 
@@ -51,7 +51,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | Documents | Table with All / Global / Client filters | Create; open the document page |
 | Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (sheet), print |
 | Document print (`/documents/:id/print`) | A4 sheet with logo, client block and rendered Markdown | Browser print / Save as PDF |
-| Settings | Business profile, logo, currency, `tax_rate_bps`, default terms, `commit_on_save`, CSV import, workspace/system facts | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; import → POST `/api/import`; facts from GET `/api/health` + `/api/system` |
+| Settings | Business profile, logo, currency, `tax_rate_bps`, `commit_on_save`, CSV import, workspace/system facts | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; import → POST `/api/import`; facts from GET `/api/health` + `/api/system` |
 | Needs attention | Issue list with file preview and resolve actions | Explicit resolve only |
 
 ## Data layer

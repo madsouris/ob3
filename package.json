@@ -1,5 +1,5 @@
 {
-  "name": "@operationbegin/crm",
+  "name": "filecrm",
   "version": "0.1.0",
   "description": "Local-first CRM. Markdown files and Git are the database.",
   "license": "MIT",

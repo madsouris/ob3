@@ -1,545 +1,136 @@
-# Product Requirements Document (PRD): `ob` Local-First CRM
+# ob — local-first CRM
 
-**Project Name:** `ob` (OperationBegin Local-First CRM)
-**Package Alias Candidate:** `@operationbegin/crm` or `filecrm`
-**License:** MIT (Open Source)
-**Version:** 1.1.0 (Implementation-Ready Spec — supersedes 1.0.0)
-**Author:** OperationBegin Engineering
+**White paper · v1.0 · MIT**
 
----
+`ob` is a CRM that lives in a folder of Markdown files. You run one command in a directory, a
+local web app opens, and every contact, project, task, estimate, invoice and document is a `.md`
+file with YAML frontmatter. Git is the sync layer. There is no database, no account and no cloud.
 
-## 0. Changes from v1.0.0
+## The problem
 
-| # | Area | v1.0.0 | v1.1.0 (locked) |
-|---|------|--------|-----------------|
-| 1 | Sync order | `pull` → `add` → `commit` → `push` | `add` → `commit` → `pull --rebase` → `push` |
-| 2 | Saving | Manual sync only | **Commit-on-save** (path-scoped, debounced) + manual Sync |
-| 3 | Task status | Folder **and** frontmatter `status` | **Folder only**; `status` removed from task frontmatter |
-| 4 | Frontmatter rewrite | Not specified | `yaml` Document API — unknown keys/comments preserved |
-| 5 | IDs | "ULID" but samples are 11 chars | `{prefix}_{26-char Crockford ULID}` |
-| 6 | Money | Floats (`2500.00`) | Integer **cents** + `tax_rate_bps` |
-| 7 | Server security | Not specified | Loopback bind, per-session token, Host/Origin checks |
-| 8 | File IO | Not specified | Atomic write + self-write echo suppression + workspace lock |
-| 9 | Port | "ephemeral, e.g. 4321" | Default **19731**, probe fallback, actual URL printed |
-| 10 | Language | "pure JS indexer" | **TypeScript** end-to-end |
-| 11 | External edits | Not specified | Identity = frontmatter `id`; path is a cache; issues surface instead of crashes |
-| 12 | `beforeunload` | Warn whenever tree is dirty | Warn only when **dirty or unpushed** (i.e. real unsaved/unpushed work) |
+Small studios and freelancers run client work out of spreadsheets, notes and email, then pay for a
+CRM that keeps the data in a service they cannot read, script, version or take with them. Hosted
+CRMs assume a team and a database; the actual work is one person, a handful of clients, and a
+folder on disk.
 
-Per-feature documentation lives in [`docs/`](./docs/README.md). Delivery tracking lives in [`plan.md`](./plan.md).
+## The product
 
----
+**What it is**
 
-## 1. Executive Summary & Vision
+- A workspace folder plus a local server and browser UI over that folder.
+- Markdown with YAML frontmatter as the only storage format.
+- Git as backup, history and multi-device sync.
+- A strict A4 print path for estimates, invoices and documents; the browser produces the PDF.
 
-`ob` is an offline-first, file-and-folder-based Customer Relationship Management (CRM) platform designed for developers, technical freelancers, and lean agencies. It combines the speed, privacy, and durability of local plain-text Markdown files (`.md` with YAML frontmatter) with an intuitive, web-based UI served directly from a lightweight local server.
+**What it is not**
 
-`ob` eliminates cloud lock-in, proprietary database engines, and subscription overhead by making your local file system and Git repository the single source of truth.
+- Not a hosted service, not multi-tenant, not real-time collaboration.
+- Not a rich-text editor: the body is Markdown, edited as text.
+- Not a database with an export button: the files *are* the database.
 
----
+## Principles
 
-## 2. Core Pillars & Design Principles
+1. **Files are the database.** The in-memory index is a cache rebuilt from disk; the UI is a
+   reader/editor over the filesystem, never a second source of truth.
+2. **Identity is `id`.** `{prefix}_{26-char ULID}` in frontmatter. The path is a hint; renames never
+   duplicate or orphan a record.
+3. **Never rewrite what `ob` did not change.** Only touched frontmatter fields change; the body is
+   copied byte-for-byte; unknown keys, comments and key order survive.
+4. **Ambiguity becomes an issue, never a repair.** Duplicate ids, dangling references, invalid YAML
+   and missing fields surface in "Needs attention" with an explicit user action.
+5. **Local only.** Loopback server, no telemetry, no network access at runtime.
 
-1. **Zero Lock-In & Total Data Ownership:** All data exists on disk as standard Markdown files. You can read, write, script, or edit your data using VS Code, Obsidian, Neovim, or standard shell tools.
-2. **Files Are The Only Truth:** There is no sidecar database. The in-memory index is a rebuildable cache. Killing the process, editing a file externally, or `git checkout`-ing a branch never corrupts data.
-3. **Instant & Lightweight (`npx` First):** No heavy native installations. The app executes instantly via `npx` with zero setup hassle.
-4. **Sub-100ms Startup & Instant Shutdown:** Hono on Node.js starts instantly, uses minimal memory, and releases the workspace lock cleanly on `SIGINT` / `SIGTERM`.
-5. **Git Native Sync:** Version control, backups, and multi-device sync use standard `git` (and optionally `gh`) workflows, triggered from the Web UI.
-6. **Pre-flight Diagnostics:** Automatic checks verify required binaries (`git`, `gh`) and config (`git config user.name`, `user.email`) before launching.
-7. **Never Surprise The User:** `ob` never silently deletes, merges, reforms, or "repairs" a file. Anything ambiguous is surfaced as an issue with an explicit user action.
-
----
-
-## 3. Onboarding & CLI Pre-flight Workflow
-
-### 3.1 Dependency Diagnostics
-
-When executing `npx @operationbegin/crm .` or `ob .`, the engine runs pre-flight checks before anything else:
+## How it works
 
 ```text
-[✓] Node.js runtime environment verified (v20.11.0)
-[✓] Git CLI detected (v2.39+)
-[✓] Git user identity configured (John Doe <john@example.com>)
-[!] gh CLI not detected (Optional: required for automatic GitHub repo creation)
+browser (single-file SPA)  ⇄  Hono on 127.0.0.1  ⇄  workspace files
+                                      │
+                          chokidar watcher + in-memory index
 ```
 
-Missing `node` or `git`, or an unset `git config user.name` / `user.email`, **halts** with copy-pasteable fix commands and a non-zero exit code. `gh` is optional and only downgrades the "create GitHub repo" affordance.
+- Hono on Node 20+, bound to `127.0.0.1`, default port `19731` probing upward.
+- The index is rebuilt from disk on start and never persisted; search is in-memory.
+- Writes are atomic (temp file + `rename`) and echo-suppressed so the watcher does not double-fire.
+- Live updates reach the UI over Server-Sent Events.
+- Mutations require a per-run token inlined into the served shell; `Host` and `Origin` are checked.
+- External edits are first-class: rename, move, hand-edit or replace a file and the UI follows.
 
-### 3.2 Interactive Workspace Initialization Prompt
-
-If the target folder lacks an `.ob/` configuration directory, `ob` starts an interactive wizard:
+## Data model
 
 ```text
- Welcome to OperationBegin (ob) — Local-First CRM
-
- Workspace path: /Users/dev/my-crm
-
- No initialized workspace found. Select setup option:
-   ❯ 1) Initialize with Demo Workspace (Recommended - populated sample data)
-     2) Initialize Empty Workspace (Folders & default configuration only)
-     3) Exit
+workspace/
+├── .ob/config.json        business defaults (committed)
+├── .ob/assets/logo.png    optional logo (committed)
+├── .ob/state/             lock + session token (gitignored)
+├── contacts/  projects/  estimates/  invoices/  documents/
+└── tasks/{todo,doing,done}/     ← the Kanban is the folder tree
 ```
 
-Non-interactive equivalents: `ob init --demo`, `ob init --empty`.
+- Every record is YAML frontmatter plus a Markdown body, with `ob_schema`, `type`, an immutable
+  `id`, and `created_at` / `updated_at`.
+- Task status is the containing folder; task frontmatter has no `status` field.
+- Money is integer cents; tax is integer basis points; round-half-up happens exactly once.
+- References (`client_id`, `project_id`, `estimate_id`, …) are soft ids: a missing target shows a
+  `dangling-ref` issue and never triggers a cascade.
+- Unknown frontmatter keys are preserved on write; hand-edited values are shown, not silently fixed.
 
-#### Initialization Actions
+Normative schemas: [`docs/03-data-model.md`](./docs/03-data-model.md) and
+[`docs/04-frontmatter-roundtrip.md`](./docs/04-frontmatter-roundtrip.md). Schema evolution:
+[`docs/15-data-migration.md`](./docs/15-data-migration.md).
 
-* **Option 1 (Demo):** Creates the folder structure and seeds realistic sample records (contacts, projects, tasks, estimates, invoices, documents) and initializes a Git repository (`git init`) if absent. The seed is shipped as real files (`fixtures/workspaces/demo/`, packaged as `dist/demo`), never as code literals.
-* **Option 2 (Empty):** Creates folders, `.ob/config.json`, `.gitignore`, and (unless `--no-git`) `git init`.
-* **Auto-Launch:** Starts the Hono server on port `19731` (probing upward if occupied) and opens the default browser at the bound URL.
+## Stack (locked)
 
-```text
- ✓ Workspace initialized
- ✓ Server listening on http://127.0.0.1:19731
- → Opening browser… (press Ctrl+C to stop)
-```
-
----
-
-## 4. System & Tech Stack Architecture
-
-```text
-┌────────────────────────────────────────────────────────┐
-│                      LOCAL SYSTEM                      │
-│                                                        │
-│  ┌──────────────────────┐    HTTP / SSE   ┌──────────┐ │
-│  │ Embedded Single-File │ ◄─────────────► │ Hono     │ │
-│  │ React + Tailwind UI  │                 │ Backend  │ │
-│  └──────────────────────┘                 └────┬─────┘ │
-│                                               │        │
-│                                        chokidar / fs   │
-│                                               │        │
-│  ┌────────────────────────────────────────────▼──────┐ │
-│  │             File System Workspace (.md)           │ │
-│  │  contacts/ projects/ tasks/ invoices/ .ob/        │ │
-│  └───────────────────────────────────────────────────┘ │
-└────────────────────────────────────────────────────────┘
-```
-
-### 4.1 Tech Stack Lock-In
-
-* **Language:** TypeScript (strict), ESM, Node.js **20+**.
-* **Frontend:** React 19, Tailwind CSS, shadcn/ui components, Lucide Icons.
-* **Frontend Bundler:** Vite + `vite-plugin-singlefile` — the entire SPA is inlined into one `dist/index.html` shipped inside the npm package.
-* **Backend Runtime:** Hono on Node.js (`@hono/node-server`), sub-100ms cold start.
-* **File Watcher:** `chokidar` (note: `fsevents` is an *optional* native dependency on macOS; the pure-JS polling/`fs.watch` fallback is always available, so `npx` never requires a compiler).
-* **Index / Search:** Pure TypeScript in-memory `Map` + FlexSearch. Zero mandatory native bindings.
-* **Frontmatter:** `yaml` package, **Document API** (preserves comments, key order, and unknown keys).
-* **Validation:** Zod schemas per record `type`.
-* **IDs:** `{prefix}_{26-char Crockford Base32 ULID}` (e.g. `cnt_01J8X71000Q4M2N8V3R5T7W9Y0Z`).
-* **Dev/Test:** `tsx` for local runs, `vitest` for unit/integration, Playwright for the E2E smoke flow.
-* **Package manager (dev):** pnpm 12, pinned by the `packageManager` field; `pnpm-lock.yaml` is committed. End users are unaffected (`npx` / `npm i -g`).
-* **Print / PDF:** browser print from a dedicated A4 route with a light-only sheet. No server-side PDF engine, no native dependency.
-
----
-
-## 5. Directory & Schema Mappings
-
-The workspace translates relational models into human-readable directories and YAML frontmatter.
-
-```text
-my-crm/
-├── .ob/
-│   ├── config.json            # Business defaults (tax rates, currency, user details) — COMMITTED
-│   └── state/                 # Runtime state — GITIGNORED
-│       ├── session.json       # Per-run auth token + bound port (0600)
-│       └── server.lock        # PID lock: one server per workspace
-├── documents/
-│   ├── doc_default-terms.md
-│   └── doc_proposal-template.md
-├── contacts/
-│   ├── cnt_acme-corp.md
-│   └── cnt_jane-doe.md
-├── projects/
-│   └── proj_website-redesign.md
-├── tasks/
-│   ├── todo/
-│   │   └── tsk_homepage-hero.md
-│   ├── doing/
-│   │   └── tsk_api-integration.md
-│   └── done/
-│       └── tsk_wireframes.md
-├── estimates/
-│   └── est_2026-001.md
-├── invoices/
-│   └── inv_2026-001.md
-└── .gitignore
-```
-
-**`.gitignore` (generated):**
-
-```gitignore
-.ob/state/
-.DS_Store
-```
-
-`.ob/config.json` and all record files are intentionally **committed** — they are the product data.
-
-### 5.1 Business Configuration (`.ob/config.json`)
-
-```json
-{
-  "version": "1.1.0",
-  "business": {
-    "name": "Acme Digital Studio",
-    "email": "hello@acmedigital.com",
-    "address": "123 Tech Lane, San Francisco, CA",
-    "phone": "+1 555-0199",
-    "tax_rate_bps": 850,
-    "currency": "USD",
-    "payment_link_url": "https://stripe.com/pay/acme",
-    "logo": ""
-  },
-  "default_terms_document": "documents/doc_default-terms.md",
-  "server": { "port": 19731 },
-  "git": { "commit_on_save": true }
-}
-```
-
-`tax_rate_bps` is in **basis points** (850 = 8.50%). `server.port` is a *preference*; the effective port is written to `.ob/state/session.json`. `git.commit_on_save` opts out of the default auto-commit-on-save behaviour (see §8.1).
-
-`business.logo` is a workspace-relative PNG path. Settings accepts any image, resizes it to at most 768 px, strips EXIF by re-encoding through a canvas, and the server stores it at `.ob/assets/logo.png` (committed with the workspace). Empty means the printed documents use a typographic monogram, so a fresh workspace still has a mark. SVG and HTML are rejected server-side.
-
----
-
-### 5.2 Record Schemas (YAML Frontmatter + Markdown Body)
-
-**Global frontmatter rules**
-
-* `id` — `{prefix}_{26-char ULID}`. **Immutable.** Identity of the record; the filename is only a hint.
-* `type` — `contact | project | task | estimate | invoice | document`.
-* `ob_schema` — integer schema generation, currently `1`. Absent is treated as `1`.
-* `created_at` / `updated_at` — ISO-8601 UTC with `Z`. `created_at` is written once and never changed by `ob`.
-* Unknown keys are **preserved verbatim** on write (see `docs/04-frontmatter-roundtrip.md`).
-* Filenames are slugs derived at creation (`{prefix}_{slug}.md`); manual renames are legal and handled by the indexer.
-
-#### Money & Tax (normative)
-
-* All monetary amounts are stored as **integer cents** in fields suffixed `_cents` (e.g. `total_cents: 271250` = `$2,712.50`).
-* No floats are ever stored for money. No currency symbols in data.
-* `tax_rate_bps` is an integer in basis points (1% = 100 bps).
-* Computation, with round-half-up applied **once** at the tax step:
-
-```text
-tax_amount_cents = round_half_up(subtotal_cents * tax_rate_bps / 10000)
-total_cents      = subtotal_cents + tax_amount_cents
-```
-
-* `quantity` is a number (allows `0.5` day or `2.5` hours). Line totals:
-
-```text
-line.total_cents = round_half_up(line.quantity * line.unit_price_cents)
-```
-
-* Line total is authoritative when present; `subtotal_cents` must equal the sum of line totals, and the UI recomputes it. If a hand-edited file disagrees, the UI shows the file value plus a non-blocking "recalculate" action — it never rewrites silently.
-
-#### Contact (`contacts/cnt_jane-doe.md`)
-
-```markdown
----
-ob_schema: 1
-id: cnt_01J8X71000Q4M2N8V3R5T7W9Y0Z
-type: contact
-first_name: Jane
-last_name: Doe
-email: jane@acme.com
-company: Acme Corp
-job_role: VP of Product
-phone_number: "+15550199"
-website: "https://acme.com"
-primary_link: "https://linkedin.com/in/janedoe"
-status: lead  # lead | active | inactive | archived
-created_at: 2026-10-28T09:00:00Z
-updated_at: 2026-10-28T09:00:00Z
----
-
-# General Notes
-Met at the Tech Expo. Interested in a complete frontend overhaul.
-```
-
-#### Project (`projects/proj_website-redesign.md`)
-
-```markdown
----
-ob_schema: 1
-id: proj_01J8X72000Q4M2N8V3R5T7W9Y0Z
-type: project
-project_name: Website Redesign
-client_id: cnt_01J8X71000Q4M2N8V3R5T7W9Y0Z
-status: active  # active | completed | archived
-created_at: 2026-10-28T10:00:00Z
-updated_at: 2026-10-28T10:00:00Z
----
-
-## Project Description
-Redesign corporate landing page and integrate blog with Next.js.
-```
-
-#### Task (`tasks/todo/tsk_homepage-hero.md`)
-
-Tasks are a **filesystem Kanban**: `tasks/todo/`, `tasks/doing/`, `tasks/done/`. The `status` field is **removed** from frontmatter — the containing folder *is* the status. Moving a card moves the file. A hand-moved file instantly re-renders in the new column.
-
-```markdown
----
-ob_schema: 1
-id: tsk_01J8X73000Q4M2N8V3R5T7W9Y0Z
-type: task
-title: Build Homepage Hero Component
-project_id: proj_01J8X72000Q4M2N8V3R5T7W9Y0Z
-order: 1
-due_date: 2026-11-05T00:00:00Z
-created_at: 2026-10-28T10:30:00Z
-updated_at: 2026-10-28T10:30:00Z
----
-
-Task specifics and sub-item checklists go here.
-
-- [ ] Responsive breakpoints
-- [ ] Reduced-motion fallback
-```
-
-* `order` is a per-column integer used for manual sorting; ties break on `order`, then `created_at`.
-* A task file found outside `tasks/{todo,doing,done}/` (e.g. `tasks/tsk_x.md`) is **not deleted**: it is indexed as an issue with reason `orphan-task-path` and shown in a "Needs attention" tray.
-
-#### Estimate (`estimates/est_2026-001.md`)
-
-```markdown
----
-ob_schema: 1
-id: est_01J8X70000Q4M2N8V3R5T7W9Y0Z
-type: estimate
-estimate_number: EST-2026-001
-client_id: cnt_01J8X71000Q4M2N8V3R5T7W9Y0Z
-project_id: proj_01J8X72000Q4M2N8V3R5T7W9Y0Z
-title: Website Redesign — Proposal
-status: draft  # draft | sent | accepted | declined | expired
-issue_date: 2026-10-28
-valid_until: 2026-11-27
-currency: USD
-terms_document: "documents/doc_default-terms.md"
-subtotal_cents: 250000
-tax_rate_bps: 850
-tax_amount_cents: 21250
-total_cents: 271250
-line_items:
-  - description: "Discovery & UX research"
-    quantity: 1
-    unit_price_cents: 150000
-    total_cents: 150000
-  - description: "Hi-fi design system"
-    quantity: 2
-    unit_price_cents: 50000
-    total_cents: 100000
-converted_invoice_id: null
-created_at: 2026-10-28T10:45:00Z
-updated_at: 2026-10-28T10:45:00Z
----
-
-## Scope
-Three-week engagement, two revision rounds.
-```
-
-#### Invoice (`invoices/inv_2026-001.md`)
-
-Line items are embedded in frontmatter for self-contained portability; `terms_document` optionally links a reusable document.
-
-```markdown
----
-ob_schema: 1
-id: inv_01J8X74000Q4M2N8V3R5T7W9Y0Z
-type: invoice
-invoice_number: INV-2026-001
-client_id: cnt_01J8X71000Q4M2N8V3R5T7W9Y0Z
-project_id: proj_01J8X72000Q4M2N8V3R5T7W9Y0Z
-estimate_id: est_01J8X70000Q4M2N8V3R5T7W9Y0Z
-title: Initial Project Deposit
-status: draft  # draft | sent | paid | overdue | cancelled
-issue_date: 2026-10-28
-due_date: 2026-11-15
-currency: USD
-terms_document: "documents/doc_default-terms.md"
-subtotal_cents: 250000
-tax_rate_bps: 850
-tax_amount_cents: 21250
-total_cents: 271250
-line_items:
-  - description: "50% upfront deposit for Website Redesign"
-    quantity: 1
-    unit_price_cents: 250000
-    total_cents: 250000
-created_at: 2026-10-28T11:00:00Z
-updated_at: 2026-10-28T11:00:00Z
----
-
-## Notes
-Payment due within 15 days of issue date.
-```
-
-#### Document (`documents/doc_default-terms.md`)
-
-```markdown
----
-ob_schema: 1
-id: doc_01J8X75000Q4M2N8V3R5T7W9Y0Z
-type: document
-title: Default Service Terms
-kind: terms  # terms | proposal | note
-scope: global  # global | client
-client_id: ""  # required when scope: client
-created_at: 2026-10-28T09:00:00Z
-updated_at: 2026-10-28T09:00:00Z
----
-
-Payment is due within 15 days of invoice issuance…
-```
-
-Document bodies may contain `{{business.name}}`, `{{client.name}}`, `{{invoice.number}}`, `{{today}}` and similar placeholders. They are rendered when the document is viewed or printed; the file keeps the raw template (docs/13).
-
-#### Referential integrity
-
-`client_id`, `project_id`, `estimate_id`, `terms_document`, and `converted_invoice_id` are **soft** references. A dangling reference never breaks rendering: the UI shows `Unknown <type>` plus the raw id, and the record is reported via `/api/issues` as `dangling-ref`. Cascading deletes never happen.
-
-### 5.3 Billing Document Actions
-
-* **Numbering:** `INV-YYYY-NNN` / `EST-YYYY-NNN`; `NNN` is the highest existing suffix + 1, recomputed on each create (deleting `-003` never causes a collision). Numbers stay editable; duplicates are warned as issues, never blocked.
-* **Estimate → invoice:** creates a new invoice whose `estimate_id` points at the estimate and writes `converted_invoice_id` back to the estimate. An estimate converts once; a second attempt is a `409`.
-* **Duplicate:** estimates and invoices only. The copy gets a new id, the next number for the current year, `status: draft`, `issue_date` today, `due_date` +15 days / `valid_until` +30 days, the same client/project/terms, line items and body, and ` (copy)` in a non-empty title. The source file is never rewritten; an estimate copy starts with `converted_invoice_id: null`, an invoice copy keeps `estimate_id` as provenance.
-* **Attachments:** `document_ids` (ids, ordered) on estimates and invoices; every attached document renders after the notes with the billing context and `{{variable}}` substitution. Legacy `terms_document` paths are used only when the list is empty.
-* **Print / PDF:** `/invoices/:id/print` and `/estimates/:id/print` render a strict A4 sheet (16 mm margins) in fixed light paper/ink using the business block from `.ob/config.json`, the line table, totals, notes and the attached documents. The browser's print dialog produces the PDF.
-
----
-
-## 6. Data Integrity Under External Edits
-
-Normative detail: [`docs/05-indexer-and-external-edits.md`](./docs/05-indexer-and-external-edits.md).
-
-**Core invariant:** identity is the frontmatter `id`; the file path is a rebuildable cache.
-
-`ob` must stay correct and non-crashing when a user simultaneously has the workspace open in VS Code, Obsidian, or a shell:
-
-| External action | `ob` behaviour |
+| Area | Choice |
 |---|---|
-| Rename a file (id intact) | Slight delay, then the record keeps its identity; URL stays stable; no duplicate |
-| Move a task between `todo/doing/done` | Status changes; card appears in the new column; ordering re-normalized |
-| Edit the Markdown body | Reflected verbatim; body never reformatted |
-| Reorder/rename/remove frontmatter keys | Unknown keys preserved; missing required key → issue, record still indexed with fallbacks |
-| Replace the whole file | Re-parsed as a normal upsert by `id` |
-| Introduce invalid YAML | File is retried twice over ~500ms (mid-save truncation), then quarantined as `parse-error`; excluded from the index; shown in "Needs attention"; the file is never modified |
-| Duplicate `id` in two files | First by canonical path wins the index slot; the second is reported as `duplicate-id`; neither is deleted |
-| Delete a file | Removed from index; referencing records show `dangling-ref`; no cascade |
-| Add an unknown `.md` | Has `id` + known `type` → indexed. Missing `id` → `missing-id` issue with an explicit "Assign ID" action. Unknown `type` → ignored |
-| Non-`.md`, oversized (>2 MB), or symlinked files | Ignored |
+| Language / runtime | TypeScript strict, ESM, Node ≥ 20 |
+| Backend | Hono + `@hono/node-server`, loopback only |
+| Frontend | React 19, Tailwind v4, shadcn/ui, Lucide; Vite + `vite-plugin-singlefile` |
+| Live updates | Server-Sent Events |
+| Watcher | `chokidar` with a polling fallback; `fsevents` stays optional |
+| Search | FlexSearch, in-memory, rebuilt from files, never persisted |
+| Frontmatter | `yaml` Document API (`js-yaml` is banned) |
+| Validation | Zod, permissive on read, strict on write |
+| Sync | Git CLI subprocesses |
+| Package | `filecrm` on npm, commands `ob` and `filecrm` |
+| Dev tooling | pnpm, vitest, Playwright for the release smoke flow |
 
-**Writing rules**
+## Security model
 
-* Only the frontmatter block is ever rewritten; the body is copied byte-for-byte.
-* Writes are atomic: temp file in the same directory + `rename`, preserving the file's existing newline style and trailing newline.
-* `ob`-initiated writes are recorded in an echo-suppression set so the watcher does not double-trigger.
-* `ob` never "fixes" a file on its own initiative. Issue resolution requires an explicit user click.
+A local HTTP server is reachable by any page the user visits, so it is treated as hostile surface:
+bind `127.0.0.1` only, validate `Host` and `Origin`, emit no CORS headers, gate every mutation with
+`X-OB-Token`, confine paths to the workspace root, and cap request bodies at 1 MB. Errors return a
+stable `{ error: { code, message } }` envelope, never stack traces or paths outside the workspace.
 
----
+## Sync
 
-## 7. Local Server Security Model
+- **Commit-on-save (default):** one path-scoped commit per burst of edits, staging only the files
+  `ob` just wrote. Pushing is always explicit.
+- **Manual sync:** `git add` → `commit` → `pull --rebase` → `push`, run from the Git dialog or
+  `ob sync`.
+- **Conflicts are data:** they are listed with their paths, and recovery is always a user click;
+  `ob` never runs `reset`, `push --force`, or `rebase --abort` on its own.
+- **Tab protection:** `beforeunload` fires only for dirty or unpushed work.
 
-Normative detail: [`docs/07-server-api-and-security.md`](./docs/07-server-api-and-security.md).
+## Distribution
 
-A local HTTP server is reachable by any web page the user visits, so it is treated as hostile-surface:
+`npx filecrm .` for zero-install, `npm i -g filecrm` for the global `ob` and `filecrm` commands. The
+SPA ships prebuilt inside the package: no native modules, no postinstall step, no compiler.
 
-* Bind **`127.0.0.1` only** (never `0.0.0.0`).
-* Reject requests whose `Host` is not `127.0.0.1:<port>` or `localhost:<port>`.
-* Validate `Origin`/`Sec-Fetch-Site` for mutating requests; no CORS headers are emitted (so cross-origin preflights fail).
-* A per-run random token (32 bytes hex) is written to `.ob/state/session.json` (mode `0600`, gitignored) and inlined into the served `index.html`. Every mutating request must send `X-OB-Token`.
-* Path resolution is confined to the workspace root: reject `..`, absolute paths, and symlink escapes; operate on a canonicalized root.
-* Request body limit 1 MB; `documents/` bodies capped separately at 2 MB on read.
-* One server per workspace via `.ob/state/server.lock`; stale locks (dead PID) are reclaimed with a warning.
+## Out of scope for v1
 
----
+Multi-workspace switching in one process, server-side PDF rendering, email sending, payment
+processing, encryption at rest, `gh`-based repository bootstrap, mobile clients, and real-time
+multi-user presence. Deferred UI work is listed in [`plan.md`](./plan.md).
 
-## 8. Git Synchronization
+## Status
 
-Normative detail: [`docs/09-git-sync.md`](./docs/09-git-sync.md).
+M0–M6 are shipped — CLI, workspace init, data layer, HTTP API, web UI, boards/billing/print/search,
+and Git sync. M7 (packaging and the first publish) is in progress. The pre-release polish wave is
+complete and folded into the docs.
 
-### 8.1 Commit-on-save (default)
+## Read next
 
-Every successful UI save writes the file, then commits **only the touched paths**:
-
-```text
-git add -- <path> [...]
-git commit -m "ob: save <type> <id>"
-```
-
-* Debounced (≈1200 ms) and coalesced per record, so rapid edits produce one commit.
-* External edits are **not** auto-committed — they remain visible as dirty until the next sync, and `git status` in the terminal stays honest.
-* If the workspace is not a Git repository, saving still works; `ob` just reports `git: not initialized`.
-* **`.ob/state/` is never staged**, even when a user `.gitignore` omits it: the session token and lock must never reach a remote.
-
-### 8.2 Manual Sync (UI button / `ob sync`)
-
-Strictly this order:
-
-```text
-1. git add -A
-2. git commit -m "ob auto-sync: YYYY-MM-DD HH:mm:ss"   (skipped if nothing staged)
-3. git pull --rebase
-4. git push
-```
-
-Every step's stdout/stderr is captured. Failures are surfaced with the raw git message and a recovery action — never auto-resolved:
-
-| Failure | UI |
-|---|---|
-| No upstream configured | Offer `git push -u origin HEAD` |
-| Rebase conflict | Stop; show conflicted paths; offer "abort sync" (`git rebase --abort`); keep index consistent |
-| Non-fast-forward push | Offer "pull then push" retry |
-| Detached HEAD | Offer `git switch -c <branch>` |
-| Auth failure | Show the raw message (no credentials ever stored by `ob`) |
-
-Commits and syncs are serialized through one queue. `ob` **never** runs `reset`, `push --force`, `checkout --theirs`, or `rebase --abort` on its own; recovery (`abort-sync`, `set-upstream`) is an explicit user action.
-
-### 8.3 Sync state
-
-* `dirty` = `git status --porcelain` non-empty.
-* `unpushed` = commits ahead of upstream (`git rev-list --count @{u}..HEAD`).
-* `error` / `conflict` derive from git output and rebase state, so a reload during a conflict still offers recovery.
-* Header badge reflects `dirty` / `unpushed` / `syncing` / `error`; it polls every 15 s while the tab is visible and updates immediately on `git.changed`.
-
-### 8.4 Tab protection (`beforeunload`)
-
-The native guard fires **only** when `dirty || unpushed`, i.e. when closing the tab could actually lose work (uncommitted external edits, or commits that were never pushed). Because saves are committed immediately, the guard does not nag during normal editing. The guard is disabled while a sync is in flight and re-armed after it settles.
-
----
-
-## 9. Web UI Behaviour
-
-Normative detail: [`docs/08-web-ui.md`](./docs/08-web-ui.md).
-
-* Single-file SPA served by Hono at `/`; no build step at runtime.
-* Views: Dashboard, Contacts (list → contact page), Projects (list → that project's Kanban board), All tasks (cross-project board), Estimates, Invoices, Documents (list → rendered document page / A4 print), Settings, "Needs attention".
-* Live updates over **SSE** (`/api/events`), with reconnect + exponential backoff. The UI is a projection of the file-derived index and reconciles from it.
-* An externally-changed record currently open in the editor triggers a non-destructive "This file changed on disk" banner with *Reload* / *Keep mine (overwrite)*.
-* Writes are pessimistic: the editor keeps the typed text until the server confirms, and keeps it with the server's message if the write is rejected.
-* Empty states, keyboard navigation, and focus management are first-class; no modal-only workflows.
-
----
-
-## 10. Package Distribution & Execution
-
-* **Primary npm package:** `@operationbegin/crm` (alias package: `filecrm`).
-* **Zero-install:** `npx @operationbegin/crm .` / `npx filecrm .`
-* **Global alias:** `npm install -g @operationbegin/crm` registers both `ob` and `filecrm`.
-* `bin` entries point at `dist/cli/index.js` with a `#!/usr/bin/env node` shebang; the SPA ships pre-built so end users never run Vite.
-* Published artifacts: `dist/` (compiled server + bundled `index.html`), `docs/`, `README.md`, `LICENSE`. No `src/`, no dev deps.
-
----
-
-## 11. Roadmap
-
-Milestones are tracked, with exit criteria and checkboxes, in [`plan.md`](./plan.md).
-
-1. **M0 — Repo & Tooling:** TypeScript project, build pipeline, test harness, lint/format.
-2. **M1 — CLI & Workspace:** pre-flight diagnostics, init wizard, folder/config scaffolding, lock file, port binding.
-3. **M2 — Data Layer:** Zod schemas, frontmatter round-trip, in-memory index, chokidar watcher, atomic writes, issue reporting.
-4. **M3 — HTTP API:** Hono routes for all record types, validation, security middleware, SSE stream.
-5. **M4 — UI Shell & CRUD:** single-file SPA, navigation, contacts/projects/documents CRUD, live updates.
-6. **M5 — Kanban & Money:** task board with file moves, estimates/invoices with cents math and print view.
-7. **M6 — Git Sync & Issues:** commit-on-save, sync lifecycle, failure recovery UI, "Needs attention" tray, `beforeunload` guard.
-8. **M7 — Packaging & Release:** `npx` smoke test on macOS/Linux/Windows, docs pass, npm publish dry run.
+- **Users:** [`docs/user-manual.md`](./docs/user-manual.md)
+- **Contributors:** [`AGENTS.md`](./AGENTS.md), [`docs/README.md`](./docs/README.md),
+  [`docs/00-decisions.md`](./docs/00-decisions.md)
+- **Plan and status:** [`plan.md`](./plan.md)
