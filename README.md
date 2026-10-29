@@ -6,7 +6,7 @@
 npx @operationbegin/crm .
 ```
 
-> **Status:** pre-release. M0–M5 are complete: CLI + workspace init, data layer, HTTP API, the web UI, and the project boards, billing editor, A4 print view and search. Git commit-on-save and sync land in M6. See [`plan.md`](./plan.md).
+> **Status:** pre-release. M0–M6 are complete: CLI + workspace init, data layer, HTTP API, the web UI, project boards, billing editor, A4 print view and search, plus git commit-on-save and sync. M7 (packaging/release) is next. See [`plan.md`](./plan.md).
 
 ## Why
 

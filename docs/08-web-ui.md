@@ -17,7 +17,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│ ob · Acme Digital Studio      [Needs attention ●2]  [Unsynced] │
+│ ob · Acme Digital Studio   [Needs attention ●2]  [main ↑3]  [⌘K] │
 ├──────────┬────────────────────────────────────────────────────┤
 │ Dashboard│                                                    │
 │ Contacts │                                                    │
@@ -30,9 +30,9 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 └──────────┴────────────────────────────────────────────────────┘
 ```
 
-* Header: workspace name and record count, `⌘K` palette, theme toggle. The sync badge arrives with M6.
+* Header: workspace name and record count, Git badge, `⌘K` palette, theme toggle. The badge is a button that opens the Git dialog.
 * Sidebar collapses under 900 px into a sheet; below 768 px the board's three columns stack vertically instead of scrolling sideways.
-* `⌘K` palette: navigate and ranked search. "Create" and "run sync" actions are planned; today creation lives on each view.
+* `⌘K` palette: navigate and ranked search. "Create" and "run sync" actions are planned; today creation lives on each view and sync lives in the Git dialog.
 
 ## Views
 
@@ -92,17 +92,22 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * Contents: business block from `.ob/config.json`, document number/dates, billed-to and project, line table, subtotal/tax/total, notes body, and the linked `terms_document` body. No signature block and no server-side PDF — the browser's print dialog produces the PDF (AD-15).
 * `break-inside: avoid` on table rows, parties and totals keeps a short document on one page; a long line-item list flows onto page 2 by design.
 
-## Tab protection (M6)
+## Git (M6)
 
-Not shipped yet: `beforeunload` is gated on real `git` state, which arrives with commit-on-save in M6.
+* Header badge states: `clean` (branch name, muted dot), `dirty` (accent dot, "Uncommitted"), `unpushed` ("N to push"), `syncing` (spinner), `error` (destructive dot).
+* Clicking opens the Git dialog: branch/remote/upstream/changed-files/last-commit rows, the last step log, failure output and conflicted paths, plus Sync, Initialize, Abort sync, Set upstream & push, and the remote URL form.
+* Status comes from `GET /api/git/status`: polled every 15 s while the tab is visible, on focus, immediately on `git.changed`, and 1 s after any record event (external edits do not touch the git service).
+* The dialog never auto-recovers. Abort and set-upstream are separate buttons; a failed sync is shown as data, not as a thrown error.
+* Settings → Git holds the `commit_on_save` switch (default on). Remote configuration lives in the dialog.
+
+## Tab protection (M6)
 
 ```ts
 if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 ```
 
-* Registered only while `dirty || unpushed`, removed while `syncing`, re-registered after.
-* Because saves are committed (doc 09), this fires for a real reason: uncommitted external edits, or commits not yet pushed.
-* A short toast on first load explains the rule: "Saves are committed locally. The badge turns amber when you have unpushed changes."
+* Registered only while `dirty || unpushed` and not `syncing`, re-armed after settlement.
+* Because saves are committed (doc 09), this fires for a real reason: uncommitted external edits, a failed commit, or commits not yet pushed.
 
 ## Accessibility & polish bar
 
@@ -118,5 +123,8 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] Dragging a card between columns moves exactly one file (drag calls the same `move` route as the menu; API tests assert one file, both folder states and `order`).
 - [x] A `409` conflict never loses the user's typed text (the banner keeps the form and offers Reload).
 - [x] Deleting the record behind an open detail view closes the editor instead of writing to a missing file.
+- [x] A save produces one path-scoped commit after the debounce; an unrelated external edit stays unstaged (integration tests in `tests/git/commit-on-save.test.ts`).
+- [x] Sync reports its four steps, surfaces a rebase conflict with paths, and recovers through an explicit Abort action (`tests/git/sync.test.ts`).
+- [x] The badge reflects real `git status`; `beforeunload` is registered only for `dirty || unpushed` (manual check — no browser automation in the suite).
 - [ ] Print preview of a 3-line invoice fits one page at A4 — the sheet is A4 with 16 mm margins and totals/rows are unbreakable; final one-page fit depends on content length and needs a manual print check per document.
 - [ ] Full keyboard traversal of contacts CRUD with no mouse. *(pending an a11y audit)*

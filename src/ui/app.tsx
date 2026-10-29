@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CommandPalette } from '@/components/command-palette';
+import { GitBadge } from '@/components/git-badge';
 import { navigate, useRoute } from '@/lib/router';
 import type { Route } from '@/lib/router';
 import { useTheme } from '@/lib/theme';
@@ -257,6 +258,7 @@ export const App = () => {
           </div>
 
           <div className="ml-auto flex items-center gap-2">
+            <GitBadge />
             <Button variant="outline" size="sm" onClick={() => setPaletteOpen(true)}>
               <SearchIcon data-icon="inline-start" />
               <span className="hidden sm:inline">Search</span>

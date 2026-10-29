@@ -3,7 +3,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Field, FieldGrid } from '@/components/field';
 import { PageHeader } from '@/components/page-header';
 import { api } from '@/lib/api';
@@ -17,6 +19,7 @@ interface SettingsForm {
   phone: string;
   currency: string;
   taxPercent: string;
+  commitOnSave: boolean;
 }
 
 const EMPTY: SettingsForm = {
@@ -26,6 +29,7 @@ const EMPTY: SettingsForm = {
   phone: '',
   currency: 'USD',
   taxPercent: '0',
+  commitOnSave: true,
 };
 
 export const Settings = () => {
@@ -43,6 +47,7 @@ export const Settings = () => {
       phone: config.business.phone,
       currency: config.business.currency,
       taxPercent: (config.business.tax_rate_bps / 100).toFixed(2),
+      commitOnSave: config.git.commit_on_save,
     });
   }, [config]);
 
@@ -79,6 +84,7 @@ export const Settings = () => {
           currency: form.currency.toUpperCase(),
           tax_rate_bps: Math.round(percent * 100),
         },
+        git: { commit_on_save: form.commitOnSave },
       });
       setConfig(response.config);
       toast.success('Settings saved');
@@ -154,6 +160,29 @@ export const Settings = () => {
               className="tabular max-w-32"
             />
           </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Git</CardTitle>
+          <CardDescription>
+            Commit-on-save keeps the working tree clean. Pushing is always manual.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-start justify-between gap-6">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="commit-on-save">Commit on save</Label>
+            <p className="text-xs text-muted-foreground">
+              Commits only the record you saved, once per burst of edits. Turn this off to keep
+              changes uncommitted until you sync.
+            </p>
+          </div>
+          <Switch
+            id="commit-on-save"
+            checked={form.commitOnSave}
+            onCheckedChange={(checked) => update('commitOnSave', checked)}
+          />
         </CardContent>
       </Card>
 

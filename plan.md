@@ -13,9 +13,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 | Spec (brief v1.1.0) | `[x]` |
 | Architecture decisions | `[x]` — [`docs/00-decisions.md`](./docs/00-decisions.md) |
 | Feature documentation | `[x]` — [`docs/`](./docs/README.md) |
-| Source code | `[~]` — M0–M5 landed (tooling, CLI/workspace, data layer, API, web UI, board/money/search); M6 next |
+| Source code | `[~]` — M0–M6 landed (tooling, CLI/workspace, data layer, API, web UI, board/money/search, git sync); M7 next |
 
-**Next action:** milestone M6 (git sync, commit-on-save, issue triage).
+**Next action:** milestone M7 (packaging, tarball smoke test, docs pass, release dry run).
 
 ---
 
@@ -161,18 +161,21 @@ Docs: [`docs/03-data-model.md`](./docs/03-data-model.md) §Money, §Numbering, [
 
 Goal: sync that never loses work and never lies about state.
 
-- [ ] `git` subprocess wrapper: no shell interpolation, argv arrays, 10 s timeout, captured stdout/stderr, `GIT_TERMINAL_PROMPT=0`
-- [ ] Commit-on-save: path-scoped `add -- <paths>` + `commit`, 1200 ms debounce, coalesced per record
-- [ ] `ob sync` / Sync button: `add -A` → `commit` → `pull --rebase` → `push`, step-by-step progress
-- [ ] Failure states with recovery actions: no upstream, rebase conflict (+ abort), non-fast-forward, detached HEAD, auth failure
-- [ ] Sync badge: `clean | dirty | unpushed | syncing | error` from real git output
-- [ ] `beforeunload` guard when `dirty || unpushed`; disabled while syncing
-- [ ] "Needs attention" view: issue list, file peek (read-only), resolve actions
-- [ ] `POST /api/git/init` and remote configuration flow (optional `gh repo create` when `gh` exists)
+- [x] `git` subprocess wrapper: argv arrays, no shell, 10 s timeout with process-group kill, captured stdout/stderr, `GIT_TERMINAL_PROMPT=0`, `GIT_SSH_COMMAND` BatchMode when unset
+- [x] Commit-on-save: path-scoped `add -A -- <paths>` + `commit`, 1200 ms debounce, coalesced per record, serialized with syncs, flushed on shutdown, failure-isolated
+- [x] `ob sync` / Sync button: `add -A` → `commit` → `pull --rebase` → `push`, step-by-step reporting over stdout and SSE
+- [x] Failure states with recovery actions: not a repo, parent repo, detached HEAD, no upstream, rebase conflict, non-fast-forward, auth/network, hook rejection, timeout
+- [x] Sync badge: `clean | dirty | unpushed | syncing | error` from real git output, with a dialog for status, steps, errors and recovery
+- [x] `beforeunload` guard when `dirty || unpushed`; disabled while syncing
+- [x] "Needs attention" view: issue list, file peek (read-only), resolve actions — shipped in M3/M4; unchanged here
+- [x] `POST /api/git/init` and remote configuration flow (`POST /api/git/remote`, optional `push`); `gh repo create` deferred
+- [x] `POST /api/git/recover` with `abort-sync` and `set-upstream` only
 
-**Exit criteria:** integration test against a local bare repo proves commit-on-save, clean sync, and conflict surfacing; killing the process mid-sync leaves a recoverable repo (verified by `git status`).
+**Deviations (deliberate):** `gh repo create` is deferred to M7 (network, auth and prompts do not belong in the local server). `POST /api/git/sync` awaits the chain and returns the step report while streaming `git.step` events; there is no job id/polling. The server refuses a parent repository; only `ob sync --allow-parent-repo` (or `OB_ALLOW_PARENT_REPO=1`) overrides. Issue triage needed no work because it shipped earlier. `.ob/state/` is never staged, even when `.gitignore` omits it.
 
-Docs: [`docs/09-git-sync.md`](./docs/09-git-sync.md)
+**Exit criteria:** met except the process-kill case. Integration tests against a local bare repo prove commit-on-save, clean sync, no-upstream recovery, non-conflicting pull, conflict surfacing + abort, hook rejection, detached HEAD, parent-repo refusal and `.ob/state` exclusion. A mid-rebase kill is a manual check; the code never aborts or resets, so recovery stays with the user.
+
+Docs: [`docs/09-git-sync.md`](./docs/09-git-sync.md), [`docs/07-server-api-and-security.md`](./docs/07-server-api-and-security.md), [`docs/08-web-ui.md`](./docs/08-web-ui.md) §Git
 
 ---
 

@@ -50,6 +50,71 @@ export interface SearchResponse {
   readonly generation: number;
 }
 
+export type GitSyncState = 'idle' | 'running' | 'error';
+
+export interface GitErrorInfo {
+  readonly code: string;
+  readonly message: string;
+  readonly output?: string;
+}
+
+export interface GitStatus {
+  readonly initialized: boolean;
+  readonly repoOutsideWorkspace: boolean;
+  readonly branch: string;
+  readonly detached: boolean;
+  readonly dirty: boolean;
+  readonly changedFiles: number;
+  readonly ahead: number;
+  readonly behind: number;
+  readonly unpushed: boolean;
+  readonly hasUpstream: boolean;
+  readonly remote: string;
+  readonly lastCommit: string;
+  readonly conflict: boolean;
+  readonly conflictPaths: readonly string[];
+  readonly syncState: GitSyncState;
+  readonly error: GitErrorInfo | null;
+}
+
+export interface GitStep {
+  readonly name: 'add' | 'commit' | 'pull' | 'push';
+  readonly ok: boolean;
+  readonly skipped?: boolean;
+  readonly output: string;
+}
+
+export interface GitSyncReport {
+  readonly ok: boolean;
+  readonly steps: readonly GitStep[];
+  readonly status: GitStatus;
+  readonly error: GitErrorInfo | null;
+}
+
+export interface GitInitReport {
+  readonly ok: boolean;
+  readonly initialized: boolean;
+  readonly warning: string | null;
+  readonly status: GitStatus;
+  readonly error: GitErrorInfo | null;
+}
+
+export type GitRecoveryAction = 'abort-sync' | 'set-upstream';
+
+export interface GitRecoveryReport {
+  readonly ok: boolean;
+  readonly action: GitRecoveryAction;
+  readonly output: string;
+  readonly status: GitStatus;
+  readonly error: GitErrorInfo | null;
+}
+
+export interface GitRemoteReport {
+  readonly ok: boolean;
+  readonly status: GitStatus;
+  readonly error: GitErrorInfo | null;
+}
+
 export class ApiRequestError extends Error {
   override name = 'ApiRequestError';
 
@@ -142,6 +207,17 @@ export const api = {
 
   invoiceFromEstimate: (estimateId: string): Promise<RecordResponse> =>
     request('POST', `/api/invoices/from-estimate/${encodeURIComponent(estimateId)}`),
+
+  git: {
+    status: (force = false): Promise<{ status: GitStatus }> =>
+      request('GET', `/api/git/status${force ? '?force=1' : ''}`),
+    init: (): Promise<GitInitReport> => request('POST', '/api/git/init'),
+    sync: (): Promise<GitSyncReport> => request('POST', '/api/git/sync'),
+    recover: (action: GitRecoveryAction): Promise<GitRecoveryReport> =>
+      request('POST', '/api/git/recover', { action }),
+    setRemote: (url: string, push: boolean): Promise<GitRemoteReport> =>
+      request('POST', '/api/git/remote', { url, push }),
+  },
 
   config: {
     get: (): Promise<{ config: ObConfig }> => request('GET', '/api/config'),

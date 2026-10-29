@@ -462,6 +462,7 @@ git commit -m "ob: save <type> <id>"
 * Debounced (≈1200 ms) and coalesced per record, so rapid edits produce one commit.
 * External edits are **not** auto-committed — they remain visible as dirty until the next sync, and `git status` in the terminal stays honest.
 * If the workspace is not a Git repository, saving still works; `ob` just reports `git: not initialized`.
+* **`.ob/state/` is never staged**, even when a user `.gitignore` omits it: the session token and lock must never reach a remote.
 
 ### 8.2 Manual Sync (UI button / `ob sync`)
 
@@ -484,11 +485,14 @@ Every step's stdout/stderr is captured. Failures are surfaced with the raw git m
 | Detached HEAD | Offer `git switch -c <branch>` |
 | Auth failure | Show the raw message (no credentials ever stored by `ob`) |
 
+Commits and syncs are serialized through one queue. `ob` **never** runs `reset`, `push --force`, `checkout --theirs`, or `rebase --abort` on its own; recovery (`abort-sync`, `set-upstream`) is an explicit user action.
+
 ### 8.3 Sync state
 
 * `dirty` = `git status --porcelain` non-empty.
 * `unpushed` = commits ahead of upstream (`git rev-list --count @{u}..HEAD`).
-* Header badge reflects `dirty` / `unpushed` / `syncing` / `error`.
+* `error` / `conflict` derive from git output and rebase state, so a reload during a conflict still offers recovery.
+* Header badge reflects `dirty` / `unpushed` / `syncing` / `error`; it polls every 15 s while the tab is visible and updates immediately on `git.changed`.
 
 ### 8.4 Tab protection (`beforeunload`)
 

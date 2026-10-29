@@ -12,6 +12,8 @@ import { chooseInitMode } from './wizard.js';
 import { createApp } from '../server/app.js';
 import type { WorkspaceRuntime } from '../server/runtime.js';
 import { createWorkspaceRuntime } from '../server/runtime.js';
+import { createGitService } from '../git/service.js';
+import type { GitService } from '../git/types.js';
 import { isInitialized, readConfig } from '../workspace/config.js';
 import { initWorkspace } from '../workspace/init.js';
 import { WorkspaceBusyError, acquireLock, releaseLock } from '../workspace/lock.js';
@@ -50,6 +52,7 @@ export async function runStart(options: StartOptions): Promise<number> {
 
   let server: ServerType | null = null;
   let runtime: WorkspaceRuntime | null = null;
+  let git: GitService | null = null;
   let shutdownStarted = false;
   let settle: (code: number) => void = () => undefined;
   const settled = new Promise<number>((resolve) => {
@@ -65,16 +68,28 @@ export async function runStart(options: StartOptions): Promise<number> {
     };
 
     const closeRuntime = (): void => {
-      if (runtime === null) {
-        void releaseLock(root).finally(finish);
-        return;
-      }
-      void runtime
-        .close()
-        .catch(() => undefined)
-        .finally(() => {
-          void releaseLock(root).finally(finish);
+      const flush = (): Promise<void> => {
+        if (git === null) return Promise.resolve();
+        const deadline = new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, 3000);
+          timer.unref?.();
         });
+        // Pending commits are fast; a sync in flight must not hold Ctrl+C hostage.
+        return Promise.race([git.flush().catch(() => undefined), deadline]);
+      };
+
+      void flush().finally(() => {
+        if (runtime === null) {
+          void releaseLock(root).finally(finish);
+          return;
+        }
+        void runtime
+          .close()
+          .catch(() => undefined)
+          .finally(() => {
+            void releaseLock(root).finally(finish);
+          });
+      });
     };
 
     if (server === null) {
@@ -137,15 +152,23 @@ export async function runStart(options: StartOptions): Promise<number> {
     out.ok(`Indexed ${records} records${issues > 0 ? ` (${issues} need attention)` : ''}`);
 
     const token = createToken();
-    const app = createApp({
-      workspace: root,
-      version: readPackageVersion(),
-      startedAt: Date.now(),
-      token,
-      port,
-      index: runtime.index,
-      bus: runtime.bus,
+    git = createGitService({
+      root,
+      publisher: runtime.bus,
+      allowParentRepo: process.env['OB_ALLOW_PARENT_REPO'] === '1',
     });
+    const app = createApp(
+      {
+        workspace: root,
+        version: readPackageVersion(),
+        startedAt: Date.now(),
+        token,
+        port,
+        index: runtime.index,
+        bus: runtime.bus,
+      },
+      { git },
+    );
 
     server = await listen(app, port);
 

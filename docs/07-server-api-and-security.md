@@ -78,24 +78,28 @@ Domain actions:
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/git/status` | `{ initialized, branch, dirty, unpushed, ahead, behind, lastCommit, remote }` |
-| POST | `/api/git/sync` | Runs the chain; returns `{ steps: [{name, ok, output}] }` |
-| POST | `/api/git/init` | `git init` + `.gitignore` + initial commit if needed |
-| POST | `/api/git/remote` | `{ url }` → `git remote add origin` + `push -u` (ask before pushing) |
+| GET | `/api/git/status` | `{ status }`; `?force=1` bypasses the 500 ms cache |
+| POST | `/api/git/init` | `{ ok, initialized, warning, status, error }`; creates the repo, `.gitignore` (only when absent) and the initial commit |
+| POST | `/api/git/sync` | `{ ok, steps, status, error }`; awaits `add → commit → pull --rebase → push`; steps also stream over SSE |
+| POST | `/api/git/remote` | `{ url, push?: boolean }` → `{ ok, status, error }`; adds or updates `origin`, optionally pushes `-u` |
+| POST | `/api/git/recover` | `{ action: 'abort-sync' \| 'set-upstream' }` → `{ ok, action, output, status, error }` |
 
-Long-running git work is streamed, not awaited blindly: `POST /api/git/sync` returns step events over SSE (`git.step`) and a final `git.settled`. A 10 s timeout per subprocess applies; on timeout the step is marked failed with partial output.
+Git operations report failure **inside the response** (`ok: false`, `error.code`) with HTTP 200. A rebase conflict is an expected state the UI must render, not a transport error (AD-18). Only malformed payloads use the error envelope (422).
+
+Long-running git work: `POST /api/git/sync` returns when the chain settles; `git.step` events arrive during the request so the dialog can show progress. Each subprocess has a 10 s timeout; the server does not retry.
 
 ## Implementation notes (M3)
 
-* **Git routes are not part of M3.** `/api/git/*` lands with the sync engine in M6 so the UI never sees a half-implemented status endpoint.
+* **Git routes** are mounted from the same app and share one service with commit-on-save; a failed sync is `{ ok: false, error }` with HTTP 200 (docs/09).
 * **Validation** runs twice on purpose: `@hono/zod-validator` produces the 422 envelope at the boundary, and the service re-validates with the same schema before touching disk (cheap payloads, single source of truth).
 * **Server-only fields:** `body` (Markdown after the frontmatter) and `baseHash` (optimistic concurrency) are accepted on create/patch but are never written into frontmatter.
 * **Issue keys contain `:` and `/`**, so preview/resolve use the `:key{.+}` param and clients must `encodeURIComponent` the key.
 * **Money is server-computed** on create/patch: `line_items[].total_cents`, `subtotal_cents`, `tax_amount_cents` and `total_cents` are derived and ignore client-supplied values.
 * **Additional error codes** beyond the table below: `invalid_id`, `invalid_json`, `unknown_issue`, `not_a_task`, `invalid_move`, `invalid_duplicate`, `config_invalid`.
-* **SSE events emitted today:** `snapshot`, `record.upsert`, `record.delete`, `record.moved`, `issues.changed`, `config.changed`, `ping`. `git.changed` arrives with M6.
-* **List `q`** is ranked by the search service (`src/index/search.ts`): the route resolves matching ids, then keeps the type's natural file order among matches (docs/10).
+* **SSE events emitted today:** `snapshot`, `record.upsert`, `record.delete`, `record.moved`, `issues.changed`, `config.changed`, `git.changed`, `git.step`, `git.settled`, `ping`.
+* **List `q`** is ranked by the search service (`src/index/search.ts`): the route resolves matching ids, then keeps the type's search order among matches (docs/10).
 * **Duplicates** are handled by the service, not the route: the clone is written with a new id and the next `EST/INV-YYYY-NNN` number, so numbering stays consistent under concurrent creates.
+* **Git failures are data.** `POST /api/git/*` returns 200 with `{ ok: false, error: { code, message, output? } }`; codes are listed in docs/09, not in the envelope table below.
 
 ## Error envelope
 
@@ -110,11 +114,11 @@ Long-running git work is streamed, not awaited blindly: `POST /api/git/sync` ret
 | `path_escape` | 400 | Path outside workspace |
 | `payload_too_large` | 413 | Body cap |
 | `validation_failed` | 422 | Zod issues, per-field |
-| `unknown_id` | 404 | No record with that id |
 | `file_changed_on_disk` | 409 | `baseHash` mismatch |
 | `invalid_duplicate` | 400 | Duplicate requested for a non-billing type |
+| `conflict` | 409 | Domain conflict (second conversion, filename exhaustion, invalid frontmatter) |
+| `unknown_id` | 404 | No record with that id |
 | `write_locked` | 423 | FS lock (Windows) after retries |
-| `git_not_initialized` | 409 | Sync requested without a repo |
 | `internal` | 500 | Logged with an id; message is generic |
 
 Never return stack traces, absolute paths outside the workspace, or file contents of unmanaged files.
@@ -122,12 +126,15 @@ Never return stack traces, absolute paths outside the workspace, or file content
 ## SSE contract
 
 ```
-event: snapshot      data: { generation, counts }
+event: snapshot      data: { generation, counts, issues }
 event: record.upsert data: { generation, record }
 event: record.delete data: { generation, id, type }
 event: record.moved  data: { generation, id, from, to }
 event: issues.changed data: { generation, issues }
+event: config.changed data: { config }
 event: git.changed   data: { status }
+event: git.step      data: { name, ok, skipped?, output }
+event: git.settled   data: { ok, error, status }
 event: server.closing data: {}
 ```
 
@@ -142,5 +149,5 @@ event: server.closing data: {}
 - [x] Missing/invalid `X-OB-Token` → 401 on every mutating route.
 - [x] `GET /api/:type/:id` with `..%2f` → 400: ids are map keys and never reach the filesystem; anything outside `[A-Za-z0-9_-]` is rejected.
 - [x] Two PATCHes with the same `baseHash`: second returns 409.
-- [ ] SSE survives a server restart (client reconnects within 6 s and reconciles). *(client-side reconnect is M4)*
+- [x] SSE survives a server restart: `EventSource` reconnects with backoff, and `onopen` after a socket error triggers a full refresh/reconciliation.
 - [x] No route can write outside `contacts|projects|tasks|estimates|invoices|documents|.ob/config.json`.

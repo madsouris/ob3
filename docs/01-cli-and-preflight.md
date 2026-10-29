@@ -29,6 +29,8 @@ Take the user from a terminal command to a running local server, refusing to sta
 | `--no-open` | start | off | Do not open a browser (CI, remote) |
 | `--verbose` | all | off | Log watcher decisions, git argv, timings |
 | `--json` | check | off | Machine-readable diagnostics (stable field names) |
+| `--dry-run` | sync | off | Print the four git commands without executing them |
+| `--allow-parent-repo` | sync | off | Permit a workspace nested inside a parent repository |
 | `--version`, `--help` | all | — | Print and exit 0 |
 
 Unknown flags exit `2` with usage. Flags that conflict (`--demo --empty`) exit `2`.

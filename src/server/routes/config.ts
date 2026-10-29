@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import type { Context } from 'hono';
 import type { AppContext } from '../context.js';
+import type { GitService } from '../../git/types.js';
 import { ApiError, errorBody } from '../errors.js';
+import { CONFIG_FILE } from '../../workspace/paths.js';
 import { ConfigError, mergeConfig, readConfig, writeConfig } from '../../workspace/config.js';
 
 const patchSchema = z.record(z.unknown());
@@ -21,7 +23,7 @@ const validationHook = (result: { success: boolean; error?: z.ZodError }, c: Con
   );
 };
 
-export const createConfigRoutes = (context: AppContext): Hono => {
+export const createConfigRoutes = (context: AppContext, git?: GitService): Hono => {
   const routes = new Hono();
 
   routes.get('/config', async (c) => c.json({ config: await readConfig(context.workspace) }));
@@ -32,6 +34,7 @@ export const createConfigRoutes = (context: AppContext): Hono => {
     try {
       const merged = mergeConfig(current, c.req.valid('json'));
       await writeConfig(context.workspace, merged);
+      git?.scheduleCommit({ path: CONFIG_FILE, label: 'config' });
       context.bus.publish('config.changed', { config: merged });
       return c.json({ config: merged });
     } catch (error) {

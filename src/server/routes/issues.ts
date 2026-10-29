@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../context.js';
+import type { GitService } from '../../git/types.js';
 import { listIssues, previewIssue, resolveIssue } from '../services/issues.js';
 
-export const createIssueRoutes = (context: AppContext): Hono => {
+export const createIssueRoutes = (context: AppContext, git?: GitService): Hono => {
   const routes = new Hono();
 
   routes.get('/issues', async (c) =>
@@ -26,6 +27,15 @@ export const createIssueRoutes = (context: AppContext): Hono => {
     }
 
     const result = await resolveIssue(context, key, payload);
+
+    if (result.path !== undefined) {
+      const entry = context.index.getByPath(result.path);
+      const recordId = result.id ?? entry?.record.id ?? '';
+      const label = `${entry?.record.type ?? 'record'} ${recordId}`.trim();
+      if (result.from !== undefined) git?.scheduleCommit({ path: result.from, label });
+      git?.scheduleCommit({ path: result.path, label });
+    }
+
     context.bus.publish('issues.changed', {
       generation: context.index.generation,
       issues: await listIssues(context),

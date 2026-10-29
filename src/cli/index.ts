@@ -3,6 +3,7 @@ import { UsageError, parseArgs } from './args.js';
 import { out } from './output.js';
 import { printReport, runPreflight } from './preflight.js';
 import { runStart } from './start.js';
+import { runSyncCommand } from './sync.js';
 import { USAGE, readPackageVersion } from './usage.js';
 import { chooseInitMode } from './wizard.js';
 import { isInitialized, readConfig } from '../workspace/config.js';
@@ -30,8 +31,7 @@ async function main(argv: readonly string[]): Promise<number> {
     case 'check':
       return runCheck(parsed);
     case 'sync':
-      out.error('`ob sync` is not implemented yet (milestone M6). Use git directly for now.');
-      return 1;
+      return runSyncCommand(parsed);
   }
 }
 

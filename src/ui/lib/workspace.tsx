@@ -11,7 +11,17 @@ import type { ReactNode } from 'react';
 import type { Issue } from '../../model/issue.js';
 import type { RecordType } from '../../model/schemas.js';
 import type { ObConfig } from '../../workspace/config.js';
-import type { ApiRecord, ApiRecordOf } from './api.js';
+import type {
+  ApiRecord,
+  ApiRecordOf,
+  GitInitReport,
+  GitRecoveryAction,
+  GitRecoveryReport,
+  GitRemoteReport,
+  GitStatus,
+  GitStep,
+  GitSyncReport,
+} from './api.js';
 import { api, listAs } from './api.js';
 
 export type RecordsByType = {
@@ -38,6 +48,13 @@ interface WorkspaceValue {
   readonly upsert: (record: ApiRecord) => void;
   readonly remove: (id: string) => void;
   readonly setConfig: (config: ObConfig) => void;
+  readonly git: GitStatus | null;
+  readonly gitSteps: readonly GitStep[];
+  readonly refreshGit: (force?: boolean) => Promise<void>;
+  readonly syncNow: () => Promise<GitSyncReport>;
+  readonly initGit: () => Promise<GitInitReport>;
+  readonly recoverGit: (action: GitRecoveryAction) => Promise<GitRecoveryReport>;
+  readonly setGitRemote: (url: string, push: boolean) => Promise<GitRemoteReport>;
 }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null);
@@ -83,8 +100,11 @@ export const WorkspaceProvider = ({ children }: { readonly children: ReactNode }
   const [generation, setGeneration] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [git, setGit] = useState<GitStatus | null>(null);
+  const [gitSteps, setGitSteps] = useState<readonly GitStep[]>([]);
   const generationRef = useRef(0);
   const hadSocketError = useRef(false);
+  const gitRefreshTimer = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -146,6 +166,65 @@ export const WorkspaceProvider = ({ children }: { readonly children: ReactNode }
     setConfigState(next);
   }, []);
 
+  const applyGitStatus = useCallback((next: GitStatus) => {
+    setGit((current) =>
+      current !== null && JSON.stringify(current) === JSON.stringify(next) ? current : next,
+    );
+  }, []);
+
+  const refreshGit = useCallback(
+    async (force = false) => {
+      try {
+        const response = await api.git.status(force);
+        applyGitStatus(response.status);
+      } catch {
+        // The status badge is best-effort; a failed poll must not break the UI.
+      }
+    },
+    [applyGitStatus],
+  );
+
+  /** External edits do not touch the git service; re-read status shortly after. */
+  const scheduleGitRefresh = useCallback(() => {
+    if (gitRefreshTimer.current !== null) return;
+    gitRefreshTimer.current = window.setTimeout(() => {
+      gitRefreshTimer.current = null;
+      void refreshGit();
+    }, 1000);
+  }, [refreshGit]);
+
+  const syncNow = useCallback(async (): Promise<GitSyncReport> => {
+    setGitSteps([]);
+    const report = await api.git.sync();
+    applyGitStatus(report.status);
+    setGitSteps(report.steps);
+    return report;
+  }, [applyGitStatus]);
+
+  const initGit = useCallback(async (): Promise<GitInitReport> => {
+    const report = await api.git.init();
+    applyGitStatus(report.status);
+    return report;
+  }, [applyGitStatus]);
+
+  const recoverGit = useCallback(
+    async (action: GitRecoveryAction): Promise<GitRecoveryReport> => {
+      const report = await api.git.recover(action);
+      applyGitStatus(report.status);
+      return report;
+    },
+    [applyGitStatus],
+  );
+
+  const setGitRemote = useCallback(
+    async (url: string, push: boolean): Promise<GitRemoteReport> => {
+      const report = await api.git.setRemote(url, push);
+      applyGitStatus(report.status);
+      return report;
+    },
+    [applyGitStatus],
+  );
+
   useEffect(() => {
     const source = new EventSource('/api/events');
 
@@ -168,13 +247,19 @@ export const WorkspaceProvider = ({ children }: { readonly children: ReactNode }
     const onUpsert = (event: MessageEvent<string>): void => {
       const parsed = JSON.parse(event.data) as { generation?: number; record?: ApiRecord };
       if (parsed.generation !== undefined && parsed.generation < generationRef.current) return;
-      if (parsed.record !== undefined) upsert(parsed.record);
+      if (parsed.record !== undefined) {
+        upsert(parsed.record);
+        scheduleGitRefresh();
+      }
     };
 
     const onDelete = (event: MessageEvent<string>): void => {
       const parsed = JSON.parse(event.data) as { generation?: number; id?: string };
       if (parsed.generation !== undefined && parsed.generation < generationRef.current) return;
-      if (parsed.id !== undefined) remove(parsed.id);
+      if (parsed.id !== undefined) {
+        remove(parsed.id);
+        scheduleGitRefresh();
+      }
     };
 
     const onIssues = (event: MessageEvent<string>): void => {
@@ -188,11 +273,23 @@ export const WorkspaceProvider = ({ children }: { readonly children: ReactNode }
       if (parsed.config !== undefined) setConfigState(parsed.config);
     };
 
+    const onGitChanged = (event: MessageEvent<string>): void => {
+      const parsed = JSON.parse(event.data) as { status?: GitStatus };
+      if (parsed.status !== undefined) applyGitStatus(parsed.status);
+    };
+
+    const onGitStep = (event: MessageEvent<string>): void => {
+      const step = JSON.parse(event.data) as GitStep;
+      setGitSteps((current) => [...current.slice(-19), step]);
+    };
+
     source.addEventListener('snapshot', onSnapshot as EventListener);
     source.addEventListener('record.upsert', onUpsert as EventListener);
     source.addEventListener('record.delete', onDelete as EventListener);
     source.addEventListener('issues.changed', onIssues as EventListener);
     source.addEventListener('config.changed', onConfig as EventListener);
+    source.addEventListener('git.changed', onGitChanged as EventListener);
+    source.addEventListener('git.step', onGitStep as EventListener);
 
     source.onopen = () => {
       if (hadSocketError.current) {
@@ -207,7 +304,43 @@ export const WorkspaceProvider = ({ children }: { readonly children: ReactNode }
     return () => {
       source.close();
     };
-  }, [refresh, upsert, remove]);
+  }, [applyGitStatus, refresh, upsert, remove, scheduleGitRefresh]);
+
+  useEffect(() => {
+    const tick = (): void => {
+      if (document.visibilityState === 'visible') void refreshGit();
+    };
+    tick();
+
+    const interval = window.setInterval(tick, 15_000);
+    const onFocus = (): void => {
+      void refreshGit();
+    };
+    document.addEventListener('visibilitychange', onFocus);
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('focus', onFocus);
+      if (gitRefreshTimer.current !== null) {
+        window.clearTimeout(gitRefreshTimer.current);
+        gitRefreshTimer.current = null;
+      }
+    };
+  }, [refreshGit]);
+
+  const gitGuard = git !== null && (git.dirty || git.unpushed) && git.syncState !== 'running';
+
+  useEffect(() => {
+    if (!gitGuard) return;
+    const handler = (event: BeforeUnloadEvent): void => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [gitGuard]);
 
   const value = useMemo<WorkspaceValue>(
     () => ({
@@ -221,8 +354,33 @@ export const WorkspaceProvider = ({ children }: { readonly children: ReactNode }
       upsert,
       remove,
       setConfig,
+      git,
+      gitSteps,
+      refreshGit,
+      syncNow,
+      initGit,
+      recoverGit,
+      setGitRemote,
     }),
-    [records, issues, config, generation, loading, error, refresh, upsert, remove, setConfig],
+    [
+      records,
+      issues,
+      config,
+      generation,
+      loading,
+      error,
+      refresh,
+      upsert,
+      remove,
+      setConfig,
+      git,
+      gitSteps,
+      refreshGit,
+      syncNow,
+      initGit,
+      recoverGit,
+      setGitRemote,
+    ],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

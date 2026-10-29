@@ -50,6 +50,8 @@ export interface ResolveResult {
   readonly action: string;
   readonly id?: string;
   readonly path?: string;
+  /** Previous path, for `adopt-path` renames. */
+  readonly from?: string;
 }
 
 const hashOf = (text: string): string => createHash('sha256').update(text).digest('hex');
@@ -219,5 +221,5 @@ export const resolveIssue = async (
     { skipSelfWriteCheck: true },
   );
 
-  return { action: 'adopt-path', path: targetPath };
+  return { action: 'adopt-path', path: targetPath, from: issue.path };
 };

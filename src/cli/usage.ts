@@ -16,6 +16,8 @@ Options:
   --no-open      Do not open a browser
   --verbose      Verbose diagnostics on stderr
   --json         Machine-readable output for "ob check"
+  --dry-run      With "ob sync": print the commands without running them
+  --allow-parent-repo  With "ob sync": allow a workspace nested in a parent repo
   -h, --help     Show this help and exit
   -v, --version  Show version and exit
 `;

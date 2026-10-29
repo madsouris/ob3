@@ -66,6 +66,8 @@ export interface RecordServiceContext {
   readonly workspace: string;
   readonly index: RecordIndex;
   readonly config: () => Promise<ObConfig>;
+  /** Commit-on-save hook; failures must never surface as a failed write. */
+  readonly onWrote?: (target: { readonly path: string; readonly label: string }) => void;
 }
 
 export type ApiRecord = AnyRecord & { readonly degraded: boolean };
@@ -259,6 +261,7 @@ export const createRecord = async (
   if (entry === null) {
     throw new ApiError(500, 'internal', 'Record was written but could not be indexed');
   }
+  context.onWrote?.({ path: relativePath, label: `${type} ${id}` });
   return toApiRecord(entry);
 };
 
@@ -313,6 +316,7 @@ export const updateRecord = async (
 
   const fresh = context.index.getById(id);
   if (fresh === null) throw new ApiError(500, 'internal', 'Record could not be re-indexed');
+  context.onWrote?.({ path: entry.record.path, label: `${type} ${id}` });
   return toApiRecord(fresh);
 };
 
@@ -341,6 +345,7 @@ export const deleteRecord = async (
   }
 
   await context.index.applyDelete(entry.record.path);
+  context.onWrote?.({ path: entry.record.path, label: `${type} ${id}` });
   return { id, path: entry.record.path };
 };
 
@@ -438,6 +443,10 @@ export const moveTask = async (
     { skipSelfWriteCheck: true },
   );
 
+  const label = `task ${id}`;
+  if (targetPath !== sourcePath) context.onWrote?.({ path: sourcePath, label });
+  context.onWrote?.({ path: targetPath, label });
+
   const fresh = context.index.getById(id);
   if (fresh === null) throw new ApiError(500, 'internal', 'Moved task could not be re-indexed');
   return toApiRecord(fresh);
@@ -456,6 +465,11 @@ const patchFrontmatter = async (
   await writeFileAtomic(absolute, updated);
   rememberSelfWrite(relativePath, hashText(updated));
   await context.index.applyChange(relativePath, { skipSelfWriteCheck: true });
+
+  const entry = context.index.getByPath(relativePath);
+  if (entry !== null) {
+    context.onWrote?.({ path: relativePath, label: `${entry.record.type} ${entry.record.id}` });
+  }
 };
 
 const nextDocumentNumber = (

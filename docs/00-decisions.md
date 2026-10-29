@@ -139,3 +139,19 @@ The tradeoff is explicit: no unattended server-side PDF for batch/email workflow
 `/projects` lists projects; `/projects/:id` is that project's Kanban board. `/tasks` remains a cross-project board labelled "All tasks".
 
 **Why:** the user's mental model is engagement-first ("open the project, see its work"), and a single global board loses project context once there is more than one client. The cross-project board still earns its place for triage. Both derive columns from the same folders, so the file model is unchanged.
+
+---
+
+### AD-18 — Git failures are reported as state, not HTTP errors
+
+`POST /api/git/sync` and friends return HTTP 200 with `{ ok: false, error, steps, status }`. Only malformed payloads use the `{ error: { code, message } }` envelope.
+
+**Why:** a rebase conflict, missing upstream, or rejected hook is an expected repository state that the UI must render with its recovery actions — not a transport failure. Returning 4xx/5xx would push the same data into an error shape designed for bad requests, and clients would need to special-case it. Validation still fails loudly with 422.
+
+---
+
+### AD-19 — One git queue; recovery is always a user click
+
+Commits (including commit-on-save) and syncs are serialized through one promise queue. `ob` never runs `reset`, `push --force`, `checkout --theirs`, or `rebase --abort` on its own; the only recovery paths are the explicit `abort-sync` and `set-upstream` actions.
+
+**Why:** concurrent commits and pulls race on `.git/index` and can leave a rebase half-applied. Serializing makes the order deterministic (save → commit → sync) and keeps a save during a slow push as a queued commit instead of a conflict. Automatic recovery would be indistinguishable from data loss when it guesses wrong (AD-14).

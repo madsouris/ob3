@@ -27,11 +27,9 @@ Everything else (CRUD, UI) gets standard coverage.
 | Fixture | Purpose |
 |---|---|
 | `demo` | Same content the demo initializer writes (asserted equal) — canonical source at `fixtures/workspaces/demo/`, shipped as `dist/demo` |
-| `empty` | Folders only |
 | `external-edits` | Every row of the external-edit table: renamed file, moved task, body edit, reordered keys, duplicate id, missing id, invalid YAML, duplicate number, dangling ref, unresolved conflict markers, symlink, oversized file, CRLF file, file with BOM |
-| `broken-config` | Invalid `.ob/config.json` |
-| `large` | 10k synthetic records (generated in a setup script, gitignored) |
-| `git-bare` | Bare repo used as `origin` for sync tests |
+
+Empty and broken-config workspaces are created by test helpers (`tests/helpers/workspace.ts`); git repositories and bare origins are created per test by `tests/helpers/git.ts`. No git fixture is committed.
 
 Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing in `fixtures/` is user data — see [`fixtures/README.md`](../fixtures/README.md). `tests/repo/hygiene.test.ts` fails if a working workspace appears at the repo root.
 
@@ -61,15 +59,24 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] 10 parallel PATCHes to one record → consistent file, no lost fields, all `baseHash` conflicts handled.
 - [ ] Save while the file is externally replaced → `409`, no data loss of the external edit.
 
-**Git**
-- [ ] Commit-on-save creates exactly one commit for a burst of saves.
-- [ ] Full sync against the bare fixture reaches `clean + not unpushed`.
-- [ ] Induced rebase conflict → recoverable via abort; status returns to idle.
+**Git (M6)**
+- [x] Commit-on-save creates exactly one commit for a burst of saves; an unrelated external edit stays unstaged.
+- [x] A record created and deleted inside one debounce window commits nothing and leaves no error.
+- [x] Full sync against a per-test bare origin reaches `clean + not unpushed`; the bare log holds the save and auto-sync commits.
+- [x] Induced rebase conflict is surfaced with paths; `abort-sync` restores a clean tree.
+- [x] No upstream → `no_upstream`; `set-upstream` pushes and clears `unpushed`.
+- [x] A rejecting pre-commit hook keeps the file and reports `hook_rejected`; a later commit clears it.
+- [x] Resolving a missing-id issue commits the rewritten file through the same scheduler.
+- [x] Detached HEAD, a parent repository, and missing identity are refused before mutating.
+- [x] `.ob/state/` never reaches the remote tree, even with a user `.gitignore` that omits it.
+- [ ] Kill the process mid-`pull --rebase` and recover with documented commands (manual).
 
 **CLI**
 - [ ] Missing git identity → exit ≠ 0, actionable message, no lock left.
 - [ ] Port collision → binds the next free port and prints it.
 - [ ] `SIGINT` during init, during scan, and during an active sync all exit cleanly.
+- [x] `ob sync --dry-run` prints the four commands without executing them.
+- [x] `ob sync` against a local bare origin prints each step, exits 0, and releases the lock.
 
 **Search (M5)**
 - [x] `/api/search` finds a contact by company and honours `type` and `limit`.
@@ -93,6 +100,8 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] NFS/SMB workspace with polling fallback.
 - [ ] Invoice print output at A4 only (16 mm margins), printed from both light and dark mode; totals stay on page 1.
 - [ ] Project board drag between the three columns, plus the "Move to…" keyboard path, each moves exactly one file.
+- [ ] Git badge states (clean / uncommitted / N to push / syncing / error) against a real remote, and the `beforeunload` prompt appears only for dirty or unpushed work.
+- [ ] Rebase conflict in the Git dialog: conflicted paths listed, Abort sync returns to `idle`.
 - [ ] `npx` from five different cwds (no cwd assumptions).
 - [ ] Kill -9 the server, restart, confirm index rebuild and no lock leak.
 

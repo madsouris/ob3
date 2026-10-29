@@ -1,4 +1,5 @@
 import type { RecordIndex } from '../index/indexer.js';
+import type { GitService } from '../git/types.js';
 import type { ObConfig } from '../workspace/config.js';
 import { readConfig } from '../workspace/config.js';
 import type { RecordServiceContext } from './services/records.js';
@@ -14,10 +15,14 @@ export interface AppContext {
   readonly port: number;
 }
 
-export const recordServiceContext = (context: AppContext): RecordServiceContext => ({
+export const recordServiceContext = (
+  context: AppContext,
+  git?: GitService,
+): RecordServiceContext => ({
   workspace: context.workspace,
   index: context.index,
   config: (): Promise<ObConfig> => readConfig(context.workspace),
+  ...(git === undefined ? {} : { onWrote: (target) => git.scheduleCommit(target) }),
 });
 
 export const countsByType = (index: RecordIndex): Record<string, number> => {

@@ -73,4 +73,23 @@ describe('parseArgs', () => {
     expect(() => parseArgs(['--json'])).toThrow(/only applies to "ob check"/);
     expect(() => parseArgs(['sync', '--json'])).toThrow(/only applies to "ob check"/);
   });
+
+  it('accepts the sync-only flags and rejects them elsewhere', () => {
+    expect(parseArgs(['sync'])).toEqual({
+      kind: 'sync',
+      workspace: undefined,
+      verbose: false,
+      dryRun: false,
+      allowParentRepo: false,
+    });
+    expect(parseArgs(['sync', '--dry-run'])).toMatchObject({ kind: 'sync', dryRun: true });
+    expect(parseArgs(['sync', '--allow-parent-repo', './ws'])).toMatchObject({
+      kind: 'sync',
+      workspace: './ws',
+      allowParentRepo: true,
+    });
+    expect(() => parseArgs(['--dry-run'])).toThrow(/only applies to "ob sync"/);
+    expect(() => parseArgs(['init', '--allow-parent-repo'])).toThrow(/only applies to "ob sync"/);
+    expect(() => parseArgs(['check', '--dry-run'])).toThrow(/only applies to "ob sync"/);
+  });
 });

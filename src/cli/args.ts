@@ -19,7 +19,7 @@ export type ParsedArgs =
   | { kind: 'help' }
   | { kind: 'version' }
   | { kind: 'check'; workspace: string | undefined; verbose: boolean; json: boolean }
-  | { kind: 'sync'; workspace: string | undefined; verbose: boolean }
+  | { kind: 'sync'; workspace: string | undefined; verbose: boolean; dryRun: boolean; allowParentRepo: boolean }
   | WorkspaceCommand;
 
 const SUBCOMMANDS = new Set<string>(['init', 'sync', 'check']);
@@ -37,6 +37,8 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   let open = true;
   let verbose = false;
   let json = false;
+  let dryRun = false;
+  let allowParentRepo = false;
   const positionals: string[] = [];
 
   const setMode = (next: InitMode, flag: string): void => {
@@ -72,6 +74,12 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       case '--json':
         json = true;
         break;
+      case '--dry-run':
+        dryRun = true;
+        break;
+      case '--allow-parent-repo':
+        allowParentRepo = true;
+        break;
       case '--port': {
         const raw = argv[i + 1];
         if (raw === undefined) throw new UsageError('--port requires a value');
@@ -106,12 +114,18 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     if (mode !== undefined || port !== undefined) {
       throw new UsageError(`--demo/--empty/--port do not apply to "ob ${subcommand}"`);
     }
-    if (subcommand === 'check') return { kind: 'check', workspace, verbose, json };
+    if (subcommand === 'check') {
+      if (dryRun) throw new UsageError('--dry-run only applies to "ob sync"');
+      if (allowParentRepo) throw new UsageError('--allow-parent-repo only applies to "ob sync"');
+      return { kind: 'check', workspace, verbose, json };
+    }
     if (json) throw new UsageError('--json only applies to "ob check"');
-    return { kind: 'sync', workspace, verbose };
+    return { kind: 'sync', workspace, verbose, dryRun, allowParentRepo };
   }
 
   if (json) throw new UsageError('--json only applies to "ob check"');
+  if (dryRun) throw new UsageError('--dry-run only applies to "ob sync"');
+  if (allowParentRepo) throw new UsageError('--allow-parent-repo only applies to "ob sync"');
 
   return {
     kind: subcommand === 'init' ? 'init' : 'start',

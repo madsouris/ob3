@@ -1,6 +1,6 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
-import { execFileResult } from '../cli/exec.js';
+import { initializeRepository } from '../git/repo.js';
 import { exists, writeFileAtomic } from '../io/atomic.js';
 import type { InitMode } from '../cli/args.js';
 import { defaultConfig, writeConfig } from './config.js';
@@ -121,24 +121,9 @@ async function writeUnique(absolutePath: string, content: string): Promise<boole
 }
 
 async function gitInit(root: string, identity: GitIdentity | undefined): Promise<void> {
-  const identityArgs =
-    identity === undefined
-      ? []
-      : ['-c', `user.name=${identity.name}`, '-c', `user.email=${identity.email}`];
-
-  const steps: Array<{ args: string[]; label: string }> = [
-    { args: ['init', '--quiet'], label: 'git init' },
-    { args: ['add', '-A'], label: 'git add' },
-    {
-      args: [...identityArgs, 'commit', '--quiet', '--no-verify', '-m', 'ob: initialize workspace'],
-      label: 'git commit',
-    },
-  ];
-
-  for (const step of steps) {
-    const result = await execFileResult('git', step.args, { cwd: root });
-    if (result.code !== 0) {
-      throw new InitError(`${step.label} failed in ${root}: ${result.stderr.trim()}`);
-    }
+  try {
+    await initializeRepository(root, identity === undefined ? {} : { identity });
+  } catch (error) {
+    throw new InitError(error instanceof Error ? error.message : String(error));
   }
 }

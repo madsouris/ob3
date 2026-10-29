@@ -5,11 +5,14 @@ import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { PathEscapeError } from '../io/path-safety.js';
 import { createSearchService } from '../index/search.js';
+import { createGitService } from '../git/service.js';
+import type { GitService } from '../git/types.js';
 import { ConfigError } from '../workspace/config.js';
 import type { AppContext } from './context.js';
 import { ApiError, errorBody } from './errors.js';
 import { createConfigRoutes } from './routes/config.js';
 import { createEventRoutes } from './routes/events.js';
+import { createGitRoutes } from './routes/git.js';
 import { createIssueRoutes } from './routes/issues.js';
 import { createRecordRoutes } from './routes/records.js';
 import { createSearchRoutes } from './routes/search.js';
@@ -57,13 +60,26 @@ export function resolveClientHtml(moduleUrl: string = import.meta.url): string |
 export const injectToken = (html: string, token: string): string =>
   html.split('__OB_TOKEN__').join(token);
 
+export interface AppOptions {
+  /** Injected by the CLI so shutdown can flush pending commits; tests may inject too. */
+  readonly git?: GitService;
+}
+
 /**
  * The HTTP surface for the local app: same-origin, loopback only, token-gated
  * mutations (docs/07). Throws `ApiError`s that `onError` shapes into the
  * `{ error: { code, message } }` envelope.
  */
-export const createApp = (context: AppContext): Hono => {
+export const createApp = (context: AppContext, options: AppOptions = {}): Hono => {
   const app = new Hono();
+
+  const git =
+    options.git ??
+    createGitService({
+      root: context.workspace,
+      publisher: context.bus,
+      allowParentRepo: process.env['OB_ALLOW_PARENT_REPO'] === '1',
+    });
 
   app.use(
     '*',
@@ -115,10 +131,11 @@ export const createApp = (context: AppContext): Hono => {
 
   app.route('/api', createEventRoutes(context));
   const search = createSearchService(context.index);
-  app.route('/api', createRecordRoutes(context, search));
+  app.route('/api', createRecordRoutes(context, search, git));
   app.route('/api', createSearchRoutes(context, search));
-  app.route('/api', createConfigRoutes(context));
-  app.route('/api', createIssueRoutes(context));
+  app.route('/api', createConfigRoutes(context, git));
+  app.route('/api', createGitRoutes(git));
+  app.route('/api', createIssueRoutes(context, git));
 
   app.get('/', (c) =>
     c.html(injectToken(resolveClientHtml() ?? FALLBACK_HTML, context.token), 200, htmlHeaders),

@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 import { z } from 'zod';
 import { RECORD_TYPES, writeSchemas } from '../../model/schemas.js';
 import type { AppContext } from '../context.js';
+import type { GitService } from '../../git/types.js';
 import { recordServiceContext } from '../context.js';
 import { ApiError, errorBody } from '../errors.js';
 import type { SearchService } from '../../index/search.js';
@@ -64,9 +65,13 @@ const serialize = async (
   generation: context.index.generation,
 });
 
-export const createRecordRoutes = (context: AppContext, search: SearchService): Hono => {
+export const createRecordRoutes = (
+  context: AppContext,
+  search: SearchService,
+  git?: GitService,
+): Hono => {
   const routes = new Hono();
-  const service = recordServiceContext(context);
+  const service = recordServiceContext(context, git);
 
   const publishUpsert = (record: ReturnType<typeof toApiRecord>): void => {
     context.bus.publish('record.upsert', {
