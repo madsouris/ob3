@@ -106,7 +106,7 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 
 ## Test hygiene rules
 
-* Every test that touches the FS uses `mkdtemp` and asserts on a cleaned-up directory.
+* Every test that touches the FS uses `mkdtemp` and asserts on a cleaned-up directory. `makeTempDir` resolves the result with `realpath` so tests compare canonical paths — macOS reports `TMPDIR` as `/var/...`, a symlink to `/private/var/...`, and `resolveInWorkspace` canonicalises the workspace root.
 * No test asserts on absolute paths, usernames, or timings that vary by machine (`>` thresholds only with generous margins).
 * Deterministic ULIDs in fixtures; the ULID generator takes an injectable clock + randomness source.
 * No network access in any test. Git tests use local bare repos only.

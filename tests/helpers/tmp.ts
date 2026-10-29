@@ -1,9 +1,14 @@
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+/**
+ * Canonical temp directory. macOS reports `TMPDIR` as `/var/...`, which is a
+ * symlink to `/private/var/...`; `resolveInWorkspace` canonicalises the root,
+ * so tests must start from the same form or path comparisons fail per machine.
+ */
 export async function makeTempDir(prefix = 'ob-test-'): Promise<string> {
-  return mkdtemp(join(tmpdir(), prefix));
+  return realpath(await mkdtemp(join(tmpdir(), prefix)));
 }
 
 export async function removeTempDir(dir: string): Promise<void> {
