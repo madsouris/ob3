@@ -403,7 +403,8 @@ Document bodies may contain `{{business.name}}`, `{{client.name}}`, `{{invoice.n
 * **Numbering:** `INV-YYYY-NNN` / `EST-YYYY-NNN`; `NNN` is the highest existing suffix + 1, recomputed on each create (deleting `-003` never causes a collision). Numbers stay editable; duplicates are warned as issues, never blocked.
 * **Estimate → invoice:** creates a new invoice whose `estimate_id` points at the estimate and writes `converted_invoice_id` back to the estimate. An estimate converts once; a second attempt is a `409`.
 * **Duplicate:** estimates and invoices only. The copy gets a new id, the next number for the current year, `status: draft`, `issue_date` today, `due_date` +15 days / `valid_until` +30 days, the same client/project/terms, line items and body, and ` (copy)` in a non-empty title. The source file is never rewritten; an estimate copy starts with `converted_invoice_id: null`, an invoice copy keeps `estimate_id` as provenance.
-* **Print / PDF:** `/invoices/:id/print` and `/estimates/:id/print` render a strict A4 sheet (16 mm margins) in fixed light paper/ink using the business block from `.ob/config.json`, the line table, totals, notes and the linked terms document. The browser's print dialog produces the PDF.
+* **Attachments:** `document_ids` (ids, ordered) on estimates and invoices; every attached document renders after the notes with the billing context and `{{variable}}` substitution. Legacy `terms_document` paths are used only when the list is empty.
+* **Print / PDF:** `/invoices/:id/print` and `/estimates/:id/print` render a strict A4 sheet (16 mm margins) in fixed light paper/ink using the business block from `.ob/config.json`, the line table, totals, notes and the attached documents. The browser's print dialog produces the PDF.
 
 ---
 

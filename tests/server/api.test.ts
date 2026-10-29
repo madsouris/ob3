@@ -142,6 +142,7 @@ describe('money on write', () => {
     const response = await test.mutate('POST', '/api/invoices', {
       invoice_number: 'INV-2026-900',
       line_items: [{ description: 'Work', quantity: 2, unit_price_cents: 50_000 }],
+      document_ids: ['doc_01J8X7500AQ4M2N8V3R5T7W9Y0'],
     });
 
     expect(response.status).toBe(201);
@@ -153,6 +154,7 @@ describe('money on write', () => {
         total_cents: number;
         currency: string;
         line_items: { total_cents: number }[];
+        document_ids: string[];
       };
     };
     expect(body.record.subtotal_cents).toBe(100_000);
@@ -161,6 +163,25 @@ describe('money on write', () => {
     expect(body.record.total_cents).toBe(108_500);
     expect(body.record.currency).toBe('USD');
     expect(body.record.line_items[0]?.total_cents).toBe(100_000);
+    expect(body.record.document_ids).toEqual(['doc_01J8X7500AQ4M2N8V3R5T7W9Y0']);
+  });
+
+  it('flags an attachment id that points at a missing document', async () => {
+    const test = await server('demo');
+    const created = await test.mutate('POST', '/api/invoices', {
+      invoice_number: 'INV-2026-777',
+      document_ids: ['doc_01J8X7500ZQ4M2N8V3R5T7W9Y0'],
+    });
+    expect(created.status).toBe(201);
+
+    const listing = (await (await test.req('/api/issues')).json()) as {
+      issues: { code: string; message: string }[];
+    };
+    expect(
+      listing.issues.some(
+        (issue) => issue.code === 'dangling-ref' && issue.message.includes('document_ids'),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -199,6 +220,12 @@ describe('estimate conversion', () => {
   it('creates an invoice, links both directions, and refuses a second conversion', async () => {
     const test = await server('demo');
     const estimateId = 'est_01J8X7000AQ4M2N8V3R5T7W9Y0';
+    const documentId = 'doc_01J8X7500AQ4M2N8V3R5T7W9Y0';
+
+    const patched = await test.mutate('PATCH', `/api/estimates/${estimateId}`, {
+      document_ids: [documentId],
+    });
+    expect(patched.status).toBe(200);
 
     const response = await test.mutate(
       'POST',
@@ -214,6 +241,7 @@ describe('estimate conversion', () => {
         subtotal_cents: number;
         total_cents: number;
         status: string;
+        document_ids: string[];
       };
     };
     expect(body.record.estimate_id).toBe(estimateId);
@@ -221,6 +249,7 @@ describe('estimate conversion', () => {
     expect(body.record.subtotal_cents).toBe(250_000);
     expect(body.record.total_cents).toBe(271_250);
     expect(body.record.status).toBe('draft');
+    expect(body.record.document_ids).toEqual([documentId]);
 
     const estimate = test.context.index.getById(estimateId)?.record;
     expect(estimate?.type).toBe('estimate');
@@ -241,6 +270,13 @@ describe('duplicate', () => {
   it('clones an estimate into a fresh draft and leaves the source byte-identical', async () => {
     const test = await server('demo');
     const year = new Date().toISOString().slice(0, 4);
+    const documentId = 'doc_01J8X7500AQ4M2N8V3R5T7W9Y0';
+
+    const patched = await test.mutate('PATCH', `/api/estimates/${sourceEstimate}`, {
+      document_ids: [documentId],
+    });
+    expect(patched.status).toBe(200);
+
     const sourcePath = join(test.root, 'estimates/est_2026-001.md');
     const before = await readFile(sourcePath, 'utf8');
 
@@ -266,6 +302,7 @@ describe('duplicate', () => {
         tax_amount_cents: number;
         total_cents: number;
         line_items: { description: string; total_cents: number }[];
+        document_ids: string[];
         body: string;
       };
     };
@@ -283,6 +320,7 @@ describe('duplicate', () => {
     expect(body.record.subtotal_cents).toBe(250_000);
     expect(body.record.tax_amount_cents).toBe(21_250);
     expect(body.record.total_cents).toBe(271_250);
+    expect(body.record.document_ids).toEqual([documentId]);
     expect(body.record.body).toContain('Three-week engagement');
 
     expect(await readFile(sourcePath, 'utf8')).toBe(before);

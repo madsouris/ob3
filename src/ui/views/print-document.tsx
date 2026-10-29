@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { BusinessLogo } from '@/components/business-logo';
 import { Markdown } from '@/components/markdown';
 import { formatDate, formatMoney } from '@/lib/format';
+import { templateVariablesFor } from '@/lib/document-variables';
+import { renderTemplate } from '@/lib/template';
 import { navigate } from '@/lib/router';
 import { recordTitle, useWorkspace } from '@/lib/workspace';
 
@@ -48,9 +50,34 @@ export const PrintDocument = ({ type, id }: PrintDocumentProps) => {
     business?.name === undefined || business.name === '' ? 'Your business' : business.name;
   const client = records.contact.find((contact) => contact.id === record.client_id) ?? null;
   const project = records.project.find((item) => item.id === record.project_id) ?? null;
-  const terms =
-    records.document.find((document) => document.path === record.terms_document) ?? null;
   const currency = record.currency === '' ? (business?.currency ?? 'USD') : record.currency;
+
+  const attachmentVariables = templateVariablesFor({
+    config,
+    client,
+    project,
+    invoice: record.type === 'invoice' ? record : null,
+    estimate: record.type === 'estimate' ? record : null,
+  });
+
+  const attachments = (
+    record.document_ids.length > 0
+      ? record.document_ids.map((documentId) => ({
+          key: documentId,
+          document: records.document.find((item) => item.id === documentId) ?? null,
+          missing: `Missing document ${documentId}`,
+        }))
+      : record.terms_document === ''
+        ? []
+        : [
+            {
+              key: record.terms_document,
+              document:
+                records.document.find((item) => item.path === record.terms_document) ?? null,
+              missing: `Missing document ${record.terms_document}`,
+            },
+          ]
+  );
 
   return (
     <div className="print-shell flex min-h-dvh flex-col bg-muted/40">
@@ -174,12 +201,23 @@ export const PrintDocument = ({ type, id }: PrintDocumentProps) => {
           </section>
         )}
 
-        {terms === null ? null : (
-          <section className="print-notes">
-            <p className="print-label">{recordTitle(terms)}</p>
-            <Markdown className="print-small">{terms.body}</Markdown>
+        {attachments.map((attachment) => (
+          <section className="print-notes" key={attachment.key}>
+            {attachment.document === null ? (
+              <>
+                <p className="print-label">Attachment</p>
+                <p className="print-muted print-small">{attachment.missing}</p>
+              </>
+            ) : (
+              <>
+                <p className="print-label">{recordTitle(attachment.document)}</p>
+                <Markdown className="print-small">
+                  {renderTemplate(attachment.document.body, attachmentVariables)}
+                </Markdown>
+              </>
+            )}
           </section>
-        )}
+        ))}
 
         <footer className="print-footer">
           {business?.payment_link_url === undefined || business.payment_link_url === '' ? null : (

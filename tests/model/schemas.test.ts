@@ -55,6 +55,7 @@ describe('projectRecord — valid records', () => {
     expect(issues).toEqual([]);
     if (record.type !== 'invoice') throw new Error('wrong type');
     expect(record.total_cents).toBe(271_250);
+    expect(record.document_ids).toEqual([]);
     expect(record.line_items).toHaveLength(1);
     expect(record.line_items[0]?.description).toBe('Deposit');
   });

@@ -73,6 +73,8 @@ export interface EstimateRecord extends BaseRecord {
   readonly valid_until: string;
   readonly currency: string;
   readonly terms_document: string;
+  /** Attached document records, by id. Empty falls back to `terms_document`. */
+  readonly document_ids: readonly string[];
   readonly subtotal_cents: number;
   readonly tax_rate_bps: number;
   readonly tax_amount_cents: number;
@@ -93,6 +95,8 @@ export interface InvoiceRecord extends BaseRecord {
   readonly due_date: string;
   readonly currency: string;
   readonly terms_document: string;
+  /** Attached document records, by id. Empty falls back to `terms_document`. */
+  readonly document_ids: readonly string[];
   readonly subtotal_cents: number;
   readonly tax_rate_bps: number;
   readonly tax_amount_cents: number;
@@ -165,6 +169,7 @@ const KNOWN_KEYS: Readonly<Record<RecordType, readonly string[]>> = {
     'valid_until',
     'currency',
     'terms_document',
+    'document_ids',
     'subtotal_cents',
     'tax_rate_bps',
     'tax_amount_cents',
@@ -184,6 +189,7 @@ const KNOWN_KEYS: Readonly<Record<RecordType, readonly string[]>> = {
     'due_date',
     'currency',
     'terms_document',
+    'document_ids',
     'subtotal_cents',
     'tax_rate_bps',
     'tax_amount_cents',
@@ -204,6 +210,11 @@ const asNumber = (value: unknown, fallback = 0): number =>
 
 const asInteger = (value: unknown, fallback = 0): number =>
   typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback;
+
+const asStringArray = (value: unknown): readonly string[] =>
+  Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string' && entry !== '')
+    : [];
 
 const asLineItems = (
   value: unknown,
@@ -362,6 +373,7 @@ export const projectRecord = (input: ProjectionInput): ProjectionResult => {
           valid_until: asString(fm['valid_until']),
           currency: asString(fm['currency'], 'USD'),
           terms_document: asString(fm['terms_document']),
+          document_ids: asStringArray(fm['document_ids']),
           subtotal_cents: asInteger(fm['subtotal_cents']),
           tax_rate_bps: asInteger(fm['tax_rate_bps']),
           tax_amount_cents: asInteger(fm['tax_amount_cents']),
@@ -391,6 +403,7 @@ export const projectRecord = (input: ProjectionInput): ProjectionResult => {
           due_date: asString(fm['due_date']),
           currency: asString(fm['currency'], 'USD'),
           terms_document: asString(fm['terms_document']),
+          document_ids: asStringArray(fm['document_ids']),
           subtotal_cents: asInteger(fm['subtotal_cents']),
           tax_rate_bps: asInteger(fm['tax_rate_bps']),
           tax_amount_cents: asInteger(fm['tax_amount_cents']),
@@ -483,6 +496,7 @@ export const writeSchemas = {
     valid_until: isoDateSchema.optional(),
     currency: z.string().optional(),
     terms_document: z.string().optional(),
+    document_ids: z.array(z.string()).optional(),
     subtotal_cents: centsSchema.optional(),
     tax_rate_bps: bpsSchema.optional(),
     tax_amount_cents: centsSchema.optional(),
@@ -501,6 +515,7 @@ export const writeSchemas = {
     due_date: isoDateSchema.optional(),
     currency: z.string().optional(),
     terms_document: z.string().optional(),
+    document_ids: z.array(z.string()).optional(),
     subtotal_cents: centsSchema.optional(),
     tax_rate_bps: bpsSchema.optional(),
     tax_amount_cents: centsSchema.optional(),

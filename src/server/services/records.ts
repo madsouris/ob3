@@ -241,6 +241,7 @@ export const createRecord = async (
     ...(type === 'project' ? { status: 'active' } : {}),
     ...(type === 'estimate' ? { status: 'draft' } : {}),
     ...(type === 'invoice' ? { status: 'draft' } : {}),
+    ...(type === 'estimate' || type === 'invoice' ? { document_ids: [] } : {}),
     ...(type === 'document' ? { kind: 'note', scope: 'global', client_id: '' } : {}),
     ...(type === 'task' ? { order: nextOrder(context.index, 'todo') } : {}),
     ...fields,
@@ -533,6 +534,7 @@ export const createInvoiceFromEstimate = async (
       due_date: addDays(today, 15),
       currency: estimate.currency,
       ...(estimate.terms_document === '' ? {} : { terms_document: estimate.terms_document }),
+      document_ids: estimate.document_ids,
       tax_rate_bps: estimate.tax_rate_bps,
       line_items: estimate.line_items.map((line) => ({
         description: line.description,
@@ -570,6 +572,10 @@ export const duplicateRecord = async (
     client_id: 'client_id' in record ? record.client_id : '',
     project_id: 'project_id' in record ? record.project_id : '',
     terms_document: 'terms_document' in record ? record.terms_document : '',
+    document_ids:
+      'document_ids' in record && Array.isArray(record.document_ids)
+        ? record.document_ids
+        : [],
     currency: 'currency' in record ? record.currency : '',
     tax_rate_bps: 'tax_rate_bps' in record ? record.tax_rate_bps : 0,
     line_items:

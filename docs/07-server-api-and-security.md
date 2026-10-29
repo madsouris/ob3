@@ -102,6 +102,7 @@ Long-running git work: `POST /api/git/sync` returns when the chain settles; `git
 * **SSE events emitted today:** `snapshot`, `record.upsert`, `record.delete`, `record.moved`, `issues.changed`, `config.changed`, `git.changed`, `git.step`, `git.settled`, `ping`.
 * **List `q`** is ranked by the search service (`src/index/search.ts`): the route resolves matching ids, then keeps the type's search order among matches (docs/10).
 * **Duplicates** are handled by the service, not the route: the clone is written with a new id and the next `EST/INV-YYYY-NNN` number, so numbering stays consistent under concurrent creates.
+* **Attachments** (`document_ids` on estimates/invoices) are soft references: missing ids are reported as `dangling-ref` and printed as a missing-attachment note; the server never drops unknown ids.
 * **Git failures are data.** `POST /api/git/*` returns 200 with `{ ok: false, error: { code, message, output? } }`; codes are listed in docs/09, not in the envelope table below.
 * **Logo uploads** accept only `image/png` bytes with a valid PNG signature; SVG and HTML are rejected. The server always reads `.ob/assets/logo.png`, so a hand-edited `business.logo` cannot point the API at another file. Uploads over 512 KB return 413.
 

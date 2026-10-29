@@ -85,6 +85,7 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * `Intl.NumberFormat(currency, { minimumFractionDigits: 2 })`; input fields accept `2 500`, `2500.50`, `$2500` and convert to cents on blur via `parseMoney`.
 * Rounding in the display layer only; the file always holds integers. `computeTotals` in `src/ui/components/line-items.tsx` mirrors the server: line totals round individually, tax rounds once.
 * Numbering and duplication follow doc 03 §Numbering; the editor's "Duplicate" button calls `POST /api/:type/:id/duplicate` and navigates to the copy.
+* Attachments are document **ids** (`document_ids`): a searchable multi-select in the editor, rendered in order after the notes on the A4 sheet with the billing context. Legacy `terms_document` paths are used only when the id list is empty.
 * "Create invoice" on an estimate calls `POST /api/invoices/from-estimate/:id` and navigates to the invoice; the estimate then shows a link back.
 
 ## Print view

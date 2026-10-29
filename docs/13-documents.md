@@ -43,6 +43,16 @@ Rules:
 * Rendering never edits the file. The template remains editable in any text editor.
 * The preview in the editor shows the raw template; the detail and print views show the rendered result.
 
+## Attachments on estimates and invoices
+
+Estimates and invoices carry `document_ids: string[]` (document ids, ordered).
+
+* The billing editor selects documents with a searchable multi-select and shows removable tags; unknown ids render as a destructive “Unknown …” tag and can be removed.
+* Printing renders each attached document after the invoice/estimate notes, in list order, with its title, resolved templates, and the billing context (`client`, `project`, `invoice`/`estimate`, `business`, `today`).
+* A missing id prints an honest “Missing document …” line instead of failing.
+* `terms_document` is the legacy single **path** field. It is used only when `document_ids` is empty, so old files still print correctly. Saving from the editor migrates the selection to `document_ids` and clears `terms_document`; the print view pre-selects the legacy document when one is linked.
+* Duplicate and estimate → invoice copy `document_ids` unchanged.
+
 ## UI
 
 * **List** — All / Global / Client tabs with counts; title, kind, scope/client, updated.
@@ -65,4 +75,6 @@ Documents use the generic `/api/documents` routes. The server:
 - [x] Creating a client-scoped document persists `scope` and `client_id` and returns them (`tests/server/api.test.ts`).
 - [x] Template rendering handles known, empty, unknown and missing-context placeholders (`tests/ui/template.test.ts`).
 - [x] `/documents/:id` and `/documents/:id/print` build with the existing A4 stylesheet.
+- [x] Attachments persist as ids, copy through duplicate and conversion, and print in order with the billing context (`tests/server/api.test.ts`).
+- [x] An unknown attachment id is reported as `dangling-ref` and rendered as a missing attachment, never silently dropped.
 - [ ] A4 print check in light and dark mode (manual, same constraints as invoices).

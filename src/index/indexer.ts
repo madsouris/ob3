@@ -101,8 +101,8 @@ const RECORD_REFS: Readonly<Record<RecordType, readonly string[]>> = {
   contact: [],
   project: ['client_id'],
   task: ['project_id'],
-  estimate: ['client_id', 'project_id', 'terms_document', 'converted_invoice_id'],
-  invoice: ['client_id', 'project_id', 'estimate_id', 'terms_document'],
+  estimate: ['client_id', 'project_id', 'terms_document', 'converted_invoice_id', 'document_ids'],
+  invoice: ['client_id', 'project_id', 'estimate_id', 'terms_document', 'document_ids'],
   document: ['client_id'],
 };
 
@@ -513,6 +513,9 @@ export class RecordIndex {
     if (field === 'terms_document') {
       return this.list('document').some((entry) => entry.record.path === value);
     }
+    if (field === 'document_ids') {
+      return this.byId.get(value)?.record.type === 'document';
+    }
     const expectedType = REF_TYPES[field];
     if (expectedType === undefined) return true;
     const target = this.byId.get(value);
@@ -531,9 +534,12 @@ export class RecordIndex {
       const missing: string[] = [];
 
       for (const field of RECORD_REFS[record.type]) {
-        const value = (record as unknown as Record<string, unknown>)[field];
-        if (typeof value !== 'string' || value === '') continue;
-        if (!this.referenceExists(field, value)) missing.push(`${field}=${value}`);
+        const raw = (record as unknown as Record<string, unknown>)[field];
+        const values = Array.isArray(raw) ? raw : [raw];
+        for (const value of values) {
+          if (typeof value !== 'string' || value === '') continue;
+          if (!this.referenceExists(field, value)) missing.push(`${field}=${value}`);
+        }
       }
 
       if (missing.length > 0) {

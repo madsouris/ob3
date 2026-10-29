@@ -104,6 +104,7 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] `Shift+D` toggles the theme from the dashboard but types a capital D inside a text field; the date popover opens, selects, and clears in light and dark mode.
 - [ ] Logo upload from a JPEG with EXIF: preview updates immediately, print shows the resized logo, `.ob/assets/logo.png` is committed, and no EXIF survives.
 - [ ] Client-scoped document with `{{client.name}}` / `{{today}}`: detail and A4 print resolve them; an unknown `{{foo.bar}}` stays visible.
+- [ ] Invoice with two attached documents prints both in order with client variables resolved, and a deleted attachment prints a missing-document note.
 - [ ] Rebase conflict in the Git dialog: conflicted paths listed, Abort sync returns to `idle`.
 - [ ] `npx` from five different cwds (no cwd assumptions).
 - [ ] Kill -9 the server, restart, confirm index rebuild and no lock leak.

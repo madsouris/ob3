@@ -40,6 +40,7 @@ import { Field } from '@/components/field';
 import { MarkdownField } from '@/components/markdown-field';
 import { LineItemsEditor, computeTotals, draftsFrom, emptyLine } from '@/components/line-items';
 import type { LineItemDraft } from '@/components/line-items';
+import { DocumentPicker } from '@/components/document-picker';
 import { PageHeader } from '@/components/page-header';
 import { SheetBody } from '@/components/sheet-body';
 import { StatusBadge, invoiceStatus } from '@/components/status-badge';
@@ -92,7 +93,7 @@ interface BillingForm {
   second_date: string;
   currency: string;
   taxPercent: string;
-  terms_document: string;
+  document_ids: string[];
   body: string;
   items: LineItemDraft[];
 }
@@ -105,8 +106,19 @@ const addDays = (date: string, days: number): string => {
   return value.toISOString().slice(0, 10);
 };
 
-const formFrom = (record: ApiRecord): BillingForm | null => {
+const formFrom = (
+  record: ApiRecord,
+  documents: readonly ApiRecord[],
+): BillingForm | null => {
   if (record.type !== 'estimate' && record.type !== 'invoice') return null;
+  const ids = [...record.document_ids];
+  if (ids.length === 0 && record.terms_document !== '') {
+    const legacy = documents.find(
+      (document) => document.type === 'document' && document.path === record.terms_document,
+    );
+    if (legacy !== undefined) ids.push(legacy.id);
+  }
+
   return {
     number: record.type === 'estimate' ? record.estimate_number : record.invoice_number,
     title: record.title,
@@ -117,7 +129,7 @@ const formFrom = (record: ApiRecord): BillingForm | null => {
     second_date: record.type === 'estimate' ? record.valid_until : record.due_date,
     currency: record.currency,
     taxPercent: (record.tax_rate_bps / 100).toFixed(2),
-    terms_document: record.terms_document,
+    document_ids: ids,
     body: record.body,
     items: draftsFrom(record.line_items),
   };
@@ -158,20 +170,26 @@ export const Billing = ({ type, initialId }: BillingProps) => {
   const editing = initialId === null ? null : (list.find((record) => record.id === initialId) ?? null);
   const totals = form === null ? null : computeTotals(form.items, form.taxPercent);
 
-  const emptyForm = (): BillingForm => ({
-    number: nextNumber(type, list),
-    title: '',
-    client_id: '',
-    project_id: '',
-    status: 'draft',
-    issue_date: today(),
-    second_date: addDays(today(), isInvoice ? 15 : 30),
-    currency: config?.business.currency ?? 'USD',
-    taxPercent: ((config?.business.tax_rate_bps ?? 0) / 100).toFixed(2),
-    terms_document: config?.default_terms_document ?? '',
-    body: '',
-    items: [emptyLine()],
-  });
+  const emptyForm = (): BillingForm => {
+    const defaultTerms = records.document.find(
+      (document) => document.type === 'document' && document.path === config?.default_terms_document,
+    );
+
+    return {
+      number: nextNumber(type, list),
+      title: '',
+      client_id: '',
+      project_id: '',
+      status: 'draft',
+      issue_date: today(),
+      second_date: addDays(today(), isInvoice ? 15 : 30),
+      currency: config?.business.currency ?? 'USD',
+      taxPercent: ((config?.business.tax_rate_bps ?? 0) / 100).toFixed(2),
+      document_ids: defaultTerms === undefined ? [] : [defaultTerms.id],
+      body: '',
+      items: [emptyLine()],
+    };
+  };
 
   useEffect(() => {
     if (!open) {
@@ -187,14 +205,14 @@ export const Billing = ({ type, initialId }: BillingProps) => {
     }
 
     const current = list.find((record) => record.id === initialId);
-    const fromList = current === undefined ? null : formFrom(current);
+    const fromList = current === undefined ? null : formFrom(current, records.document);
     if (fromList !== null) setForm(fromList);
 
     void api
       .get(meta.plural, initialId)
       .then((response) => {
         setHash(response.hash);
-        const loaded = formFrom(response.record);
+        const loaded = formFrom(response.record, records.document);
         if (loaded !== null) setForm(loaded);
       })
       .catch(() => undefined);
@@ -220,7 +238,8 @@ export const Billing = ({ type, initialId }: BillingProps) => {
     issue_date: current.issue_date,
     ...(isInvoice ? { due_date: current.second_date } : { valid_until: current.second_date }),
     currency: current.currency,
-    terms_document: current.terms_document,
+    terms_document: '',
+    document_ids: current.document_ids,
     tax_rate_bps: computed.taxRateBps,
     line_items: current.items.map((item, index) => ({
       description: item.description,
@@ -546,7 +565,7 @@ export const Billing = ({ type, initialId }: BillingProps) => {
                     </Field>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Currency" htmlFor="billing-currency">
                       <Input
                         id="billing-currency"
@@ -575,31 +594,24 @@ export const Billing = ({ type, initialId }: BillingProps) => {
                         className="tabular"
                       />
                     </Field>
-                    <Field label="Terms document" htmlFor="billing-terms">
-                      <Select
-                        value={form.terms_document === '' ? NO_LINK : form.terms_document}
-                        onValueChange={(value) =>
-                          setForm((current) =>
-                            current === null
-                              ? current
-                              : { ...current, terms_document: value === NO_LINK ? '' : value },
-                          )
-                        }
-                      >
-                        <SelectTrigger id="billing-terms" className="w-full">
-                          <SelectValue placeholder="No terms" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NO_LINK}>No terms</SelectItem>
-                          {records.document.map((document) => (
-                            <SelectItem key={document.id} value={document.path}>
-                              {recordTitle(document)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
                   </div>
+
+                  <Field
+                    label="Attached documents"
+                    htmlFor="billing-documents"
+                    hint="Rendered after the notes, in this order, with client and invoice variables filled."
+                  >
+                    <DocumentPicker
+                      id="billing-documents"
+                      documents={records.document}
+                      value={form.document_ids}
+                      onChange={(documentIds) =>
+                        setForm((current) =>
+                          current === null ? current : { ...current, document_ids: documentIds },
+                        )
+                      }
+                    />
+                  </Field>
 
                   <Separator />
 

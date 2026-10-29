@@ -60,10 +60,10 @@ Timestamps: `created_at` set once at creation; `updated_at` bumped on every `ob`
 Sorting within a column: `order` asc → `created_at` asc → `id` asc.
 
 ### estimate
-`estimate_number` (req), `client_id`, `project_id`, `title`, `status` ∈ `draft|sent|accepted|declined|expired`, `issue_date`, `valid_until` (date `YYYY-MM-DD`), `currency`, `terms_document`, money block, `line_items`, `converted_invoice_id`.
+`estimate_number` (req), `client_id`, `project_id`, `title`, `status` ∈ `draft|sent|accepted|declined|expired`, `issue_date`, `valid_until` (date `YYYY-MM-DD`), `currency`, `terms_document` (legacy single path), `document_ids` (attached document ids, ordered), money block, `line_items`, `converted_invoice_id`.
 
 ### invoice
-`invoice_number` (req), `client_id`, `project_id`, `estimate_id`, `title`, `status` ∈ `draft|sent|paid|overdue|cancelled`, `issue_date`, `due_date`, `currency`, `terms_document`, money block, `line_items`.
+`invoice_number` (req), `client_id`, `project_id`, `estimate_id`, `title`, `status` ∈ `draft|sent|paid|overdue|cancelled`, `issue_date`, `due_date`, `currency`, `terms_document` (legacy single path), `document_ids` (attached document ids, ordered), money block, `line_items`.
 
 ### document
 `title` (req), `kind` ∈ `terms|proposal|note`, `scope` ∈ `global|client` (default `global`), `client_id` (soft reference, required by the UI for client scope). Body is the content. Templates use `{{variable}}` placeholders rendered at view/print time (see `docs/13-documents.md`).
@@ -102,6 +102,7 @@ Rules:
 | `project_id` | project | same |
 | `estimate_id` | estimate | same |
 | `terms_document` | workspace-relative path to a document record | UI shows the path, links only if a document record matches |
+| `document_ids` | document ids | UI shows “Unknown document”, keeps the id, and the print view prints a missing-attachment note |
 | `converted_invoice_id` | invoice | same |
 
 No cascading deletes, no automatic nulling, no referential enforcement on write (a user may legitimately create an invoice before the contact exists in a fresh branch).
