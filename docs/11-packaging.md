@@ -90,6 +90,41 @@ Rules:
 | Demo shipped | `dist/demo/.ob/config.json` exists and `dist/demo` holds 16 records |
 | Publish dry run | `pnpm publish --dry-run` and review the file list |
 
+## Releasing
+
+**One-time setup**
+
+1. A free npm account with 2FA enabled.
+2. `package.json` must carry a `repository.url` that matches the GitHub repository exactly — npm
+   checks it before accepting a trusted publish.
+3. On npmjs.com → `filecrm` → Settings → **Trusted Publishing**, add a GitHub Actions publisher:
+   owner `madsouris`, repository `ob3`, workflow `release.yml`, environment blank. Under *Allowed
+   actions*, tick **npm publish** (configurations created after Sep 2026 default to stage-only).
+   The configuration must complete its first successful publish within **2 days** or it expires.
+
+**Automated (preferred)**
+
+```bash
+pnpm version patch        # or minor / major: bumps package.json, commits, tags vX.Y.Z
+git push --follow-tags
+```
+
+The tag starts two workflows: `ci.yml` verifies the commit, and `release.yml` re-runs typecheck,
+tests and the build on Ubuntu, checks that the tag matches `package.json`, then publishes with
+`npm publish --provenance` over OIDC. Provenance links the tarball to the commit and the workflow run.
+If the tag and the version disagree, the job fails before publishing.
+
+**Manual fallback**
+
+```bash
+pnpm publish --access public      # prompts for the 2FA code; prepublishOnly runs typecheck + tests + build
+git tag vX.Y.Z && git push origin vX.Y.Z
+```
+
+`pnpm publish` refuses a dirty working tree; commit first. `npx filecrm@<version>` resolves the
+package only after the registry has replicated the new version — a minute or two, occasionally
+longer if the name was queried before it existed.
+
 ## Versioning
 
 * Semver. Frontmatter schema changes bump `ob_schema` and require a documented migration path; `ob` must read older `ob_schema` values indefinitely (never silently upgrade files).

@@ -1,0 +1,47 @@
+name: Release
+
+# Publishes the package when a version tag is pushed:
+#   pnpm version patch && git push --follow-tags
+#
+# Auth is npm Trusted Publishing (OIDC): no NPM_TOKEN secret.
+# One-time setup on npmjs.com → filecrm → Settings → Trusted Publishing:
+#   owner madsouris · repository ob3 · workflow release.yml
+#   and explicitly allow "npm publish" (new configurations default to stage-only).
+# The configuration expires if the first publish does not succeed within 2 days.
+# Requires npm >= 11.5.1 and Node >= 22.14 — Node 24 satisfies both.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Tag matches package.json
+        run: |
+          node -e "const v=require('./package.json').version;const t=process.env.GITHUB_REF_NAME.replace(/^v/,'');if(v!==t){console.error('tag '+t+' does not match package '+v);process.exit(1)}"
+
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+      # prepublishOnly is skipped: the steps above already ran it.
+      - name: Publish to npm
+        run: npm publish --access public --provenance --ignore-scripts

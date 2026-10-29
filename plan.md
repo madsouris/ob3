@@ -15,7 +15,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 | White paper, decisions, feature docs | `[x]` |
 | M0–M6 implementation | `[x]` |
 | Pre-M7 polish (P0–P7) | `[x]` |
-| M7 packaging & release | `[~]` — docs and metadata done, publish pending |
+| M7 packaging & release | `[~]` — `filecrm@1.0.0` published; CI/release workflow pending |
 | Post-v1 backlog | recorded below, not started |
 
 ---
@@ -106,8 +106,9 @@ Release steps (remaining):
 - [x] Zero-native check: ran the installed CLI with `CHOKIDAR_USEPOLLING=1` through a full CRUD cycle
 - [x] `pnpm publish --dry-run`; `npm pack --dry-run` lists only `dist`, `docs`, `README.md`, `LICENSE`, `package.json` (97 files, 382 KB)
 - [x] CI: trigger on `master`
-- [ ] Commit the release, then publish `filecrm@1.0.0` (needs the maintainer's npm login + 2FA)
-- [ ] Add the tag-triggered publish workflow (trusted publishing) after the first release
+- [x] Commit the release, then publish `filecrm@1.0.0` (needs the maintainer's npm login + 2FA)
+- [x] Tag-triggered publish workflow (`.github/workflows/release.yml`, npm trusted publishing)
+- [ ] Configure the trusted publisher on npmjs.com (owner `madsouris`, repo `ob3`, workflow `release.yml`)
 - [ ] Post-publish: `npx filecrm@1.0.0` from a clean directory on macOS/Linux/Windows
 
 **Exit criteria:** a machine with only Node ≥ 20 + Git runs the package from npm, completes the

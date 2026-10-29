@@ -3,6 +3,14 @@
   "version": "1.0.0",
   "description": "Local-first CRM. Markdown files and Git are the database.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/madsouris/ob3.git"
+  },
+  "homepage": "https://github.com/madsouris/ob3#readme",
+  "bugs": {
+    "url": "https://github.com/madsouris/ob3/issues"
+  },
   "type": "module",
   "packageManager": "pnpm@12.11.2",
   "engines": {
