@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import type { ApiRecord } from '@/lib/api';
-import { DOCUMENT_KIND_LABELS } from '@/lib/document-kinds';
 import { formatToday } from '@/lib/format';
+import { valueLabel } from '@/lib/labels';
 
 type BadgeVariant = 'default' | 'secondary' | 'outline' | 'destructive';
 
@@ -29,12 +29,8 @@ const VARIANTS: Readonly<Record<string, BadgeVariant>> = {
   other: 'outline',
 };
 
-const label = (value: string): string =>
-  DOCUMENT_KIND_LABELS[value] ??
-  (value === '' ? '—' : value.charAt(0).toUpperCase() + value.slice(1));
-
 export const StatusBadge = ({ status }: { readonly status: string }) => (
-  <Badge variant={VARIANTS[status] ?? 'outline'}>{label(status)}</Badge>
+  <Badge variant={VARIANTS[status] ?? 'outline'}>{valueLabel(status)}</Badge>
 );
 
 /** `overdue` is derived for display: a sent invoice past its due date. Never written to the file. */

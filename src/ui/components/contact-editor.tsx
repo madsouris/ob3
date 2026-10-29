@@ -36,6 +36,7 @@ import { MarkdownField } from '@/components/markdown-field';
 import { SheetBody } from '@/components/sheet-body';
 import { ApiRequestError, api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
+import { valueLabel } from '@/lib/labels';
 import { useWorkspace } from '@/lib/workspace';
 
 /** Mirrors docs/03. Duplicated here to keep Zod out of the client bundle. */
@@ -307,8 +308,8 @@ export const ContactEditor = ({ contactId, open, onOpenChange }: ContactEditorPr
                   </SelectTrigger>
                   <SelectContent>
                     {STATUSES.map((status) => (
-                      <SelectItem key={status} value={status} className="capitalize">
-                        {status}
+                      <SelectItem key={status} value={status}>
+                        {valueLabel(status)}
                       </SelectItem>
                     ))}
                   </SelectContent>

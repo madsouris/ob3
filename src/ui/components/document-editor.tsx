@@ -223,7 +223,7 @@ export const DocumentEditor = ({ documentId, open, onOpenChange }: DocumentEdito
                     </SelectTrigger>
                     <SelectContent>
                       {SCOPES.map((scope) => (
-                        <SelectItem key={scope} value={scope} className="capitalize">
+                        <SelectItem key={scope} value={scope}>
                           {scope === 'global' ? 'Global template' : 'Client document'}
                         </SelectItem>
                       ))}

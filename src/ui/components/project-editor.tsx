@@ -35,6 +35,7 @@ import { MarkdownField } from '@/components/markdown-field';
 import { SheetBody } from '@/components/sheet-body';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
+import { valueLabel } from '@/lib/labels';
 import { recordTitle, useWorkspace } from '@/lib/workspace';
 
 const STATUSES = ['active', 'completed', 'archived'] as const;
@@ -205,8 +206,8 @@ export const ProjectEditor = ({ projectId, open, onOpenChange }: ProjectEditorPr
                   </SelectTrigger>
                   <SelectContent>
                     {STATUSES.map((status) => (
-                      <SelectItem key={status} value={status} className="capitalize">
-                        {status}
+                      <SelectItem key={status} value={status}>
+                        {valueLabel(status)}
                       </SelectItem>
                     ))}
                   </SelectContent>

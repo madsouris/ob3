@@ -47,6 +47,7 @@ import { StatusBadge, invoiceStatus } from '@/components/status-badge';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
 import { formatDate } from '@/lib/format';
+import { valueLabel } from '@/lib/labels';
 import { navigate } from '@/lib/router';
 import { recordTitle, useWorkspace } from '@/lib/workspace';
 import { parseMoney } from '../../model/money.js';
@@ -534,8 +535,8 @@ export const Billing = ({ type, initialId }: BillingProps) => {
                         </SelectTrigger>
                         <SelectContent>
                           {meta.statuses.map((status) => (
-                            <SelectItem key={status} value={status} className="capitalize">
-                              {status}
+                            <SelectItem key={status} value={status}>
+                              {valueLabel(status)}
                             </SelectItem>
                           ))}
                         </SelectContent>
