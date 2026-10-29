@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Field } from '@/components/field';
+import { DateField } from '@/components/date-field';
+import { SheetBody } from '@/components/sheet-body';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
 import { recordTitle, useWorkspace } from '@/lib/workspace';
@@ -172,7 +174,7 @@ export const TaskEditor = ({ taskId, defaultProjectId, open, onOpenChange }: Tas
     <Sheet open={open} onOpenChange={(next) => (next ? undefined : close())}>
       <SheetContent className="w-full sm:max-w-lg">
         <ScrollArea className="h-full">
-          <div className="flex flex-col gap-5 pb-6">
+          <div className="flex flex-col gap-3 pb-6">
             <SheetHeader>
               <SheetTitle>{creating ? 'New task' : 'Edit task'}</SheetTitle>
               <SheetDescription className="font-mono text-xs">
@@ -180,7 +182,8 @@ export const TaskEditor = ({ taskId, defaultProjectId, open, onOpenChange }: Tas
               </SheetDescription>
             </SheetHeader>
 
-            <Field label="Title" htmlFor="task-title">
+            <SheetBody>
+              <Field label="Title" htmlFor="task-title">
               <Input
                 id="task-title"
                 value={form.title}
@@ -215,13 +218,10 @@ export const TaskEditor = ({ taskId, defaultProjectId, open, onOpenChange }: Tas
                 </Select>
               </Field>
               <Field label="Due date" htmlFor="task-due">
-                <Input
+                <DateField
                   id="task-due"
-                  type="date"
                   value={form.due_date}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, due_date: event.target.value }))
-                  }
+                  onChange={(value) => setForm((current) => ({ ...current, due_date: value }))}
                 />
               </Field>
             </div>
@@ -257,6 +257,7 @@ export const TaskEditor = ({ taskId, defaultProjectId, open, onOpenChange }: Tas
                 className="font-mono text-xs"
               />
             </Field>
+            </SheetBody>
 
             <SheetFooter className="flex-row justify-between gap-2">
               {creating ? (

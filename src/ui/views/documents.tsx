@@ -35,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/field';
 import { PageHeader } from '@/components/page-header';
+import { SheetBody } from '@/components/sheet-body';
 import { StatusBadge } from '@/components/status-badge';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
@@ -230,7 +231,7 @@ export const Documents = ({ initialId }: DocumentsProps) => {
       <Sheet open={open} onOpenChange={(next) => (next ? undefined : close())}>
         <SheetContent className="w-full sm:max-w-2xl">
           <ScrollArea className="h-full">
-            <div className="flex flex-col gap-5 pb-6">
+            <div className="flex flex-col gap-3 pb-6">
               <SheetHeader>
                 <SheetTitle>{creating ? 'New document' : 'Edit document'}</SheetTitle>
                 <SheetDescription className="font-mono text-xs">
@@ -238,7 +239,8 @@ export const Documents = ({ initialId }: DocumentsProps) => {
                 </SheetDescription>
               </SheetHeader>
 
-              <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
+              <SheetBody>
+                <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
                 <Field label="Title" htmlFor="title">
                   <Input
                     id="title"
@@ -274,6 +276,7 @@ export const Documents = ({ initialId }: DocumentsProps) => {
                   className="font-mono text-xs"
                 />
               </Field>
+              </SheetBody>
 
               <SheetFooter className="flex-row justify-between gap-2">
                 {creating ? (

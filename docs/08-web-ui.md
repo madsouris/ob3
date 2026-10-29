@@ -30,7 +30,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 └──────────┴────────────────────────────────────────────────────┘
 ```
 
-* Header: workspace name and record count, Git badge, `⌘K` palette, theme toggle. The badge is a button that opens the Git dialog.
+* Header: workspace name and record count, Git badge, `⌘K` palette, theme toggle (`Shift+D`, ignored while typing in a form control). The badge is a button that opens the Git dialog.
 * Sidebar collapses under 900 px into a sheet; below 768 px the board's three columns stack vertically instead of scrolling sideways.
 * `⌘K` palette: navigate and ranked search. "Create" and "run sync" actions are planned; today creation lives on each view and sync lives in the Git dialog.
 
@@ -63,7 +63,7 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 
 ## Editors
 
-* **Forms** (contacts, projects, tasks, billing, settings): a sheet with explicit Save/Cancel; `Esc` or Cancel discards, and a failed save keeps the typed values with the server's message in a toast.
+* **Forms** (contacts, projects, tasks, billing, settings): a sheet with explicit Save/Cancel; `Esc` or Cancel discards, and a failed save keeps the typed values with the server's message in a toast. Date fields use the shadcn `Calendar` popover (`DateField`), never the native browser picker.
 * **Markdown** (document body, task notes, invoice notes): plain textarea — no rich-text editor and no preview pane. The file on disk is the artifact.
 * **Line items** (estimate/invoice): rows with description/qty/unit price; totals recompute live using the same cents helpers as the server (shared module, single implementation).
 * **Conflict banner (contacts):** "This file changed on disk" → *Reload from disk* (discard local edits) or save again to overwrite. Never auto-merges.

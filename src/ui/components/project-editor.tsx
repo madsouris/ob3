@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Field, FieldGrid } from '@/components/field';
+import { SheetBody } from '@/components/sheet-body';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
 import { recordTitle, useWorkspace } from '@/lib/workspace';
@@ -151,7 +152,7 @@ export const ProjectEditor = ({ projectId, open, onOpenChange }: ProjectEditorPr
     <Sheet open={open} onOpenChange={(next) => (next ? undefined : close())}>
       <SheetContent className="w-full sm:max-w-lg">
         <ScrollArea className="h-full">
-          <div className="flex flex-col gap-5 pb-6">
+          <div className="flex flex-col gap-3 pb-6">
             <SheetHeader>
               <SheetTitle>{creating ? 'New project' : 'Edit project'}</SheetTitle>
               <SheetDescription className="font-mono text-xs">
@@ -159,7 +160,8 @@ export const ProjectEditor = ({ projectId, open, onOpenChange }: ProjectEditorPr
               </SheetDescription>
             </SheetHeader>
 
-            <Field label="Project name" htmlFor="project_name">
+            <SheetBody>
+              <Field label="Project name" htmlFor="project_name">
               <Input
                 id="project_name"
                 value={form.project_name}
@@ -227,6 +229,7 @@ export const ProjectEditor = ({ projectId, open, onOpenChange }: ProjectEditorPr
                 className="font-mono text-xs"
               />
             </Field>
+            </SheetBody>
 
             <SheetFooter className="flex-row justify-between gap-2">
               {creating ? (

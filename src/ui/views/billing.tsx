@@ -36,10 +36,12 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/empty-state';
+import { DateField } from '@/components/date-field';
 import { Field } from '@/components/field';
 import { LineItemsEditor, computeTotals, draftsFrom, emptyLine } from '@/components/line-items';
 import type { LineItemDraft } from '@/components/line-items';
 import { PageHeader } from '@/components/page-header';
+import { SheetBody } from '@/components/sheet-body';
 import { StatusBadge, invoiceStatus } from '@/components/status-badge';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
@@ -397,7 +399,7 @@ export const Billing = ({ type, initialId }: BillingProps) => {
       <Sheet open={open} onOpenChange={(next) => (next ? undefined : close())}>
         <SheetContent className="w-full sm:max-w-3xl">
           <ScrollArea className="h-full">
-            <div className="flex flex-col gap-5 pb-6">
+            <div className="flex flex-col gap-3 pb-6">
               <SheetHeader>
                 <SheetTitle>
                   {creating ? `New ${type}` : `Edit ${type}`}
@@ -409,7 +411,8 @@ export const Billing = ({ type, initialId }: BillingProps) => {
 
               {form === null ? null : (
                 <>
-                  {editing?.type === 'estimate' && editing.converted_invoice_id !== '' ? (
+                  <SheetBody>
+                    {editing?.type === 'estimate' && editing.converted_invoice_id !== '' ? (
                     <Alert>
                       <AlertTitle>Already converted</AlertTitle>
                       <AlertDescription>
@@ -520,25 +523,23 @@ export const Billing = ({ type, initialId }: BillingProps) => {
                       </Select>
                     </Field>
                     <Field label="Issue date" htmlFor="billing-issued">
-                      <Input
+                      <DateField
                         id="billing-issued"
-                        type="date"
                         value={form.issue_date}
-                        onChange={(event) =>
+                        onChange={(value) =>
                           setForm((current) =>
-                            current === null ? current : { ...current, issue_date: event.target.value },
+                            current === null ? current : { ...current, issue_date: value },
                           )
                         }
                       />
                     </Field>
                     <Field label={meta.dateLabel} htmlFor="billing-second">
-                      <Input
+                      <DateField
                         id="billing-second"
-                        type="date"
                         value={form.second_date}
-                        onChange={(event) =>
+                        onChange={(value) =>
                           setForm((current) =>
-                            current === null ? current : { ...current, second_date: event.target.value },
+                            current === null ? current : { ...current, second_date: value },
                           )
                         }
                       />
@@ -627,6 +628,8 @@ export const Billing = ({ type, initialId }: BillingProps) => {
                       className="font-mono text-xs"
                     />
                   </Field>
+
+                  </SheetBody>
 
                   <SheetFooter className="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap items-center gap-1">

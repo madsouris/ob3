@@ -93,6 +93,13 @@ const NotFound = ({ view }: { readonly view: string }) => (
   </Alert>
 );
 
+const isEditableTarget = (target: EventTarget | null): boolean => {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+};
+
 const LoadingState = () => (
   <div className="flex flex-col gap-4">
     <Skeleton className="h-8 w-56" />
@@ -183,11 +190,25 @@ export const App = () => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setPaletteOpen((open) => !open);
+        return;
+      }
+
+      // Shift+D toggles the theme. It must not fire while typing an uppercase D.
+      if (
+        event.shiftKey &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === 'd' &&
+        !isEditableTarget(event.target)
+      ) {
+        event.preventDefault();
+        toggle();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [toggle]);
 
   const navList = (onNavigate?: () => void): ReactNode => (
     <nav className="flex flex-col gap-1" aria-label="Main">
@@ -270,7 +291,10 @@ export const App = () => {
               variant="ghost"
               size="icon-sm"
               onClick={toggle}
-              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              title="Toggle theme (Shift+D)"
+              aria-label={
+                theme === 'dark' ? 'Switch to light theme (Shift+D)' : 'Switch to dark theme (Shift+D)'
+              }
             >
               {theme === 'dark' ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
             </Button>

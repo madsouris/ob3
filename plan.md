@@ -179,6 +179,25 @@ Docs: [`docs/09-git-sync.md`](./docs/09-git-sync.md), [`docs/07-server-api-and-s
 
 ---
 
+## Pre-M7 Polish Track (`POLISH.md`)
+
+Goal: close the UI/UX gaps in [`POLISH.md`](./POLISH.md) before packaging. Ordered by dependency, not by the file's numbering.
+
+- [x] **P0 — Shell polish:** sheet body gutters; `Shift+D` theme toggle (ignores editable targets); shadcn `Calendar` + `Popover` date fields replacing native `type="date"`
+- [ ] **P1 — Markdown & contact detail:** `react-markdown` + `remark-gfm` renderer, Write/Preview editor tabs, markdown in project/contact/task/document/billing/print; `/contacts/:id` read-only detail with Edit
+- [ ] **P2 — Business logo:** client-side normalize to PNG (≤1024 px, strips EXIF), validate magic bytes server-side (≤512 KB, no SVG), store at `.ob/assets/logo.png` (committed, synced), `business.logo` in config, monogram fallback out of the box, logo on Settings/invoice/estimate print
+- [ ] **P3 — Documents model:** `scope: global|client` + `client_id`, document detail (`/documents/:id`) and A4 print (`/documents/:id/print`), `{{variable}}` renderer (`business.*`, `client.*`, `project.*`, `invoice.number`, `estimate.number`, `today`; unknown stays literal)
+- [ ] **P4 — Attachments:** `document_ids: string[]` on estimates/invoices, multi-select tags in the billing editor, all attached documents rendered on view/print with the billing context, legacy `terms_document` as fallback, copied by duplicate/convert
+- [ ] **P5 — CSV import:** contacts/projects/tasks only (billing needs a different shape), RFC4180 parser, skeleton download, partial import with per-row errors, Settings card (`docs/14-csv-import.md`)
+- [ ] **P6 — Insight:** paid revenue total + current month (by `issue_date`) + outstanding on the dashboard; `GET /api/system` (uptime, RSS/heap, CPU cores/load, memory, workspace disk) in Settings
+- [ ] **P7 — Final pass:** impeccable detect/critique, A4 print in light + dark, keyboard traversal, docs consistency, full verification
+
+**Decisions:** logo lives in the user's repo under `.ob/assets/` (only `.ob/state/` is ignored); uploads are normalized client-side to PNG and re-validated server-side. Attachments use document **ids**; old `terms_document` paths remain readable. Document templates are rendered at view/print time and never rewritten into files. CSV billing import is out of scope. Revenue has no `paid_at` field yet, so the month is by `issue_date`. No persistent server log viewer; the Git step log is the activity log.
+
+Docs: [`docs/08-web-ui.md`](./docs/08-web-ui.md), [`docs/03-data-model.md`](./docs/03-data-model.md), new `docs/13-documents.md` and `docs/14-csv-import.md`
+
+---
+
 ## Milestone M7 — Packaging & Release
 
 - [ ] `npx` smoke test from a packed tarball (`pnpm pack` → install in a temp dir) on macOS/Linux/Windows

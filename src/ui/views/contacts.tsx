@@ -36,6 +36,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/empty-state';
 import { Field, FieldGrid } from '@/components/field';
 import { PageHeader } from '@/components/page-header';
+import { SheetBody } from '@/components/sheet-body';
 import { StatusBadge } from '@/components/status-badge';
 import { ApiRequestError, api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
@@ -302,13 +303,14 @@ export const Contacts = ({ initialId }: ContactsProps) => {
       <Sheet open={open} onOpenChange={(next) => (next ? undefined : close())}>
         <SheetContent className="w-full sm:max-w-lg">
           <ScrollArea className="h-full">
-            <div className="flex flex-col gap-5 pb-6">
+            <div className="flex flex-col gap-3 pb-6">
               <SheetHeader>
                 <SheetTitle>{creating ? 'New contact' : 'Edit contact'}</SheetTitle>
                 <SheetDescription className="font-mono text-xs">{path}</SheetDescription>
               </SheetHeader>
 
-              {conflict ? (
+              <SheetBody>
+                {conflict ? (
                 <Alert variant="destructive">
                   <AlertTitle>This file changed on disk</AlertTitle>
                   <AlertDescription>
@@ -408,6 +410,7 @@ export const Contacts = ({ initialId }: ContactsProps) => {
                   className="font-mono text-xs"
                 />
               </Field>
+              </SheetBody>
 
               <SheetFooter className="flex-row justify-between gap-2">
                 {creating ? (

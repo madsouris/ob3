@@ -101,6 +101,7 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] Invoice print output at A4 only (16 mm margins), printed from both light and dark mode; totals stay on page 1.
 - [ ] Project board drag between the three columns, plus the "Move to…" keyboard path, each moves exactly one file.
 - [ ] Git badge states (clean / uncommitted / N to push / syncing / error) against a real remote, and the `beforeunload` prompt appears only for dirty or unpushed work.
+- [ ] `Shift+D` toggles the theme from the dashboard but types a capital D inside a text field; the date popover opens, selects, and clears in light and dark mode.
 - [ ] Rebase conflict in the Git dialog: conflicted paths listed, Abort sync returns to `idle`.
 - [ ] `npx` from five different cwds (no cwd assumptions).
 - [ ] Kill -9 the server, restart, confirm index rebuild and no lock leak.
