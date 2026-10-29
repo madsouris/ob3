@@ -77,7 +77,7 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * Board scope: `/projects/:id` renders only that project's tasks; `/tasks` renders every task with the project name on each card. Both use the same `TaskBoard`.
 * Column source: `tasks/todo`, `tasks/doing`, `tasks/done` — the folder, not a field.
 * Drag and drop: dropping on a card inserts the dragged card before it (`beforeId`), dropping on a column appends. Either way it is one `POST /api/tasks/:id/move`; no optimistic file writes.
-* Keyboard path: every card has a "Move to…" menu, so drag is never the only way to change a column. Free reordering inside a column is drag-only today.
+* Keyboard path: every card has a "Move to…" menu covering both column changes and in-column order ("Move up" / "Move down" use `beforeId` / `afterId`), so drag is never the only way to move or reorder a task.
 * The board re-renders when `record.upsert` replaces the task: the move response does it for local drags, and the watcher does it for external file moves (`record.moved` is published for other clients but the provider applies the accompanying upsert).
 
 ## Money rendering
@@ -93,10 +93,10 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * Routes `/invoices/:id/print` and `/estimates/:id/print` render outside the app shell (`PrintDocument`), so there is no sidebar or header to hide.
 * Documents print at `/documents/:id/print` with the same shell: logo, title/date, client block and rendered Markdown (templates resolved first).
 * `@page { size: A4; margin: 16mm }`; the screen shows a paper sheet with a toolbar marked `.no-print` that the print media query removes.
-* **Light-only:** the sheet uses literal paper/ink values (`.print-sheet`, `.print-ink` …), never theme tokens, so printing from dark mode is identical. `print-color-adjust: exact` keeps the hairlines.
+* **Light-only:** the sheet uses literal paper/ink values (`.print-sheet`, `.print-ink` …), never theme tokens, so printing from dark mode is identical. `print-color-adjust: exact` keeps the hairlines, and `@media print { html { color-scheme: light } }` stops a dark browser UI from painting a dark canvas behind the sheet.
 * The business block uses the uploaded logo when `business.logo` is set, otherwise a typographic monogram (initials, or `ob` for an unnamed business). Logo height is 12 mm; it is committed with the workspace.
 * Contents: business block from `.ob/config.json`, document number/dates, billed-to and project, line table, subtotal/tax/total, notes body, and the linked `terms_document` body. No signature block and no server-side PDF — the browser's print dialog produces the PDF (AD-15).
-* `break-inside: avoid` on table rows, parties and totals keeps a short document on one page; a long line-item list flows onto page 2 by design.
+* `break-inside: avoid` on table rows, parties and totals keeps a short document on one page; a long line-item list flows onto page 2 by design, and `.print-table thead { display: table-header-group }` repeats the column header there.
 
 ## Import (P5)
 
@@ -133,8 +133,9 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 
 ## Accessibility & polish bar
 
-* Every interactive element reachable by keyboard; visible focus ring; no drag-only actions.
-* Labels bound to inputs; error text linked via `aria-describedby`.
+* Every interactive element reachable by keyboard; visible focus ring; no drag-only actions (the board's menu covers column changes and in-column order).
+* Labels are bound to inputs. Validation failures are announced through the sonner region and keep the typed values; inline field-level errors (`aria-invalid` + `aria-describedby`) are **not** implemented — tracked as post-v1 in `plan.md`.
+* Every dialog, sheet and drawer has a title; icon-only buttons carry an `aria-label`; the logo and Markdown images have alt text.
 * `prefers-reduced-motion` disables board/dialog animations.
 * Color is never the only signal (status = icon + text + color).
 * Empty states explain the *next action*, not just "no data".
@@ -152,6 +153,8 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] Documents list filters All/Global/Client, open a rendered detail page, and print to A4; templates resolve `{{business.*}}`, `{{client.*}}` and `{{today}}` with unknown keys left literal.
 - [x] Settings → Import creates contacts, projects and tasks from a CSV skeleton, reports skipped rows with their spreadsheet line, and leaves the UI lists updated without a reload.
 - [x] The dashboard shows paid revenue (total and current month by `issue_date`) and outstanding (sent/overdue) as integer-cent sums, and Settings → Workspace shows uptime, memory, CPU and disk from `GET /api/system`.
+- [x] Moving a task within its column works from the keyboard ("Move up" / "Move down" in the card menu) and produces one `move` call, not a drag-only path.
+- [x] Printing from dark mode produces the same light A4 sheet: literal ink/paper values, `color-scheme: light` in the print media query, and a repeated table header across pages.
 - [x] Sync reports its four steps, surfaces a rebase conflict with paths, and recovers through an explicit Abort action (`tests/git/sync.test.ts`).
 - [x] The badge reflects real `git status`; `beforeunload` is registered only for `dirty || unpushed` (manual check — no browser automation in the suite).
 - [ ] Print preview of a 3-line invoice fits one page at A4 — the sheet is A4 with 16 mm margins and totals/rows are unbreakable; final one-page fit depends on content length and needs a manual print check per document.

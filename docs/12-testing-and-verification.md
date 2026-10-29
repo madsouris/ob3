@@ -99,6 +99,11 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] Revenue equals the sum of `paid` invoice totals; the month bucket uses `issue_date` in UTC (manual check against a demo workspace).
 - [ ] Outstanding excludes drafts and cancelled invoices (manual check against a demo workspace).
 
+**Keyboard & print (P7)**
+- [x] Reordering inside a column through `afterId` / `beforeId` keeps one file and only changes `order` (`tests/server/api.test.ts`).
+- [x] Print CSS is light in both themes (literal ink values, `color-scheme: light`) and repeats the line-item header on page 2 (static audit).
+- [ ] Full keyboard traversal of contacts CRUD and a two-page invoice print in dark mode (browser pass in M7).
+
 ## Test hygiene rules
 
 * Every test that touches the FS uses `mkdtemp` and asserts on a cleaned-up directory.
@@ -113,8 +118,8 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] Windows: rename while the file is open in Notepad; blocked-write retry path.
 - [ ] Linux: external `git checkout` of a different branch while the UI is open.
 - [ ] NFS/SMB workspace with polling fallback.
-- [ ] Invoice print output at A4 only (16 mm margins), printed from both light and dark mode; totals stay on page 1.
-- [ ] Project board drag between the three columns, plus the "Move to…" keyboard path, each moves exactly one file.
+- [ ] Invoice print output at A4 only (16 mm margins), printed from both light and dark mode; totals stay on page 1 and a second page repeats the line-item header.
+- [ ] Project board drag between the three columns, plus the "Move to…" keyboard path (column change and Move up / Move down), each moves exactly one file.
 - [ ] Git badge states (clean / uncommitted / N to push / syncing / error) against a real remote, and the `beforeunload` prompt appears only for dirty or unpushed work.
 - [ ] `Shift+D` toggles the theme from the dashboard but types a capital D inside a text field; the date popover opens, selects, and clears in light and dark mode.
 - [ ] Logo upload from a JPEG with EXIF: preview updates immediately, print shows the resized logo, `.ob/assets/logo.png` is committed, and no EXIF survives.

@@ -126,13 +126,10 @@ export const Dashboard = () => {
           </AlertDescription>
         </Alert>
       ) : (
-        <Alert>
-          <CheckCircle2Icon aria-hidden />
-          <AlertTitle>Workspace is consistent</AlertTitle>
-          <AlertDescription>
-            No files need attention. Every record parsed and every reference resolves.
-          </AlertDescription>
-        </Alert>
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <CheckCircle2Icon aria-hidden className="size-3.5 text-primary/70" />
+          Workspace is consistent — every record parsed and every reference resolves.
+        </p>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

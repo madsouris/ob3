@@ -327,6 +327,11 @@
 }
 
 @media print {
+  html {
+    /* Keep the UA canvas light even when printing from a dark theme. */
+    color-scheme: light;
+  }
+
   html,
   body {
     background: #fff !important;
@@ -357,6 +362,11 @@
   .print-parties,
   .print-totals {
     break-inside: avoid;
+  }
+
+  /* Repeat the header when a long line-item table flows onto page 2. */
+  .print-table thead {
+    display: table-header-group;
   }
 
   /* Markdown inside the sheet uses literal ink, never theme tokens. */

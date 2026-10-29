@@ -205,6 +205,31 @@ describe('task moves', () => {
     expect(test.context.index.boardTasks('todo')).toHaveLength(1);
   });
 
+  it('reorders within a column through afterId and beforeId', async () => {
+    const test = await server('demo');
+    const first = 'tsk_01J8X7300AQ4M2N8V3R5T7W9Y0';
+    const second = 'tsk_01J8X7300BQ4M2N8V3R5T7W9Y0';
+    const order = (): string[] =>
+      test.context.index.boardTasks('todo').map((entry) => entry.record.id);
+    expect(order()).toEqual([first, second]);
+
+    const down = await test.mutate('POST', `/api/tasks/${first}/move`, {
+      to: 'todo',
+      afterId: second,
+    });
+    expect(down.status).toBe(200);
+    const downBody = (await down.json()) as { record: { path: string } };
+    expect(downBody.record.path).toBe('tasks/todo/tsk_homepage-hero.md');
+    expect(order()).toEqual([second, first]);
+
+    const up = await test.mutate('POST', `/api/tasks/${first}/move`, {
+      to: 'todo',
+      beforeId: second,
+    });
+    expect(up.status).toBe(200);
+    expect(order()).toEqual([first, second]);
+  });
+
   it('rejects a move for a non-task id', async () => {
     const test = await server('demo');
     const response = await test.mutate(
