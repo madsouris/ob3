@@ -424,4 +424,14 @@
   .print-sheet .markdown div {
     border-color: var(--print-rule);
   }
+
+  .print-sheet .print-logo {
+    height: 12mm;
+  }
+
+  .print-sheet .business-logo span {
+    border-color: var(--print-ink);
+    border-radius: 2px;
+    font-size: 8px;
+  }
 }

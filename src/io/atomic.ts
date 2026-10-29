@@ -3,13 +3,13 @@ import { chmod, mkdir, open, rename, stat, unlink } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 /**
- * Writes a file atomically: content goes to a temp file in the same directory,
+ * Writes bytes atomically: content goes to a temp file in the same directory,
  * then a rename replaces the target (docs/06-file-watcher-and-io.md). Rename is
  * only atomic within a volume, hence the same-directory placement.
  */
-export async function writeFileAtomic(
+export async function writeBytesAtomic(
   absolutePath: string,
-  data: string,
+  data: Uint8Array,
   options: { exclusive?: boolean; mode?: number } = {},
 ): Promise<void> {
   await mkdir(dirname(absolutePath), { recursive: true });
@@ -23,7 +23,7 @@ export async function writeFileAtomic(
   const tempPath = `${dirname(absolutePath)}/.ob-tmp-${randomUUID()}`;
   const handle = await open(tempPath, 'wx', options.mode ?? 0o644);
   try {
-    await handle.writeFile(data, 'utf8');
+    await handle.writeFile(data);
     await handle.sync();
   } finally {
     await handle.close();
@@ -35,6 +35,14 @@ export async function writeFileAtomic(
     await unlink(tempPath).catch(() => undefined);
     throw error;
   }
+}
+
+export function writeFileAtomic(
+  absolutePath: string,
+  data: string,
+  options: { exclusive?: boolean; mode?: number } = {},
+): Promise<void> {
+  return writeBytesAtomic(absolutePath, Buffer.from(data, 'utf8'), options);
 }
 
 /** Writes with mode 0600 — used for `.ob/state` files that hold the session token. */

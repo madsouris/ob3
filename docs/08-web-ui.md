@@ -48,7 +48,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | Invoices | Table; derived `overdue` badge | Edit, duplicate, print, mark sent/paid |
 | Print (`/invoices/:id/print`, `/estimates/:id/print`) | A4 sheet: business header, billing details, lines, totals, notes, terms | Browser print / Save as PDF |
 | Documents | List of terms/proposals/notes | Markdown editor + preview |
-| Settings | Business profile, currency, `tax_rate_bps`, default terms, `commit_on_save` | Save → PATCH `/api/config` |
+| Settings | Business profile, logo, currency, `tax_rate_bps`, default terms, `commit_on_save` | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo` |
 | Needs attention | Issue list with file preview and resolve actions | Explicit resolve only |
 
 ## Data layer
@@ -90,6 +90,7 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * Routes `/invoices/:id/print` and `/estimates/:id/print` render outside the app shell (`PrintDocument`), so there is no sidebar or header to hide.
 * `@page { size: A4; margin: 16mm }`; the screen shows a paper sheet with a toolbar marked `.no-print` that the print media query removes.
 * **Light-only:** the sheet uses literal paper/ink values (`.print-sheet`, `.print-ink` …), never theme tokens, so printing from dark mode is identical. `print-color-adjust: exact` keeps the hairlines.
+* The business block uses the uploaded logo when `business.logo` is set, otherwise a typographic monogram (initials, or `ob` for an unnamed business). Logo height is 12 mm; it is committed with the workspace.
 * Contents: business block from `.ob/config.json`, document number/dates, billed-to and project, line table, subtotal/tax/total, notes body, and the linked `terms_document` body. No signature block and no server-side PDF — the browser's print dialog produces the PDF (AD-15).
 * `break-inside: avoid` on table rows, parties and totals keeps a short document on one page; a long line-item list flows onto page 2 by design.
 
@@ -127,6 +128,7 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] A save produces one path-scoped commit after the debounce; an unrelated external edit stays unstaged (integration tests in `tests/git/commit-on-save.test.ts`).
 - [x] Contact rows open a read-only contact page with Markdown notes and an Edit sheet; creating a contact stays on the list.
 - [x] Notes/descriptions/terms render as Markdown on screen and in the A4 print sheet (GFM tables and task lists included).
+- [x] Uploading a logo in Settings previews it immediately, stores `.ob/assets/logo.png`, and prints it on invoices/estimates; with no logo, a monogram is used.
 - [x] Sync reports its four steps, surfaces a rebase conflict with paths, and recovers through an explicit Abort action (`tests/git/sync.test.ts`).
 - [x] The badge reflects real `git status`; `beforeunload` is registered only for `dirty || unpushed` (manual check — no browser automation in the suite).
 - [ ] Print preview of a 3-line invoice fits one page at A4 — the sheet is A4 with 16 mm margins and totals/rows are unbreakable; final one-page fit depends on content length and needs a manual print check per document.

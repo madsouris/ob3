@@ -141,25 +141,42 @@ const request = async <T>(method: string, path: string, body?: unknown): Promise
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 
-  if (!response.ok) {
-    let code = 'internal';
-    let message = response.statusText;
-    let details: unknown;
-    try {
-      const payload = (await response.json()) as {
-        error?: { code?: string; message?: string; details?: unknown };
-      };
-      code = payload.error?.code ?? code;
-      message = payload.error?.message ?? message;
-      details = payload.error?.details;
-    } catch {
-      // Non-JSON error body (proxy, crash): keep the status text.
-    }
-    throw new ApiRequestError(response.status, code, message, details);
-  }
-
+  if (!response.ok) return throwApiError(response);
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+};
+
+const requestBlob = async <T>(
+  method: string,
+  path: string,
+  body: Blob,
+  contentType: string,
+): Promise<T> => {
+  const response = await fetch(path, {
+    method,
+    headers: { 'x-ob-token': TOKEN, 'content-type': contentType },
+    body,
+  });
+
+  if (!response.ok) return throwApiError(response);
+  return (await response.json()) as T;
+};
+
+const throwApiError = async (response: Response): Promise<never> => {
+  let code = 'internal';
+  let message = response.statusText;
+  let details: unknown;
+  try {
+    const payload = (await response.json()) as {
+      error?: { code?: string; message?: string; details?: unknown };
+    };
+    code = payload.error?.code ?? code;
+    message = payload.error?.message ?? message;
+    details = payload.error?.details;
+  } catch {
+    // Non-JSON error body (proxy, crash): keep the status text.
+  }
+  throw new ApiRequestError(response.status, code, message, details);
 };
 
 export const api = {
@@ -223,6 +240,9 @@ export const api = {
     get: (): Promise<{ config: ObConfig }> => request('GET', '/api/config'),
     patch: (patch: Record<string, unknown>): Promise<{ config: ObConfig }> =>
       request('PATCH', '/api/config', patch),
+    uploadLogo: (blob: Blob): Promise<{ config: ObConfig }> =>
+      requestBlob('POST', '/api/config/logo', blob, 'image/png'),
+    removeLogo: (): Promise<{ config: ObConfig }> => request('DELETE', '/api/config/logo'),
   },
 
   issues: (): Promise<{ issues: Issue[]; generation: number }> =>

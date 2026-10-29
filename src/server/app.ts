@@ -10,6 +10,7 @@ import type { GitService } from '../git/types.js';
 import { ConfigError } from '../workspace/config.js';
 import type { AppContext } from './context.js';
 import { ApiError, errorBody } from './errors.js';
+import { createAssetRoutes } from './routes/assets.js';
 import { createConfigRoutes } from './routes/config.js';
 import { createEventRoutes } from './routes/events.js';
 import { createGitRoutes } from './routes/git.js';
@@ -134,6 +135,7 @@ export const createApp = (context: AppContext, options: AppOptions = {}): Hono =
   app.route('/api', createRecordRoutes(context, search, git));
   app.route('/api', createSearchRoutes(context, search));
   app.route('/api', createConfigRoutes(context, git));
+  app.route('/api', createAssetRoutes(context, git));
   app.route('/api', createGitRoutes(git));
   app.route('/api', createIssueRoutes(context, git));
 

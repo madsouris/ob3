@@ -186,7 +186,8 @@ my-crm/
     "phone": "+1 555-0199",
     "tax_rate_bps": 850,
     "currency": "USD",
-    "payment_link_url": "https://stripe.com/pay/acme"
+    "payment_link_url": "https://stripe.com/pay/acme",
+    "logo": ""
   },
   "default_terms_document": "documents/doc_default-terms.md",
   "server": { "port": 19731 },
@@ -195,6 +196,8 @@ my-crm/
 ```
 
 `tax_rate_bps` is in **basis points** (850 = 8.50%). `server.port` is a *preference*; the effective port is written to `.ob/state/session.json`. `git.commit_on_save` opts out of the default auto-commit-on-save behaviour (see §8.1).
+
+`business.logo` is a workspace-relative PNG path. Settings accepts any image, resizes it to at most 768 px, strips EXIF by re-encoding through a canvas, and the server stores it at `.ob/assets/logo.png` (committed with the workspace). Empty means the printed documents use a typographic monogram, so a fresh workspace still has a mark. SVG and HTML are rejected server-side.
 
 ---
 

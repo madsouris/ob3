@@ -1,5 +1,6 @@
 import { ArrowLeftIcon, PrinterIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BusinessLogo } from '@/components/business-logo';
 import { Markdown } from '@/components/markdown';
 import { formatDate, formatMoney } from '@/lib/format';
 import { navigate } from '@/lib/router';
@@ -43,6 +44,8 @@ export const PrintDocument = ({ type, id }: PrintDocumentProps) => {
   }
 
   const business = config?.business;
+  const businessName =
+    business?.name === undefined || business.name === '' ? 'Your business' : business.name;
   const client = records.contact.find((contact) => contact.id === record.client_id) ?? null;
   const project = records.project.find((item) => item.id === record.project_id) ?? null;
   const terms =
@@ -68,11 +71,12 @@ export const PrintDocument = ({ type, id }: PrintDocumentProps) => {
       <div className="print-sheet mx-auto mb-8 w-full max-w-[210mm]">
         <header className="flex items-start justify-between gap-8">
           <div>
-            <p className="print-business">
-              {business?.name === undefined || business.name === ''
-                ? 'Your business'
-                : business.name}
-            </p>
+            <BusinessLogo
+              name={businessName}
+              logo={business?.logo ?? ''}
+              className="print-logo mb-2"
+            />
+            <p className="print-business">{businessName}</p>
             {business?.address === undefined || business.address === '' ? null : (
               <p className="print-muted print-small">{business.address}</p>
             )}

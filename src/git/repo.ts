@@ -1,7 +1,8 @@
 import { readFile, realpath } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { writeFileAtomic } from '../io/atomic.js';
+import { exists, writeFileAtomic } from '../io/atomic.js';
 import {
+  ASSETS_DIR,
   CONFIG_FILE,
   GITIGNORE_CONTENT,
   GITIGNORE_FILE,
@@ -136,22 +137,19 @@ export const stageAll = async (root: string): Promise<GitResult> => {
     return runGit(['add', '-A', '--', '.'], { cwd: root });
   }
 
-  return runGit(
-    [
-      'add',
-      '-A',
-      '--',
-      'contacts',
-      'projects',
-      'tasks',
-      'estimates',
-      'invoices',
-      'documents',
-      CONFIG_FILE,
-      GITIGNORE_FILE,
-    ],
-    { cwd: root },
-  );
+  const paths = [
+    'contacts',
+    'projects',
+    'tasks',
+    'estimates',
+    'invoices',
+    'documents',
+    CONFIG_FILE,
+    GITIGNORE_FILE,
+  ];
+  if (await exists(workspacePath(root, ASSETS_DIR))) paths.push(ASSETS_DIR);
+
+  return runGit(['add', '-A', '--', ...paths], { cwd: root });
 };
 
 export const readIdentity = async (root: string): Promise<GitIdentity | null> => {

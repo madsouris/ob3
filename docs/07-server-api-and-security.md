@@ -43,6 +43,9 @@ CLI callers (`ob sync`) bypass HTTP entirely and call the service layer directly
 | GET | `/api/health` | `{ ok, version, uptime, workspace }` |
 | GET | `/api/config` | parsed + validated `.ob/config.json` |
 | PATCH | `/api/config` | partial merge; unknown keys preserved, key order kept |
+| GET | `/api/logo` | PNG bytes for the configured logo; `404` when none is set |
+| POST | `/api/config/logo` | raw PNG body (≤ 512 KB) → `{ config }`; signature-validated, stored at `.ob/assets/logo.png` |
+| DELETE | `/api/config/logo` | removes the logo file and clears `business.logo` |
 | GET | `/api/issues` | array of `Issue` |
 | GET | `/api/issues/:key/preview` | `{ path, frontmatter?, body, raw }`, capped 2 MB |
 | POST | `/api/issues/:key/resolve` | `{ action: 'assign-id' \| 'adopt-path' \| 'ignore', ... }` |
@@ -100,6 +103,7 @@ Long-running git work: `POST /api/git/sync` returns when the chain settles; `git
 * **List `q`** is ranked by the search service (`src/index/search.ts`): the route resolves matching ids, then keeps the type's search order among matches (docs/10).
 * **Duplicates** are handled by the service, not the route: the clone is written with a new id and the next `EST/INV-YYYY-NNN` number, so numbering stays consistent under concurrent creates.
 * **Git failures are data.** `POST /api/git/*` returns 200 with `{ ok: false, error: { code, message, output? } }`; codes are listed in docs/09, not in the envelope table below.
+* **Logo uploads** accept only `image/png` bytes with a valid PNG signature; SVG and HTML are rejected. The server always reads `.ob/assets/logo.png`, so a hand-edited `business.logo` cannot point the API at another file. Uploads over 512 KB return 413.
 
 ## Error envelope
 

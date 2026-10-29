@@ -38,7 +38,8 @@ async function writeAtomic(absPath, data) {
 ```
 
 * Temporary files are created **in the destination directory** (cross-device `rename` fails across volumes).
-* Mode is preserved from the original file when it exists; new files get `0o600` on POSIX (inherits umask on Windows).
+* `writeBytesAtomic(path, Uint8Array)` is the primitive; `writeFileAtomic(path, string)` wraps it as UTF-8. The logo upload uses the byte form.
+* New files use mode `0o644`; `.ob/state` files use `writePrivateFileAtomic` (`0o600`) because they hold the session token.
 * On Windows, `rename` over an existing file can throw `EPERM` when an editor holds a lock: retry ×5 with 40 ms backoff, then surface a `write-locked` error to the UI rather than corrupting anything.
 * `.ob-tmp-*` files are excluded from the watcher and swept on startup (older than 1 min).
 
