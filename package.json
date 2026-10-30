@@ -1,6 +1,6 @@
 {
   "name": "filecrm",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Local-first CRM. Markdown files and Git are the database.",
   "license": "MIT",
   "repository": {

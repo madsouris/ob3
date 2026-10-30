@@ -11,6 +11,8 @@ export default defineConfig({
   test: {
     root: '.',
     include: ['tests/**/*.test.ts'],
+    // Hermetic git identity and default branch; see the file's comment.
+    setupFiles: ['./tests/setup-git.ts'],
     environment: 'node',
     restoreMocks: true,
     // Watcher-driven tests wait on real filesystem events; give them room on a

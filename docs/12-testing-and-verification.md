@@ -110,6 +110,7 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 * No test asserts on absolute paths, usernames, or timings that vary by machine (`>` thresholds only with generous margins).
 * Deterministic ULIDs in fixtures; the ULID generator takes an injectable clock + randomness source.
 * No network access in any test. Git tests use local bare repos only.
+* `tests/setup-git.ts` points `GIT_CONFIG_GLOBAL` at a throwaway config (`user.name`/`email`, `init.defaultBranch=main`, no signing) and sets `GIT_CONFIG_NOSYSTEM=1`. `ob` reads identity from git **config**, not from `GIT_AUTHOR_*`, so without this a runner with no global config fails `POST /api/git/init` with `identity_missing` while a developer laptop passes — and a developer's `init.defaultBranch` would silently decide the branch assertion.
 * A failing test must print the offending file diff (helper `expectFileBytes(path).toEqual(expected)`).
 
 ## Manual QA checklist (per release)
@@ -123,6 +124,8 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 - [ ] Git badge states (clean / uncommitted / N to push / syncing / error) against a real remote, and the `beforeunload` prompt appears only for dirty or unpushed work.
 - [ ] `Shift+D` toggles the theme from the dashboard but types a capital D inside a text field; the date popover opens, selects, and clears in light and dark mode.
 - [ ] Logo upload from a JPEG with EXIF: preview updates immediately, print shows the resized logo, `.ob/assets/logo.png` is committed, and no EXIF survives.
+- [ ] Settings → Payment: upload a QR from both a JPEG and a PNG; `.ob/assets/qr.jpg` is overwritten (not accumulated), invoices, estimates and documents print the QR with its fallback link, and **Remove** turns the block off.
+- [ ] Sidebar footer → **User manual** opens `#/manual`, a section link such as `#/manual/troubleshooting` scrolls to it after reload, and the contents rail follows the scroll.
 - [ ] Client-scoped document with `{{client.name}}` / `{{today}}`: detail and A4 print resolve them; an unknown `{{foo.bar}}` stays visible.
 - [ ] Invoice with two attached documents prints both in order with client variables resolved, and a deleted attachment prints a missing-document note.
 - [ ] Download the contacts skeleton, paste three rows in Excel/Numbers (one with a comma inside a quoted note, one with a blank name), re-save as CSV, import: two records appear and the blank row is reported with its line.
