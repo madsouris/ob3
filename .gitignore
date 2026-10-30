@@ -22,6 +22,9 @@ coverage/
 # Local scratch workspaces for manual testing
 /.scratch/
 
+# Local migration inputs/outputs (real client data — never commit)
+/temp/
+
 # sandbox/local npm cache used during development
 .npm-cache/
 

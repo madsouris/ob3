@@ -64,7 +64,7 @@ ob --help
 
 ```text
 ~/crm/
-├── .ob/config.json        business defaults, tax rate, currency, logo reference
+├── .ob/config.json        business defaults, tax rate, currency, logo and payment references
 ├── .ob/assets/logo.png    optional business logo
 ├── .ob/state/             lock and session token (gitignored)
 ├── contacts/  projects/  estimates/  invoices/  documents/

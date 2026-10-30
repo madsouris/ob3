@@ -71,7 +71,11 @@ outstanding invoices. Click any figure to jump to its list.
    percentage (8.5) and stored as basis points (850).
 2. Upload a logo if you have one — any image is resized in the browser and stored as
    `.ob/assets/logo.png`. Without a logo, initials are used everywhere, including prints.
-3. **Save changes.**
+3. **Payment** (the card below Business) chooses how clients pay: **No payment info**, **Payment
+   link** (paste a URL), or **QR code** (upload your bank QR — it is re-encoded as JPEG and stored at
+   `.ob/assets/qr.jpg`, replacing any previous QR). Only the selected mode prints; if you keep a link
+   as well as a QR, the link prints underneath the QR as a fallback.
+4. **Save changes.**
 
 This information appears on estimates, invoices and documents. It lives in `.ob/config.json`, so it
 is committed and synced with the rest of the workspace.
@@ -137,7 +141,8 @@ once per estimate.
 
 1. Open an estimate or invoice and press **Print / PDF** (documents have the same action).
 2. The print view is a strict A4 sheet with 16 mm margins, your logo, both parties, the line table,
-   totals, notes and every attached document. It is always light, even in dark mode.
+   totals, notes and every attached document. It is always light, even in dark mode. The payment
+   block from **Settings → Payment** prints at the bottom: the link, or the QR with its fallback link.
 3. Press **Print / Save as PDF** and choose *Save as PDF* in the browser dialog.
 
 A short bill fits on one page. A long line-item list flows to a second page and repeats the table

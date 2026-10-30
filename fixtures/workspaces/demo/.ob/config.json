@@ -7,7 +7,9 @@
     "phone": "+1 555-0199",
     "tax_rate_bps": 850,
     "currency": "USD",
-    "payment_link_url": "https://stripe.com/pay/acme"
+    "payment": "link",
+    "payment_link_url": "https://stripe.com/pay/acme",
+    "payment_qr": ""
   },
   "default_terms_document": "documents/doc_default-terms.md",
   "server": { "port": 19731 },

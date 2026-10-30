@@ -19,6 +19,8 @@ export default tseslint.config(
       'coverage/**',
       '.agents/**',
       '.npm-cache/**',
+      // Local migration scratch (gitignored; real client data, never linted).
+      'temp/**',
     ],
   },
   js.configs.recommended,

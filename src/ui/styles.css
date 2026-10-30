@@ -305,6 +305,27 @@
   white-space: pre-wrap;
 }
 
+.print-payment {
+  padding-top: 10px;
+  border-top: 1px solid var(--print-rule);
+}
+
+.print-payment-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.print-qr {
+  width: 26mm;
+  height: 26mm;
+  padding: 1.5mm;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--print-rule);
+  border-radius: 2px;
+}
+
 .print-footer {
   display: flex;
   flex-direction: column;

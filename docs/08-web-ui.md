@@ -51,7 +51,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | Documents | Table with All / Global / Client filters | Create; open the document page |
 | Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (sheet), print |
 | Document print (`/documents/:id/print`) | A4 sheet with logo, client block and rendered Markdown | Browser print / Save as PDF |
-| Settings | Business profile, logo, currency, `tax_rate_bps`, `commit_on_save`, CSV import, workspace/system facts | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; import → POST `/api/import`; facts from GET `/api/health` + `/api/system` |
+| Settings | Business profile, logo, payment (link, QR or off), currency, `tax_rate_bps`, `commit_on_save`, CSV import, workspace/system facts | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; QR upload → POST `/api/config/qr`; import → POST `/api/import`; facts from GET `/api/health` + `/api/system` |
 | Needs attention | Issue list with file preview and resolve actions | Explicit resolve only |
 
 ## Data layer
@@ -97,8 +97,16 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * `@page { size: A4; margin: 16mm }`; the screen shows a paper sheet with a toolbar marked `.no-print` that the print media query removes.
 * **Light-only:** the sheet uses literal paper/ink values (`.print-sheet`, `.print-ink` …), never theme tokens, so printing from dark mode is identical. `print-color-adjust: exact` keeps the hairlines, and `@media print { html { color-scheme: light } }` stops a dark browser UI from painting a dark canvas behind the sheet.
 * The business block uses the uploaded logo when `business.logo` is set, otherwise a typographic monogram (initials, or `ob` for an unnamed business). Logo height is 12 mm; it is committed with the workspace.
+* **Payment block:** `business.payment` picks what prints below the attachments — `link` prints `business.payment_link_url`, `qr` prints `.ob/assets/qr.jpg` at 26 mm with “Scan with your banking app to pay.” (plus the link underneath when both are saved), and `""` prints nothing. A QR the browser cannot load falls back to the link instead of a broken image. Invoices, estimates and documents all render it.
 * Contents: business block from `.ob/config.json`, document number/dates, billed-to and project, line table, subtotal/tax/total, notes body, and the linked `terms_document` body. No signature block and no server-side PDF — the browser's print dialog produces the PDF (AD-15).
 * `break-inside: avoid` on table rows, parties and totals keeps a short document on one page; a long line-item list flows onto page 2 by design, and `.print-table thead { display: table-header-group }` repeats the column header there.
+
+## Payment settings (P8)
+
+* Settings → **Payment** switches the mode with a `ToggleGroup`: **No payment info** / **Payment link** / **QR code**. `business.payment` is `""`, `"link"` or `"qr"`; both values stay on file so switching modes never loses the other.
+* The link saves with **Save changes** and must start with `http://` or `https://`. The QR uploads immediately: the browser re-encodes the picked image as JPEG on a white matte (≤ 1024 px, ≤ 512 KB, EXIF stripped) and posts it to `POST /api/config/qr`, which overwrites the single `.ob/assets/qr.jpg` and flips the mode to `qr`.
+* Saving `link` with an empty URL, or `qr` with no uploaded image, is rejected with a toast rather than writing a mode that cannot print. Removing the QR also turns the printed block off.
+* The form has a dirty-guard: once a field is edited, `config.changed` broadcasts (including the ones an upload triggers) no longer overwrite it, so uploading a QR does not discard unsaved business details.
 
 ## Import (P5)
 
@@ -153,6 +161,7 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] The contact page counts projects, client-scoped documents and billing separately, lists that client's documents under Projects, and opens the primary link from a button at the top of Details.
 - [x] Notes/descriptions/terms render as Markdown on screen and in the A4 print sheet (GFM tables and task lists included).
 - [x] Uploading a logo in Settings previews it immediately, stores `.ob/assets/logo.png`, and prints it on invoices/estimates; with no logo, a monogram is used.
+- [x] Settings → Payment switches between a link, an uploaded QR (stored once at `.ob/assets/qr.jpg` and overwritten on replace) and off; the selected mode is what prints on invoices, estimates and documents, and an unreadable QR falls back to the saved link.
 - [x] Documents list filters All/Global/Client, open a rendered detail page, and print to A4; templates resolve `{{business.*}}`, `{{client.*}}` and `{{today}}` with unknown keys left literal.
 - [x] Settings → Import creates contacts, projects and tasks from a CSV skeleton, reports skipped rows with their spreadsheet line, and leaves the UI lists updated without a reload.
 - [x] The dashboard shows paid revenue (total and current month by `issue_date`) and outstanding (sent/overdue) as integer-cent sums, and Settings → Workspace shows uptime, memory, CPU and disk from `GET /api/system`.

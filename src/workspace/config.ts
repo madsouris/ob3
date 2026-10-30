@@ -17,7 +17,11 @@ const businessSchema = z
       .string()
       .regex(/^[A-Za-z]{3}$/, 'currency must be a 3-letter ISO code')
       .default('USD'),
+    /** How clients pay: `link` prints the URL, `qr` prints the image, `''` prints nothing. */
+    payment: z.enum(['', 'link', 'qr']).default(''),
     payment_link_url: z.string().default(''),
+    /** Fixed JPEG path; `.ob/assets/qr.jpg` when set, always overwritten on upload. */
+    payment_qr: z.string().default(''),
     /** Workspace-relative PNG path; `.ob/assets/logo.png` when set. */
     logo: z.string().default(''),
   })

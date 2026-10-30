@@ -48,7 +48,7 @@ save(record):
 * **Messages:** one target → `ob: save <type> <id>` (e.g. `ob: save contact cnt_…`); several → `ob: save N files`.
 * **Deletes and moves** schedule the old and new paths, so one commit captures the rename/removal.
 * **Config changes** schedule `.ob/config.json` under the same flag.
-* **Logo uploads** schedule `.ob/assets/logo.png` and `.ob/config.json`; removal stages the deletion. Both stay in the user's repository (only `.ob/state/` is ignored).
+* **Logo and payment QR uploads** schedule `.ob/assets/logo.png` / `.ob/assets/qr.jpg` and `.ob/config.json`; removal stages the deletion. Both stay in the user's repository (only `.ob/state/` is ignored).
 * **Issue resolutions** schedule the affected paths too: `assign-id` commits the rewritten file; `adopt-path` commits the rename (both paths). `ignore` only writes `.ob/state/` and commits nothing.
 * **Failure-isolated.** A pre-commit hook (or a missing identity) marks the status `error` with the hook output; the file stays saved. The next successful commit clears the error.
 * **Skipped, never an error:** no repository, or the workspace sits inside a parent repository. Saves always succeed.

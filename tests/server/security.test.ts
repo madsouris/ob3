@@ -112,6 +112,22 @@ describe('host and origin hardening', () => {
   });
 });
 
+describe('content security policy', () => {
+  it('allows the object URLs used to decode a picked image', async () => {
+    const { req } = await server();
+    const csp = (await req('/api/health')).headers.get('content-security-policy') ?? '';
+    const imgSrc = csp
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith('img-src')) ?? '';
+
+    expect(imgSrc).toContain("'self'");
+    expect(imgSrc).toContain('data:');
+    // Logo/QR uploads re-encode through a canvas fed by URL.createObjectURL.
+    expect(imgSrc).toContain('blob:');
+  });
+});
+
 describe('body limit', () => {
   it('rejects a body over 1 MB', async () => {
     const { req } = await server();

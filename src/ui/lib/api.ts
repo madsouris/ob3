@@ -260,6 +260,9 @@ export const api = {
     uploadLogo: (blob: Blob): Promise<{ config: ObConfig }> =>
       requestBlob('POST', '/api/config/logo', blob, 'image/png'),
     removeLogo: (): Promise<{ config: ObConfig }> => request('DELETE', '/api/config/logo'),
+    uploadQr: (blob: Blob): Promise<{ config: ObConfig }> =>
+      requestBlob('POST', '/api/config/qr', blob, 'image/jpeg'),
+    removeQr: (): Promise<{ config: ObConfig }> => request('DELETE', '/api/config/qr'),
   },
 
   import: {
