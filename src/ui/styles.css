@@ -194,6 +194,19 @@
   letter-spacing: -0.015em;
 }
 
+/* One mark size for the on-screen A4 preview and the printout, so the preview
+   can be trusted. Ultra-wide logos cap at 300 px and letterbox inside the box. */
+.print-logo {
+  height: 12mm;
+  max-width: 300px;
+}
+
+/* The monogram fallback tints from the paper palette, not the page theme. */
+.print-logo span {
+  border-color: var(--print-ink);
+  border-radius: 2px;
+}
+
 .print-doc-type {
   margin-bottom: 2px;
   font-size: 10px;
@@ -454,10 +467,6 @@
 
   .print-sheet .markdown div {
     border-color: var(--print-rule);
-  }
-
-  .print-sheet .print-logo {
-    height: 12mm;
   }
 
   .print-sheet .business-logo span {
