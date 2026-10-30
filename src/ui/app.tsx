@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import {
+  BookOpenIcon,
   FileTextIcon,
   FolderIcon,
   LayoutDashboardIcon,
@@ -41,6 +42,7 @@ import { Documents } from '@/views/documents';
 import { DocumentDetail } from '@/views/document-detail';
 import { DocumentPrint } from '@/views/document-print';
 import { Issues } from '@/views/issues';
+import { Manual } from '@/views/manual';
 import { PrintDocument } from '@/views/print-document';
 import { ProjectWorkspace } from '@/views/project-workspace';
 import { Projects } from '@/views/projects';
@@ -137,6 +139,8 @@ const renderView = (route: Route): ReactNode => {
       return <Settings />;
     case 'issues':
       return <Issues />;
+    case 'manual':
+      return <Manual section={route.id} />;
     default:
       return <NotFound view={route.view} />;
   }
@@ -262,6 +266,16 @@ export const App = () => {
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-2">{navList()}</div>
         <div className="border-t px-3 py-3">
+          <Button
+            variant={route.view === 'manual' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="mb-2 w-full justify-start gap-2"
+            onClick={() => navigate('manual')}
+            aria-current={route.view === 'manual' ? 'page' : undefined}
+          >
+            <BookOpenIcon aria-hidden />
+            User manual
+          </Button>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             {totalRecords} records in {records.contact.length === 0 ? 'an empty' : 'this'} workspace.
             Files are the database.
@@ -283,7 +297,21 @@ export const App = () => {
                 <SheetTitle className="truncate">{workspaceName}</SheetTitle>
                 <SheetDescription className="font-mono">ob</SheetDescription>
               </SheetHeader>
-              <div className="p-2">{navList()}</div>
+              <div className="p-2">
+                {navList()}
+                <div className="mt-2 border-t pt-2">
+                  <Button
+                    variant={route.view === 'manual' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="w-full justify-start gap-2"
+                    onClick={() => navigate('manual')}
+                    aria-current={route.view === 'manual' ? 'page' : undefined}
+                  >
+                    <BookOpenIcon aria-hidden />
+                    User manual
+                  </Button>
+                </div>
+              </div>
             </SheetContent>
           </Sheet>
 

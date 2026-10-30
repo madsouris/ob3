@@ -1,8 +1,13 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 // Kept separate from vite.config.ts on purpose: the app build uses
 // `root: src/ui`, while tests live at the repo root.
 export default defineConfig({
+  // Same alias the app build uses, so a test can import a view by its real name.
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src/ui', import.meta.url)) },
+  },
   test: {
     root: '.',
     include: ['tests/**/*.test.ts'],

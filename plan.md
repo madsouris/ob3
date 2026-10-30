@@ -18,6 +18,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 | M7 packaging & release | `[~]` — `filecrm@1.0.0` published; CI/release workflow pending |
 | Post-v1 backlog | recorded below, not started |
 | Post-v1: payment info on prints | `[x]` — link or QR, one active mode |
+| Post-v1: in-app user manual | `[x]` — `#/manual`, per-section deep links |
 
 ---
 
@@ -127,8 +128,9 @@ never written back. CSV import always creates, never merges, and resolves refere
 existing records. Revenue is paid invoices by `issue_date` (UTC); outstanding is `sent` + derived
 `overdue`. System facts are read on demand, never polled. Document kinds are a fixed set with
 `other` as the catch-all. Payment info is one active mode (`link`, `qr` or off) and the QR is a single
-fixed JPEG that every upload overwrites. The package is `filecrm`; the repo is `ob3`. Schema changes
-follow [`docs/15`](./docs/15-data-migration.md).
+fixed JPEG that every upload overwrites. The user manual ships inside the bundle from
+`docs/user-manual.md`, parsed into deep-linkable `#/manual/<slug>` sections. The package is `filecrm`;
+the repo is `ob3`. Schema changes follow [`docs/15`](./docs/15-data-migration.md).
 
 ## Cross-cutting rules
 

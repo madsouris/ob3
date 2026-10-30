@@ -1,5 +1,6 @@
 import { useDeferredValue, useEffect, useState, useTransition } from 'react';
 import {
+  BookOpenIcon,
   FileTextIcon,
   FolderIcon,
   LayoutDashboardIcon,
@@ -33,6 +34,7 @@ const NAV_ITEMS: ReadonlyArray<{ label: string; view: string; icon: typeof Users
   { label: 'Documents', view: 'documents', icon: FileTextIcon },
   { label: 'Needs attention', view: 'issues', icon: TriangleAlertIcon },
   { label: 'Settings', view: 'settings', icon: SettingsIcon },
+  { label: 'User manual', view: 'manual', icon: BookOpenIcon },
 ];
 
 const TYPE_LABEL: Readonly<Record<RecordType, string>> = {

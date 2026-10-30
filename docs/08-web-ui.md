@@ -52,6 +52,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (sheet), print |
 | Document print (`/documents/:id/print`) | A4 sheet with logo, client block and rendered Markdown | Browser print / Save as PDF |
 | Settings | Business profile, logo, payment (link, QR or off), currency, `tax_rate_bps`, `commit_on_save`, CSV import, workspace/system facts | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; QR upload → POST `/api/config/qr`; import → POST `/api/import`; facts from GET `/api/health` + `/api/system` |
+| User manual (`/manual`) | `docs/user-manual.md` split into sections, sticky contents rail, numbered sections | Jump to a section (deep link `#/manual/<slug>`), mobile contents sheet |
 | Needs attention | Issue list with file preview and resolve actions | Explicit resolve only |
 
 ## Data layer
@@ -108,6 +109,14 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * Saving `link` with an empty URL, or `qr` with no uploaded image, is rejected with a toast rather than writing a mode that cannot print. Removing the QR also turns the printed block off.
 * The form has a dirty-guard: once a field is edited, `config.changed` broadcasts (including the ones an upload triggers) no longer overwrite it, so uploading a QR does not discard unsaved business details.
 
+## Manual (Read)
+
+* The guide is `docs/user-manual.md`, imported at build time (`?raw`) into the single-file bundle. There is no manual route on the server and no runtime file read, so it works offline and cannot drift from the shipped file.
+* `src/ui/lib/manual.ts` parses it once at module load: the `# ` title becomes the discarded page title, each `## N. Title` becomes a section with a slug (`N` kept as a reference number, the title slugified), `---` separators and repo-only `.md` links (demoted to their label) are stripped.
+* The view is a Read surface inside the Operate shell: a 68ch reading column, sticky contents rail on `lg+`, a Sheet under that width, and section headings with a hairline rule. Body copy uses ink (`--foreground`) instead of the muted note tone.
+* Section links are **router deep links**: `#/manual/<slug>` navigates the hash router, and the view then scrolls `<main>` by hand. Real `#anchor` links are impossible because the hash is the router.
+* The contents rail tracks the scroll position (rAF-throttled) and marks the active section with `aria-current`; clicks update the hash, so back/forward and bookmarks work.
+
 ## Import (P5)
 
 * Settings → **Import** picks a record type, downloads a CSV skeleton from `GET /api/import/skeleton`, and posts the chosen file as text to `POST /api/import`.
@@ -162,6 +171,7 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] Notes/descriptions/terms render as Markdown on screen and in the A4 print sheet (GFM tables and task lists included).
 - [x] Uploading a logo in Settings previews it immediately, stores `.ob/assets/logo.png`, and prints it on invoices/estimates; with no logo, a monogram is used.
 - [x] Settings → Payment switches between a link, an uploaded QR (stored once at `.ob/assets/qr.jpg` and overwritten on replace) and off; the selected mode is what prints on invoices, estimates and documents, and an unreadable QR falls back to the saved link.
+- [x] The user manual opens from the sidebar footer and `⌘K`, renders as numbered sections with a contents rail, and each section is deep-linkable at `#/manual/<slug>`; repo-only `.md` links render as plain text.
 - [x] Documents list filters All/Global/Client, open a rendered detail page, and print to A4; templates resolve `{{business.*}}`, `{{client.*}}` and `{{today}}` with unknown keys left literal.
 - [x] Settings → Import creates contacts, projects and tasks from a CSV skeleton, reports skipped rows with their spreadsheet line, and leaves the UI lists updated without a reload.
 - [x] The dashboard shows paid revenue (total and current month by `issue_date`) and outstanding (sent/overdue) as integer-cent sums, and Settings → Workspace shows uptime, memory, CPU and disk from `GET /api/system`.

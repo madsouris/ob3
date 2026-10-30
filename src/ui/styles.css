@@ -318,6 +318,22 @@
   white-space: pre-wrap;
 }
 
+/* In-app user manual: a reading surface inside the Operate shell. Long-form
+   body copy uses ink rather than the muted note tone, and selections tint from
+   the foreground instead of the browser default. */
+.manual .markdown p,
+.manual .markdown li {
+  color: var(--foreground);
+}
+
+.manual .markdown p {
+  line-height: 1.65;
+}
+
+.manual ::selection {
+  background: color-mix(in oklab, var(--foreground) 14%, transparent);
+}
+
 .print-payment {
   padding-top: 10px;
   border-top: 1px solid var(--print-rule);
