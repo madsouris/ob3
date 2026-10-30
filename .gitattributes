@@ -1,0 +1,9 @@
+# Fixtures are compared byte-for-byte in tests, so the working tree must be LF
+# on every platform. Without this, Windows checks the demo fixture out with CRLF
+# (`core.autocrlf=true`) and content assertions fail there only.
+* text=auto eol=lf
+
+# Screenshots/assets keep whatever bytes they were committed with.
+*.png binary
+*.jpg binary
+*.jpeg binary

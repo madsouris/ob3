@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { splitFrontmatter } from '../../src/model/frontmatter.js';
@@ -369,6 +369,25 @@ describe('duplicate', () => {
     expect(body.record.body).toContain('Three-week engagement');
 
     expect(await readFile(sourcePath, 'utf8')).toBe(before);
+  });
+
+  it('duplicates a record whose file mixes header and body newlines', async () => {
+    const test = await server('demo');
+    const relativePath = 'estimates/est_2026-001.md';
+    const absolute = join(test.root, relativePath);
+    const source = await readFile(absolute, 'utf8');
+    const marker = source.indexOf('\n---\n');
+    const mixed =
+      source.slice(0, marker + 5) + source.slice(marker + 5).replace(/\n/g, '\r\n');
+
+    // LF header, CRLF body: what a Windows checkout plus an edit produces.
+    await writeFile(absolute, mixed, 'utf8');
+    await test.context.index.applyChange(relativePath);
+
+    const response = await test.mutate('POST', `/api/estimates/${sourceEstimate}/duplicate`);
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { record: { body: string } };
+    expect(body.record.body).toContain('\r\n');
   });
 
   it('clones an invoice with a new number and keeps the estimate backlink', async () => {

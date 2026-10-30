@@ -1,6 +1,6 @@
 import { mkdtemp, readdir, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 /**
  * Canonical temp directory. macOS reports `TMPDIR` as `/var/...`, which is a
@@ -19,6 +19,8 @@ export async function listFiles(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true, recursive: true });
   return entries
     .filter((entry) => entry.isFile())
-    .map((entry) => join(entry.parentPath, entry.name).slice(root.length + 1))
+    // Workspace paths are POSIX in the index, git and the API; `readdir` returns
+    // native separators, so Windows would fail every path assertion without this.
+    .map((entry) => join(entry.parentPath, entry.name).slice(root.length + 1).split(sep).join('/'))
     .sort();
 }
