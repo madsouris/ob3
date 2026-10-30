@@ -17,6 +17,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 | Pre-M7 polish (P0–P7) | `[x]` |
 | M7 packaging & release | `[~]` — `filecrm@1.0.0` published; CI/release workflow pending |
 | Post-v1 backlog | recorded below, not started |
+| Post-v1: payment info on prints | `[x]` — link or QR, one active mode |
+| Post-v1: in-app user manual | `[x]` — `#/manual`, per-section deep links |
 
 ---
 
@@ -125,8 +127,10 @@ legacy `terms_document` path stays readable. Document templates render at view/p
 never written back. CSV import always creates, never merges, and resolves references only against
 existing records. Revenue is paid invoices by `issue_date` (UTC); outstanding is `sent` + derived
 `overdue`. System facts are read on demand, never polled. Document kinds are a fixed set with
-`other` as the catch-all. The package is `filecrm`; the repo is `ob3`. Schema changes follow
-[`docs/15`](./docs/15-data-migration.md).
+`other` as the catch-all. Payment info is one active mode (`link`, `qr` or off) and the QR is a single
+fixed JPEG that every upload overwrites. The user manual ships inside the bundle from
+`docs/user-manual.md`, parsed into deep-linkable `#/manual/<slug>` sections. The package is `filecrm`;
+the repo is `ob3`. Schema changes follow [`docs/15`](./docs/15-data-migration.md).
 
 ## Cross-cutting rules
 
@@ -142,7 +146,7 @@ existing records. Revenue is paid invoices by `issue_date` (UTC); outstanding is
 
 - Multi-workspace switching in one server process
 - Server-side PDF rendering and e-mail sending
-- Payment links / payment-status reconciliation
+- Payment-status reconciliation against an external processor
 - Encryption at rest (today the threat model is the Git remote)
 - `gh repo create` bootstrap from the CLI
 - Mobile/native clients, real-time multi-user presence

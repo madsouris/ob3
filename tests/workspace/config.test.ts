@@ -33,6 +33,9 @@ describe('config defaults', () => {
     expect(config.version).toBe('1.1.0');
     expect(config.business.currency).toBe('USD');
     expect(config.business.tax_rate_bps).toBe(0);
+    expect(config.business.payment).toBe('');
+    expect(config.business.payment_qr).toBe('');
+    expect(config.business.payment_link_url).toBe('');
     expect(config.server.port).toBe(19_731);
     expect(config.git.commit_on_save).toBe(true);
     expect(config.default_terms_document).toBeNull();

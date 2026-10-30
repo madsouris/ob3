@@ -19,6 +19,7 @@ export const CONFIG_FILE = '.ob/config.json';
 export const STATE_DIR = '.ob/state';
 export const ASSETS_DIR = '.ob/assets';
 export const LOGO_FILE = '.ob/assets/logo.png';
+export const QR_FILE = '.ob/assets/qr.jpg';
 export const LOCK_FILE = '.ob/state/server.lock';
 export const SESSION_FILE = '.ob/state/session.json';
 export const GITIGNORE_FILE = '.gitignore';

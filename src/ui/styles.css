@@ -194,6 +194,19 @@
   letter-spacing: -0.015em;
 }
 
+/* One mark size for the on-screen A4 preview and the printout, so the preview
+   can be trusted. Ultra-wide logos cap at 300 px and letterbox inside the box. */
+.print-logo {
+  height: 12mm;
+  max-width: 300px;
+}
+
+/* The monogram fallback tints from the paper palette, not the page theme. */
+.print-logo span {
+  border-color: var(--print-ink);
+  border-radius: 2px;
+}
+
 .print-doc-type {
   margin-bottom: 2px;
   font-size: 10px;
@@ -303,6 +316,43 @@
 
 .print-pre {
   white-space: pre-wrap;
+}
+
+/* In-app user manual: a reading surface inside the Operate shell. Long-form
+   body copy uses ink rather than the muted note tone, and selections tint from
+   the foreground instead of the browser default. */
+.manual .markdown p,
+.manual .markdown li {
+  color: var(--foreground);
+}
+
+.manual .markdown p {
+  line-height: 1.65;
+}
+
+.manual ::selection {
+  background: color-mix(in oklab, var(--foreground) 14%, transparent);
+}
+
+.print-payment {
+  padding-top: 10px;
+  border-top: 1px solid var(--print-rule);
+}
+
+.print-payment-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.print-qr {
+  width: 26mm;
+  height: 26mm;
+  padding: 1.5mm;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--print-rule);
+  border-radius: 2px;
 }
 
 .print-footer {
@@ -433,10 +483,6 @@
 
   .print-sheet .markdown div {
     border-color: var(--print-rule);
-  }
-
-  .print-sheet .print-logo {
-    height: 12mm;
   }
 
   .print-sheet .business-logo span {

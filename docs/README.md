@@ -6,7 +6,7 @@ Two audiences, two indexes. End users start with the manual; contributors read t
 
 | Document | Contents |
 |---|---|
-| [`user-manual.md`](./user-manual.md) | Step-by-step guide: first run, daily flow, billing, printing, documents, CSV import, sync, troubleshooting |
+| [`user-manual.md`](./user-manual.md) | Step-by-step guide: first run, daily flow, billing, printing, documents, CSV import, sync, troubleshooting. Also rendered inside the app at `#/manual` |
 | [`../brief.md`](../brief.md) | White paper: the problem, principles, architecture, data model, stack, distribution |
 | [`../README.md`](../README.md) | Install, requirements, quickstart, development commands |
 

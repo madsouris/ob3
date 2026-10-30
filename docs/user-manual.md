@@ -1,7 +1,11 @@
 # `ob` — user manual
 
-A practical guide to running your CRM from a folder. For the design and internals, read
-[`../brief.md`](../brief.md); for per-feature behaviour, see the rest of [`docs/`](./README.md).
+A practical guide to running your CRM from a folder. It covers setup, daily work and recovery;
+the repository's `README.md` and `docs/` cover installation and internals.
+
+The same guide is built into the app: **User manual** in the sidebar footer, or press `⌘K` and type
+*manual*. Every section has its own link (`#/manual/saving-committing-and-syncing`), so you can
+bookmark the part you keep coming back to.
 
 ---
 
@@ -52,7 +56,7 @@ back from disk.
 ## 3. A five-minute tour
 
 - The sidebar is the whole app: Dashboard, Contacts, Projects, All tasks, Estimates, Invoices,
-  Documents, Needs attention, Settings.
+  Documents, Needs attention, Settings. **User manual** sits in the sidebar footer.
 - `⌘K` / `Ctrl+K` opens the command palette for navigation and search.
 - `Shift+D` toggles light and dark mode (it is ignored while you type in a field).
 - The git badge in the header shows the branch, uncommitted work, or commits waiting to push.
@@ -71,13 +75,21 @@ outstanding invoices. Click any figure to jump to its list.
    percentage (8.5) and stored as basis points (850).
 2. Upload a logo if you have one — any image is resized in the browser and stored as
    `.ob/assets/logo.png`. Without a logo, initials are used everywhere, including prints.
-3. **Save changes.**
+3. **Payment** (the card below Business) chooses how clients pay: **No payment info**, **Payment
+   link** (paste a URL), or **QR code** (upload your bank QR — it is re-encoded as JPEG and stored at
+   `.ob/assets/qr.jpg`, replacing any previous QR). Only the selected mode prints; if you keep a link
+   as well as a QR, the link prints underneath the QR as a fallback.
+4. **Save changes.**
 
 This information appears on estimates, invoices and documents. It lives in `.ob/config.json`, so it
 is committed and synced with the rest of the workspace.
 
 **Settings → Git** holds *Commit on save* (on by default). Leave it on unless you prefer to commit
 manually.
+
+**Settings → Workspace** is read-only: the folder path, how many records are indexed, the server
+version, uptime, process and system memory, CPU load, free disk space and the runtime. Use it to
+check that `ob` is looking at the folder you think it is.
 
 ---
 
@@ -95,7 +107,8 @@ Contact status is `lead`, `active`, `inactive` or `archived`, shown as a badge a
 
 ## 6. Projects and tasks
 
-1. **Projects → New project**, pick the client, choose a status.
+1. **Projects → New project**, pick the client, choose a status (`active`, `completed` or
+   `archived`).
 2. Pick a project to open its board. The three columns are the folders
    `tasks/todo`, `tasks/doing`, `tasks/done`.
 3. **New task** adds a card to the project. Tasks opened from **All tasks** show their project name
@@ -123,6 +136,8 @@ When the client accepts: open the estimate and press **Create invoice**. The inv
 the same client, project, lines and attachments, and the estimate is linked back to it. This happens
 once per estimate.
 
+Estimate statuses are `draft`, `sent`, `accepted`, `declined` and `expired`.
+
 **Invoices**
 
 - Statuses are `draft`, `sent`, `paid`, `overdue`, `cancelled`. *Overdue* is derived automatically
@@ -137,7 +152,8 @@ once per estimate.
 
 1. Open an estimate or invoice and press **Print / PDF** (documents have the same action).
 2. The print view is a strict A4 sheet with 16 mm margins, your logo, both parties, the line table,
-   totals, notes and every attached document. It is always light, even in dark mode.
+   totals, notes and every attached document. It is always light, even in dark mode. The payment
+   block from **Settings → Payment** prints at the bottom: the link, or the QR with its fallback link.
 3. Press **Print / Save as PDF** and choose *Save as PDF* in the browser dialog.
 
 A short bill fits on one page. A long line-item list flows to a second page and repeats the table
@@ -271,8 +287,9 @@ Every action that can be dragged can also be done from a menu.
 
 ## 17. Where to go next
 
-- [`../brief.md`](../brief.md) — what `ob` is and why it is built this way.
-- [`README.md`](./README.md) — index of per-feature behaviour docs.
-- [`15-data-migration.md`](./15-data-migration.md) — how files will be kept readable as the schema
-  evolves.
-- [`../plan.md`](../plan.md) — shipped scope and post-v1 backlog.
+- **Dashboard** shows the numbers; **Needs attention** lists files `ob` could not read.
+- **User manual** (sidebar footer) is this guide, one section per page link. It is the fastest way
+  back to a specific instruction.
+- The repository's `README.md` covers install and requirements, `docs/` holds the per-feature
+  behaviour contracts, and `plan.md` lists what has shipped and what is next.
+- `docs/15-data-migration.md` explains how files stay readable as the schema evolves.

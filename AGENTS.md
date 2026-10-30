@@ -194,7 +194,7 @@ Violating any of these is a bug, not a style preference.
 
 ## 7. Public API Contract (do not rename without an ADR)
 
-`/api/health` · `/api/system` · `/api/config` · `/api/config/logo` · `/api/logo` · `/api/issues` · `/api/events` · `/api/:type` · `/api/:type/:id` · `/api/tasks/:id/move` · `/api/invoices/from-estimate/:estimateId` · `/api/git/status|sync|init|remote|recover` · `/api/search` · `/api/import` · `/api/import/skeleton`
+`/api/health` · `/api/system` · `/api/config` · `/api/config/logo` · `/api/logo` · `/api/config/qr` · `/api/qr` · `/api/issues` · `/api/events` · `/api/:type` · `/api/:type/:id` · `/api/tasks/:id/move` · `/api/invoices/from-estimate/:estimateId` · `/api/git/status|sync|init|remote|recover` · `/api/search` · `/api/import` · `/api/import/skeleton`
 
 `type` ∈ `contacts | projects | tasks | estimates | invoices | documents`.
 

@@ -17,7 +17,7 @@ serve({ fetch: app.fetch, hostname: '127.0.0.1', port })
 * `Content-Type: application/json` on all API responses; `Cache-Control: no-store`.
 * `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy: same-origin`.
 * `hono/secure-headers` is applied globally from M1: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Cross-Origin-Opener-Policy: same-origin`, and no `Strict-Transport-Security` (loopback HTTP only).
-* CSP for the SPA: `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'`. `vite-plugin-singlefile` inlines both the CSS **and** the JS, so `'unsafe-inline'` is required for scripts — the external-script assumption in earlier drafts was wrong. The risk is bounded by the loopback bind, `Host` validation, and the per-run token. Wired up in M3 with the token middleware.
+* CSP for the SPA: `default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'`. `blob:` is required because the logo/QR pipeline decodes the picked `File` through `URL.createObjectURL` before re-encoding it; without it the browser blocks the image and the upload fails with “could not read as an image”. `vite-plugin-singlefile` inlines both the CSS **and** the JS, so `'unsafe-inline'` is required for scripts — the external-script assumption in earlier drafts was wrong. The risk is bounded by the loopback bind, `Host` validation, and the per-run token. Wired up in M3 with the token middleware.
 
 ## Security middleware (in order)
 
@@ -47,6 +47,9 @@ CLI callers (`ob sync`) bypass HTTP entirely and call the service layer directly
 | GET | `/api/logo` | PNG bytes for the configured logo; `404` when none is set |
 | POST | `/api/config/logo` | raw PNG body (≤ 512 KB) → `{ config }`; signature-validated, stored at `.ob/assets/logo.png` |
 | DELETE | `/api/config/logo` | removes the logo file and clears `business.logo` |
+| GET | `/api/qr` | JPEG bytes for the payment QR; `404` when none is set |
+| POST | `/api/config/qr` | raw JPEG body (≤ 512 KB) → `{ config }`; signature-validated, always overwrites `.ob/assets/qr.jpg`, sets `business.payment = "qr"` |
+| DELETE | `/api/config/qr` | removes the QR file and clears `business.payment_qr` and `business.payment` |
 | GET | `/api/issues` | array of `Issue` |
 | GET | `/api/issues/:key/preview` | `{ path, frontmatter?, body, raw }`, capped 2 MB |
 | POST | `/api/issues/:key/resolve` | `{ action: 'assign-id' \| 'adopt-path' \| 'ignore', ... }` |
@@ -115,6 +118,7 @@ Long-running git work: `POST /api/git/sync` returns when the chain settles; `git
 * **Attachments** (`document_ids` on estimates/invoices) are soft references: missing ids are reported as `dangling-ref` and printed as a missing-attachment note; the server never drops unknown ids.
 * **Git failures are data.** `POST /api/git/*` returns 200 with `{ ok: false, error: { code, message, output? } }`; codes are listed in docs/09, not in the envelope table below.
 * **Logo uploads** accept only `image/png` bytes with a valid PNG signature; SVG and HTML are rejected. The server always reads `.ob/assets/logo.png`, so a hand-edited `business.logo` cannot point the API at another file. Uploads over 512 KB return 413.
+* **Payment QR uploads** follow the same rule with `image/jpeg` (signature `FF D8 FF`, ≤ 512 KB): the server always writes the fixed `.ob/assets/qr.jpg`, so a replacement never accumulates files, and `business.payment` is the only switch that decides whether anything prints.
 * **Import** validates whole-file problems (missing header, unclosed quote, > 1000 rows) before writing, then creates one record per valid row through `createRecord` — the same path as `POST /api/contacts` — so ids, defaults, indexing and commit-on-save are identical. Invalid rows write nothing and return their 1-based spreadsheet line. `type` is restricted to `contact|project|task`; billing is not importable (docs/14).
 * **`GET /api/system`** is read-only and cheap: `os` + `process.memoryUsage()` plus one `statfs` on the workspace. It never scans, never shells out to git, and never blocks on the network. `disk` is `null` when the filesystem cannot answer (some network mounts), which the UI renders as "Unavailable".
 

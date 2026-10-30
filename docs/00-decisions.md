@@ -155,3 +155,11 @@ The tradeoff is explicit: no unattended server-side PDF for batch/email workflow
 Commits (including commit-on-save) and syncs are serialized through one promise queue. `ob` never runs `reset`, `push --force`, `checkout --theirs`, or `rebase --abort` on its own; the only recovery paths are the explicit `abort-sync` and `set-upstream` actions.
 
 **Why:** concurrent commits and pulls race on `.git/index` and can leave a rebase half-applied. Serializing makes the order deterministic (save → commit → sync) and keeps a save during a slow push as a queued commit instead of a conflict. Automatic recovery would be indistinguishable from data loss when it guesses wrong (AD-14).
+
+---
+
+### AD-20 — Payment info is one active mode and one QR file
+
+`business.payment` is `link`, `qr`, or `""` (off). `payment_link_url` and `payment_qr` are both persisted, but only the selected mode prints. The QR always lives at `.ob/assets/qr.jpg`, is re-encoded in the browser as JPEG on a white matte, and every upload overwrites it.
+
+**Why:** a client pays one way, so printing two instructions is noise, while keeping both values means switching modes does not lose the other. A single fixed file keeps the repository tidy and makes a hand-edited config value unable to point the server at another file (the same reasoning as the logo). JPEG needs the white matte — transparency turns black — and high quality, because compression artefacts break QR scanning.

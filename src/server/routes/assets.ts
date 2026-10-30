@@ -5,21 +5,28 @@ import type { GitService } from '../../git/types.js';
 import { ApiError } from '../errors.js';
 import { writeBytesAtomic } from '../../io/atomic.js';
 import { mergeConfig, readConfig, writeConfig } from '../../workspace/config.js';
-import { CONFIG_FILE, LOGO_FILE, workspacePath } from '../../workspace/paths.js';
+import { CONFIG_FILE, LOGO_FILE, QR_FILE, workspacePath } from '../../workspace/paths.js';
 
-/** 512 KB is generous for a logo and keeps the config commit small. */
+/** 512 KB is generous for an image and keeps the config commit small. */
 export const MAX_LOGO_BYTES = 512 * 1024;
+export const MAX_QR_BYTES = 512 * 1024;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const JPEG_SIGNATURE = Buffer.from([0xff, 0xd8, 0xff]);
 
 const isPng = (bytes: Uint8Array): boolean =>
   bytes.length >= PNG_SIGNATURE.length &&
   PNG_SIGNATURE.equals(Buffer.from(bytes.subarray(0, PNG_SIGNATURE.length)));
 
+const isJpeg = (bytes: Uint8Array): boolean =>
+  bytes.length >= JPEG_SIGNATURE.length &&
+  JPEG_SIGNATURE.equals(Buffer.from(bytes.subarray(0, JPEG_SIGNATURE.length)));
+
 /**
- * Business logo. The file lives in the user's workspace at a fixed path so a
- * hostile `business.logo` value can never make the server read another file
- * (docs/07). Uploads are normalized to PNG by the client; the server still
- * validates the signature.
+ * Business logo and payment QR. Both files live at fixed paths in the user's
+ * workspace so a hostile `business.logo` / `business.payment_qr` value can
+ * never make the server read another file (docs/07). Uploads are normalized by
+ * the client (PNG for the logo, JPEG for the QR); the server still validates
+ * the signature.
  */
 export const createAssetRoutes = (context: AppContext, git?: GitService): Hono => {
   const routes = new Hono();
@@ -62,6 +69,70 @@ export const createAssetRoutes = (context: AppContext, git?: GitService): Hono =
     await writeConfig(context.workspace, merged);
 
     git?.scheduleCommit({ path: LOGO_FILE, label: 'logo' });
+    git?.scheduleCommit({ path: CONFIG_FILE, label: 'config' });
+    context.bus.publish('config.changed', { config: merged });
+
+    return c.json({ config: merged });
+  });
+
+  routes.get('/qr', async (c) => {
+    let bytes: Buffer;
+    try {
+      bytes = await readFile(workspacePath(context.workspace, QR_FILE));
+    } catch {
+      throw new ApiError(404, 'not_found', 'No payment QR is set');
+    }
+
+    return c.body(new Uint8Array(bytes), 200, {
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': 'no-cache',
+      'Content-Disposition': 'inline',
+    });
+  });
+
+  /**
+   * Payment QR. The file lives at a fixed path (`.ob/assets/qr.jpg`) and every
+   * upload overwrites it, so a workspace never accumulates QR files and a
+   * hand-edited `business.payment_qr` cannot make the server serve another file.
+   */
+  routes.post('/config/qr', async (c) => {
+    const bytes = new Uint8Array(await c.req.arrayBuffer());
+
+    if (bytes.length === 0) {
+      throw new ApiError(422, 'validation_failed', 'Upload a JPEG image');
+    }
+    if (bytes.length > MAX_QR_BYTES) {
+      throw new ApiError(413, 'payload_too_large', 'Payment QR must be 512 KB or smaller');
+    }
+    if (!isJpeg(bytes)) {
+      throw new ApiError(422, 'validation_failed', 'Payment QR must be a JPEG image', {
+        reason: 'jpeg_signature',
+      });
+    }
+
+    await writeBytesAtomic(workspacePath(context.workspace, QR_FILE), bytes);
+
+    const merged = mergeConfig(await readConfig(context.workspace), {
+      business: { payment_qr: QR_FILE, payment: 'qr' },
+    });
+    await writeConfig(context.workspace, merged);
+
+    git?.scheduleCommit({ path: QR_FILE, label: 'payment QR' });
+    git?.scheduleCommit({ path: CONFIG_FILE, label: 'config' });
+    context.bus.publish('config.changed', { config: merged });
+
+    return c.json({ config: merged });
+  });
+
+  routes.delete('/config/qr', async (c) => {
+    await unlink(workspacePath(context.workspace, QR_FILE)).catch(() => undefined);
+
+    const merged = mergeConfig(await readConfig(context.workspace), {
+      business: { payment_qr: '', payment: '' },
+    });
+    await writeConfig(context.workspace, merged);
+
+    git?.scheduleCommit({ path: QR_FILE, label: 'payment QR' });
     git?.scheduleCommit({ path: CONFIG_FILE, label: 'config' });
     context.bus.publish('config.changed', { config: merged });
 
