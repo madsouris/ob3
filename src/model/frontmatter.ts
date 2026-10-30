@@ -25,14 +25,20 @@ const CLOSERS = new Set(['---', '...']);
 /**
  * Splits a Markdown file into frontmatter source and body without normalizing
  * anything. The body slice is what `ob` writes back untouched (ADR-04).
+ *
+ * The opening delimiter decides the block's newline, and lines are scanned on
+ * LF boundaries. A file may legitimately mix styles — a CRLF body copied under
+ * an LF header (what duplicating a Windows-checked-out record produces), or the
+ * reverse — so picking one style for the whole file would read such a file as
+ * having no frontmatter at all.
  */
 export const splitFrontmatter = (source: string): FrontmatterSplit => {
   const bom = source.startsWith('\uFEFF');
   const text = bom ? source.slice(1) : source;
-  const newline: '\n' | '\r\n' = text.includes('\r\n') ? '\r\n' : '\n';
 
-  const firstEnd = text.indexOf(newline);
-  const firstLine = firstEnd === -1 ? text : text.slice(0, firstEnd);
+  const firstEnd = text.indexOf('\n');
+  const firstLine = (firstEnd === -1 ? text : text.slice(0, firstEnd)).replace(/\r$/, '');
+  const newline: '\n' | '\r\n' = firstEnd > 0 && text[firstEnd - 1] === '\r' ? '\r\n' : '\n';
 
   if (firstLine.trim() !== OPEN) {
     return {
@@ -47,27 +53,31 @@ export const splitFrontmatter = (source: string): FrontmatterSplit => {
     };
   }
 
-  const afterOpen = firstEnd + newline.length;
+  const afterOpen = firstEnd + 1;
+  const openDelimiter = firstEnd === -1 ? firstLine : text.slice(0, afterOpen);
   let cursor = afterOpen;
 
   while (cursor <= text.length) {
-    const lineEnd = text.indexOf(newline, cursor);
-    const line = lineEnd === -1 ? text.slice(cursor) : text.slice(cursor, lineEnd);
+    const lineEnd = text.indexOf('\n', cursor);
+    const line = (lineEnd === -1 ? text.slice(cursor) : text.slice(cursor, lineEnd)).replace(
+      /\r$/,
+      '',
+    );
     if (CLOSERS.has(line.trim())) {
-      const endOfDelimiter = lineEnd === -1 ? text.length : lineEnd + newline.length;
+      const endOfDelimiter = lineEnd === -1 ? text.length : lineEnd + 1;
       return {
         hadFrontmatter: true,
         unterminated: false,
         bom,
         newline,
-        openDelimiter: `${firstLine}${newline}`,
+        openDelimiter,
         frontmatterSource: text.slice(afterOpen, cursor),
         closeDelimiter: text.slice(cursor, endOfDelimiter),
         body: text.slice(endOfDelimiter),
       };
     }
     if (lineEnd === -1) break;
-    cursor = lineEnd + newline.length;
+    cursor = lineEnd + 1;
   }
 
   return {

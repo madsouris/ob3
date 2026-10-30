@@ -110,6 +110,8 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 * No test asserts on absolute paths, usernames, or timings that vary by machine (`>` thresholds only with generous margins).
 * Deterministic ULIDs in fixtures; the ULID generator takes an injectable clock + randomness source.
 * No network access in any test. Git tests use local bare repos only.
+* `.gitattributes` pins text checkouts to LF, so the committed fixtures are byte-identical on Windows; the parser still accepts CRLF and mixed-EOL user files (unit-tested in `tests/model/frontmatter.test.ts`, integration-tested by duplicating a mixed-EOL estimate in `tests/server/api.test.ts`).
+* Workspace paths are POSIX everywhere (index, git, API). Test helpers that read the disk convert native separators — `listFiles` in `tests/helpers/tmp.ts` is the canonical example, because Windows `readdir` returns `\\`.
 * `tests/setup-git.ts` points `GIT_CONFIG_GLOBAL` at a throwaway config (`user.name`/`email`, `init.defaultBranch=main`, no signing) and sets `GIT_CONFIG_NOSYSTEM=1`. `ob` reads identity from git **config**, not from `GIT_AUTHOR_*`, so without this a runner with no global config fails `POST /api/git/init` with `identity_missing` while a developer laptop passes — and a developer's `init.defaultBranch` would silently decide the branch assertion.
 * A failing test must print the offending file diff (helper `expectFileBytes(path).toEqual(expected)`).
 

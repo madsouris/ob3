@@ -125,6 +125,26 @@ describe('updateFrontmatter', () => {
     expect(splitFrontmatter(updated).body).toBe('\r\nBody\r\n');
   });
 
+  it('handles a file that mixes newline styles between header and body', () => {
+    // LF header, CRLF body: what duplicating a Windows-checked-out record writes.
+    const lfHeader = '---\nid: x\nstatus: lead\n---\n\r\nBody\r\n';
+    const split = splitFrontmatter(lfHeader);
+    expect(split.hadFrontmatter).toBe(true);
+    expect(split.unterminated).toBe(false);
+    expect(split.newline).toBe('\n');
+    expect(split.body).toBe('\r\nBody\r\n');
+    expect(readFrontmatter(lfHeader).frontmatter['id']).toBe('x');
+
+    const updated = updateFrontmatter(lfHeader, { status: 'active' });
+    expect(splitFrontmatter(updated).body).toBe('\r\nBody\r\n');
+    expect(splitFrontmatter(updated).frontmatterSource).toContain('status: active');
+
+    // CRLF header, LF body: the reverse mix must parse too.
+    const crlfHeader = '---\r\nid: y\r\n---\r\n\nBody\n';
+    expect(readFrontmatter(crlfHeader).frontmatter['id']).toBe('y');
+    expect(splitFrontmatter(crlfHeader).body).toBe('\nBody\n');
+  });
+
   it('preserves a BOM exactly once', () => {
     const withBom = `\uFEFF${SOURCE}`;
     const updated = updateFrontmatter(withBom, { status: 'active' });

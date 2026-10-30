@@ -28,7 +28,7 @@ splitFrontmatter(text) -> { frontmatterSource, bodySource, hadFrontmatter, newli
 * BOM is stripped and re-added on write if it was present.
 * No leading `---` → `hadFrontmatter: false`, `bodySource` = entire text. The record is indexed as `missing-id` (doc 05), not as a parse error.
 * Unterminated frontmatter (`---` with no closer) → `parse-error` issue; the file is not indexed.
-* CRLF and lone-CR newlines are detected and preserved on write.
+* CRLF is preserved on write. The opening `---` line decides the block's newline, and lines are scanned on LF boundaries, so a file may mix styles — an LF header with a CRLF body (what duplicating a Windows-checked-out record writes) or the reverse — and still parse. Lone-CR files have no frontmatter line breaks `ob` recognises and are reported, not rewritten.
 * Body is kept as a **string slice of the original text**, never re-serialized. This is what makes body bytes identical.
 
 ## Write

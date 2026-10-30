@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { GITIGNORE_CONTENT } from '../../src/workspace/paths.js';
 import { commitSubjects, createBareOrigin, git, seedGitWorkspace } from '../helpers/git.js';
@@ -159,7 +159,7 @@ describe('git API', () => {
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe('repo_outside_workspace');
     await expect(git(test.root, ['rev-parse', '--show-toplevel'])).resolves.toContain(
-      test.parent.split('/').pop() ?? '',
+      basename(test.parent),
     );
   });
 });
