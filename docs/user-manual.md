@@ -79,7 +79,8 @@ Bills can also be created straight from **Estimates** or **Invoices**, but they 
   Documents, Needs attention, Settings. **User manual** sits in the sidebar footer.
 - `⌘K` / `Ctrl+K` opens the command palette for navigation and search.
 - `Shift+D` toggles light and dark mode (it is ignored while you type in a field).
-- The git badge in the header shows the branch, uncommitted work, or commits waiting to push.
+- The git badge in the header shows the branch, uncommitted work, or commits waiting to push. It is
+  red when there are uncommitted changes and yellow when the folder is not a git repository yet.
 - Every list row opens a detail view or editor; every sheet closes with `Esc` or **Cancel**.
 
 The dashboard shows counts, open tasks by column, paid revenue (total and this month) and
@@ -263,6 +264,9 @@ The limit is 1,000 rows per file.
 
 ## 12. Saving, committing and syncing
 
+- **Starting the app catches you up.** When the folder is clean and only behind your remote,
+  `filecrm .` fast-forwards before the app opens, so you never start editing stale files. With local
+  changes, diverged history, or no upstream it leaves the pull to you.
 - **Saving in the UI writes the file immediately.** With *Commit on save* on, `ob` also commits just
   that file after a short pause, so your working tree stays clean.
 - **Pushing is manual.** Click the git badge, then **Sync**: `add` → `commit` → `pull --rebase` →

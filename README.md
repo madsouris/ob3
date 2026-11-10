@@ -1,5 +1,7 @@
 # `ob` — local-first CRM
 
+![NPM Version](https://img.shields.io/npm/v/filecrm)
+
 `ob` is a CRM that lives in your filesystem. Every contact, project, task, estimate, invoice and
 document is a Markdown file with YAML frontmatter. Git is the sync layer. No database, no account,
 no cloud.

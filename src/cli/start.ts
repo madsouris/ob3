@@ -13,6 +13,8 @@ import { createApp } from '../server/app.js';
 import type { WorkspaceRuntime } from '../server/runtime.js';
 import { createWorkspaceRuntime } from '../server/runtime.js';
 import { createGitService } from '../git/service.js';
+import { pullBeforeStart } from '../git/start-sync.js';
+import type { StartSyncOutcome } from '../git/start-sync.js';
 import type { GitService } from '../git/types.js';
 import { isInitialized, readConfig } from '../workspace/config.js';
 import { initWorkspace } from '../workspace/init.js';
@@ -144,6 +146,11 @@ export async function runStart(options: StartOptions): Promise<number> {
     }
 
     const config = await readConfig(root);
+
+    // Pull before the index is built, so the UI never starts on stale files
+    // (docs/09 §Pull before start). Never fatal: startup continues regardless.
+    if (options.git) await pullBeforeServing(root, options.verbose);
+
     const port = await findAvailablePort(options.port ?? config.server.port);
 
     runtime = await createWorkspaceRuntime({ root });
@@ -202,6 +209,58 @@ export async function runStart(options: StartOptions): Promise<number> {
     throw error;
   }
 }
+
+const printStartSync = (outcome: StartSyncOutcome, verbose: boolean): void => {
+  if (outcome.ran) {
+    if (outcome.ok) {
+      out.ok(
+        `Pulled ${outcome.behind} ${outcome.behind === 1 ? 'commit' : 'commits'} from the remote`,
+      );
+      if (verbose && outcome.output !== '') out.dim(outcome.output);
+      return;
+    }
+    out.warn(
+      `Could not pull the latest changes: ${outcome.error?.message ?? 'git pull failed.'}`,
+    );
+    if (verbose) out.dim(outcome.error?.output ?? outcome.output);
+    out.dim('Starting anyway — sync from the git badge when you are ready.');
+    return;
+  }
+
+  switch (outcome.reason) {
+    case 'dirty':
+      out.dim('Skipped the pre-start pull: the workspace has uncommitted changes.');
+      break;
+    case 'diverged':
+      out.warn(
+        'Local commits and the remote have diverged. Sync from the git badge to reconcile.',
+      );
+      break;
+    case 'unreachable':
+      if (verbose) out.dim('Could not reach the git remote; skipped the pre-start pull.');
+      break;
+    default:
+      // not_a_repo, outside_workspace, detached, no_upstream, up_to_date: silent.
+      break;
+  }
+};
+
+/** Startup never fails because of git: the files on disk are always usable. */
+const pullBeforeServing = async (root: string, verbose: boolean): Promise<void> => {
+  try {
+    const outcome = await pullBeforeStart({
+      root,
+      allowParentRepo: process.env['OB_ALLOW_PARENT_REPO'] === '1',
+    });
+    printStartSync(outcome, verbose);
+  } catch (error) {
+    if (verbose) {
+      out.dim(
+        `Pre-start pull skipped: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+};
 
 function listen(app: Hono, port: number): Promise<ServerType> {
   return new Promise<ServerType>((resolve, reject) => {

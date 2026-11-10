@@ -154,8 +154,8 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 
 ## Git (M6)
 
-* Header badge states: `clean` (branch name, muted dot), `dirty` (accent dot, "Uncommitted"), `unpushed` ("N to push"), `syncing` (spinner), `error` (destructive dot).
-* Clicking opens the Git dialog: branch/remote/upstream/changed-files/last-commit rows, the last step log, failure output and conflicted paths, plus Sync, Initialize, Abort sync, Set upstream & push, and the remote URL form.
+* Header badge states: `clean` (branch name, muted dot), `dirty` (destructive button, "Uncommitted"), `unpushed` ("N to push"), `syncing` (spinner), `error` (destructive), `no-repo` (a yellow `warning` outline: no repository, or the workspace sits inside a parent one).
+* Clicking opens the Git dialog: branch/remote/upstream/changed-files/last-commit rows, the last step log, failure output and conflicted paths, plus Sync, Initialize, Abort sync, Set upstream & push, and the remote URL form. Values that can be long (the commit subject, the remote URL) truncate with the full text in a `title`, so the dialog never grows wider than `sm:max-w-lg`.
 * Status comes from `GET /api/git/status`: polled every 15 s while the tab is visible, on focus, immediately on `git.changed`, and 1 s after any record event (external edits do not touch the git service).
 * The dialog never auto-recovers. Abort and set-upstream are separate buttons; a failed sync is shown as data, not as a thrown error.
 * Settings → Git holds the `commit_on_save` switch (default on). Remote configuration lives in the dialog.

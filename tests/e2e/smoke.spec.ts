@@ -155,6 +155,23 @@ test('the manual renders the workflow diagram', async ({ page }) => {
   await expect(page.locator('.pele-diagram')).toContainText('Invoice');
 });
 
+test('the git badge warns when the workspace has no repository', async ({ page }) => {
+  await page.goto('/');
+
+  const badge = page.getByRole('button', { name: 'Git status: No git' });
+  await expect(badge).toBeVisible();
+  await expect(badge).toHaveAttribute('data-variant', 'warning');
+
+  await badge.click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Git is not initialized');
+
+  // Long status values must ellipsize instead of widening the dialog.
+  const overflow = await dialog.evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
 // Kept last: this test creates a document, so the document-list assertions above
 // must see only the seeded three.
 test('the document composer writes, previews and saves', async ({ page }) => {

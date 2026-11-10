@@ -138,6 +138,9 @@ the pre-push hook, never from CI. Every list filters and sorts through one share
 body and disable dragging while filtering because insertion is computed against visible neighbours.
 Manual diagrams are Mermaid source rendered with Pele's flowchart grammar (Pele adds
 ~165 KB; Mermaid.js would add ~1.6 MB to an offline bundle); diagrams render only in the manual.
+Starting on an outdated clone fast-forwards before the index is built, but only when the tree is
+clean and strictly behind its upstream — never a rebase that could conflict. The git badge is
+destructive for uncommitted work and a yellow `warning` outline when there is no repository.
 System facts are read on demand, never polled. Document kinds are a
 fixed set with `other` as the catch-all. Payment info is one active mode (`link`, `qr` or off) and the
 QR is a single fixed JPEG that every upload overwrites. The user manual ships inside the bundle from
