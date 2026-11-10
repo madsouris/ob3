@@ -59,7 +59,7 @@ Estimates and invoices carry `document_ids: string[]` (document ids, ordered).
 ## UI
 
 * **List** — All / Global / Client tabs with counts; title, kind, scope/client, updated.
-* **Detail** (`/documents/:id`) — rendered content, kind/scope/client badges, metadata, Edit and Print buttons.
+* **Detail** (`/documents/:id`) — rendered content, kind/scope/client badges, metadata, Edit, Print and Delete buttons. Delete asks for confirmation (naming the file) and returns to the list; when the file is the configured `default_terms_document`, the dialog also says new estimates and invoices will start without default terms.
 * **Composer** (`/documents/new`, `/documents/:id/edit`) — a full-page editor rather than a sheet: borderless title, kind/scope/client row, and the Markdown body with **Write / Preview / Split**. Split is side-by-side on `lg` and stacked below; Preview resolves template variables with the selected client, the file keeps the raw body. The collapsed **Variable references** accordion sits under the editor. Saving returns to the detail page; Cancel discards. No autosave.
 * **Variable references** — generated from `TEMPLATE_VARIABLE_GROUPS` in `src/ui/lib/template.ts`, listing Company, Client, Project, Billing and Date placeholders; a test asserts it matches exactly what `buildTemplateVariables` fills.
 * **Print** (`/documents/:id/print`) — A4 sheet with the business logo block, document title/date, client block when present, rendered Markdown, and the file path footer. No server-side PDF; the browser print dialog produces it.

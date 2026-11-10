@@ -18,8 +18,8 @@ Everything else (CRUD, UI) gets standard coverage.
 | Unit | vitest | cents math, slugify/ULID, frontmatter round-trip, path safety, ordering | < 2 s total |
 | Integration (FS) | vitest + temp dirs | indexer, watcher, atomic write, issues, round-trip against real files | < 10 s |
 | Integration (HTTP) | vitest + `app.request()` | routes, validation, token/host checks, 409 conflicts | < 10 s |
-| Integration (Git) | vitest + bare repo fixture | commit-on-save, sync chain, conflict recovery | < 20 s |
-| E2E-ish | Playwright + Chromium | ten smoke flows: dashboard, bill preview → print, billing search/sort, contacts/projects/documents search, task-board search, marking an invoice paid, manual diagram, document composer | < 60 s |
+| Integration (Git) | vitest + bare repo fixture | commit-on-save, sync chain, conflict recovery, pre-start pull | < 20 s |
+| E2E-ish | Playwright + Chromium | eleven smoke flows: dashboard, bill preview → print, billing search/sort, contacts/projects/documents search, task-board search, marking an invoice paid, manual diagram, git badge, document composer → delete | < 60 s |
 | Manual QA | checklist below | print rendering, OS file manager, Windows paths | per release |
 
 ## Fixtures (`fixtures/workspaces/`)

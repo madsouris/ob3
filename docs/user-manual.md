@@ -222,6 +222,10 @@ template. **Save** returns to the document page, where **Edit** brings the compo
 The document list searches by title and sorts by title, kind, scope or last update — click a column
 header or use the sort control next to the search box.
 
+**Delete** on the document page removes the file after a confirmation. If the document is the default
+terms template that new bills attach, the dialog says so; deleting it is still allowed, and new
+estimates and invoices simply start without terms.
+
 Kinds are fixed: terms, proposal, contract, statement of work, NDA, brief, note, other. The editor's
 **Variable references** panel (collapsed by default) lists every placeholder you can use.
 

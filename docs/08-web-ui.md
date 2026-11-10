@@ -50,7 +50,7 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | Bill preview (`/estimates/:id`, `/invoices/:id`) | Responsive paper preview of the bill, status, number, client/project, dates, total, payment date | Edit (sheet), Print / PDF, Duplicate, Create invoice, Mark sent / Mark paid / Mark accepted, Delete |
 | Print (`/invoices/:id/print`, `/estimates/:id/print`) | A4 sheet: business header, billing details, lines, totals, notes, terms | Browser print / Save as PDF |
 | Documents | Table; search and sort; All / Global / Client filters | Open the document page; create in the composer |
-| Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (full-page composer), print |
+| Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (full-page composer), print, delete |
 | Document composer (`/documents/new`, `/documents/:id/edit`) | Borderless title, kind/scope/client row, Markdown body with Write / Preview / Split, variable reference | Write, preview, split view, save |
 | Document print (`/documents/:id/print`) | A4 sheet with logo, client block and rendered Markdown | Browser print / Save as PDF |
 | Settings | Business profile, logo, payment (link, QR or off), currency, `tax_rate_bps`, `commit_on_save`, CSV import, workspace/system facts | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; QR upload → POST `/api/config/qr`; import → POST `/api/import`; facts from GET `/api/health` + `/api/system` |

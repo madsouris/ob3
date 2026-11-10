@@ -27,9 +27,18 @@ test('a bill opens as a preview, and print renders the A4 sheet', async ({ page 
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible();
 
-  // Editing opens the sheet over the preview.
+  // Editing opens the sheet over the preview. The footer actions share one row
+  // (a bare `flex` on `SheetFooter` leaves them stacked in a column).
   await page.getByRole('button', { name: 'Edit' }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toBeVisible();
+  const cancelBox = await sheet.getByRole('button', { name: 'Cancel' }).boundingBox();
+  const saveBox = await sheet.getByRole('button', { name: 'Save', exact: true }).boundingBox();
+  expect(cancelBox).not.toBeNull();
+  expect(saveBox).not.toBeNull();
+  expect(Math.abs(cancelBox!.y - saveBox!.y)).toBeLessThan(1);
+  expect(saveBox!.x).toBeGreaterThan(cancelBox!.x);
+
   await page.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 
@@ -188,4 +197,12 @@ test('the document composer writes, previews and saves', async ({ page }) => {
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(page).toHaveURL(/documents\/doc_/);
   await expect(page.getByRole('heading', { name: 'E2E scope' })).toBeVisible();
+
+  // Deleting happens from the document page and returns to the list.
+  await page.getByRole('button', { name: 'Delete' }).click();
+  const confirm = page.getByRole('alertdialog');
+  await expect(confirm).toContainText('documents/doc_');
+  await confirm.getByRole('button', { name: 'Delete' }).click();
+  await expect(page).toHaveURL(/#\/documents$/);
+  await expect(page.getByText('E2E scope')).toHaveCount(0);
 });
