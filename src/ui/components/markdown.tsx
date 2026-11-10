@@ -1,13 +1,15 @@
+import { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { MermaidDiagram } from '@/components/mermaid-diagram';
 import { cn } from '@/lib/utils';
 
 /**
  * Markdown renderer. Raw HTML is never rendered (CSP and file content are not
  * trusted); GFM adds tables, task lists and strikethrough.
  */
-const components: Components = {
+const BASE_COMPONENTS: Components = {
   h1: ({ children }) => (
     <h1 className="mt-6 mb-2 text-lg font-semibold tracking-tight first:mt-0">{children}</h1>
   ),
@@ -61,11 +63,6 @@ const components: Components = {
     </blockquote>
   ),
   hr: () => <hr className="my-5 border-border" />,
-  pre: ({ children }) => (
-    <pre className="my-3 overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs leading-relaxed">
-      {children}
-    </pre>
-  ),
   code: ({ className, children }) => {
     const block = className?.startsWith('language-') === true;
     return block ? (
@@ -91,18 +88,77 @@ const components: Components = {
   ),
 };
 
+interface HastNode {
+  readonly type: string;
+  readonly tagName?: string;
+  readonly properties?: Readonly<Record<string, unknown>>;
+  readonly children?: readonly HastNode[];
+  readonly value?: string;
+}
+
+interface Fence {
+  readonly language: string;
+  readonly text: string;
+}
+
+/** Reads ```` ```lang ```` blocks from the hast node react-markdown hands `pre`. */
+const readFence = (node: unknown): Fence | null => {
+  const element = node as HastNode | undefined;
+  if (element?.type !== 'element' || element.tagName !== 'pre') return null;
+  const code = element.children?.find(
+    (child) => child.type === 'element' && child.tagName === 'code',
+  );
+  if (code === undefined) return null;
+
+  const rawClasses = code.properties?.['className'];
+  const classes = Array.isArray(rawClasses)
+    ? rawClasses.filter((name): name is string => typeof name === 'string')
+    : [];
+  const language =
+    classes.find((name) => name.startsWith('language-'))?.slice('language-'.length) ?? '';
+  const text = (code.children ?? [])
+    .map((child) => (child.type === 'text' ? (child.value ?? '') : ''))
+    .join('');
+
+  return { language, text };
+};
+
+/** `diagrams` is opt-in: only the manual turns Mermaid fences into pictures. */
+const componentsFor = (diagrams: boolean): Components => ({
+  ...BASE_COMPONENTS,
+  pre: ({ node, children }) => {
+    if (diagrams) {
+      const fence = readFence(node);
+      if (fence !== null && fence.language === 'mermaid') {
+        return <MermaidDiagram source={fence.text} />;
+      }
+    }
+
+    return (
+      <pre className="my-3 overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs leading-relaxed">
+        {children}
+      </pre>
+    );
+  },
+});
+
 export interface MarkdownProps {
   readonly children: string;
   readonly className?: string;
   readonly emptyText?: string;
+  /** Render ```` ```mermaid ```` fences with Pele. Off by default. */
+  readonly diagrams?: boolean;
 }
 
 export const Markdown = ({
   children,
   className,
   emptyText = 'Nothing written yet.',
-}: MarkdownProps) =>
-  children.trim() === '' ? (
+  diagrams = false,
+}: MarkdownProps) => {
+  const components = useMemo(() => componentsFor(diagrams), [diagrams]);
+
+  return children.trim() === '' ? (
     <p className="text-sm text-muted-foreground">{emptyText}</p>
   ) : (
     <div className={cn('markdown text-foreground', className)}>
@@ -111,3 +167,4 @@ export const Markdown = ({
       </ReactMarkdown>
     </div>
   );
+};

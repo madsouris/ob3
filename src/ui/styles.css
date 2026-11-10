@@ -20,6 +20,9 @@
   --muted-foreground: oklch(0.505 0.008 65);
   --accent: oklch(0.952 0.028 82);
   --accent-foreground: oklch(0.23 0.008 60);
+  --warning: oklch(0.972 0.038 92);
+  --warning-foreground: oklch(0.36 0.075 72);
+  --warning-border: oklch(0.83 0.115 87);
   --destructive: oklch(0.577 0.198 27);
   --destructive-foreground: oklch(0.985 0.002 95);
   --border: oklch(0.918 0.004 80);
@@ -57,6 +60,9 @@
   --muted-foreground: oklch(0.71 0.006 80);
   --accent: oklch(0.31 0.036 75);
   --accent-foreground: oklch(0.95 0.03 85);
+  --warning: oklch(0.3 0.052 80);
+  --warning-foreground: oklch(0.9 0.09 88);
+  --warning-border: oklch(0.48 0.085 80);
   --destructive: oklch(0.65 0.19 25);
   --destructive-foreground: oklch(0.15 0.004 60);
   --border: oklch(1 0 0 / 12%);
@@ -88,6 +94,9 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-border: var(--warning-border);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -366,6 +375,26 @@
 
 .manual ::selection {
   background: color-mix(in oklab, var(--foreground) 14%, transparent);
+}
+
+/* Mermaid diagrams in the manual are drawn by Pele, themed from the app tokens
+   so they follow light/dark like the rest of the reading surface. */
+.manual .pele {
+  --pele-bg: transparent;
+  --pele-fg: var(--foreground);
+  --pele-muted: var(--muted-foreground);
+  --pele-line: var(--border);
+  --pele-surface: var(--muted);
+  --pele-surface-alt: var(--card);
+  --pele-border: var(--border);
+  --pele-accent: var(--primary);
+  --pele-font: inherit;
+  --pele-radius: 6px;
+}
+
+.manual .pele-diagram svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .print-payment {

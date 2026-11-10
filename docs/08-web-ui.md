@@ -40,17 +40,17 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | View | Contents | Key interactions |
 |---|---|---|
 | Dashboard | Counts, open tasks by column, outstanding total, paid revenue (total + this month), recent activity, issue banner | Click-through to filtered lists |
-| Contacts | Table; click a row → contact page | Create; edit from the contact page |
+| Contacts | Table; search and sort | Create; open a contact page; edit from there |
 | Contact page (`/contacts/:id`) | Avatar, name, role/company, status, project/document/billing badges, rendered notes, projects, client documents, billing, primary-link button and contact facts | Edit (sheet), jump to project/document/invoice/estimate |
-| Projects | Table; linked client; task count | Pick a project → its board; create; edit |
-| Project workspace (`/projects/:id`) | Header, client, status, task counts, project body, that project's board | Add/edit task, drag or "Move to…", edit project |
-| All tasks (`/tasks`) | Cross-project board with the project name on each card | Drag or "Move to…", open task |
-| Estimates | Table; status; total | Open a preview; edit in a sheet; duplicate, convert to invoice, print |
-| Invoices | Table; derived `overdue` badge | Open a preview; edit in a sheet; duplicate, print, mark sent/paid |
+| Projects | Table; search and sort; linked client; task count | Pick a project → its board; create; edit |
+| Project workspace (`/projects/:id`) | Header, client, status, task counts, project body, that project's searchable board | Add/edit task, drag or "Move to…", edit project |
+| All tasks (`/tasks`) | Cross-project board with the project name on each card, searchable by title and body | Drag or "Move to…", open task |
+| Estimates | Table; status last; search and sort | Open a preview; edit in a sheet; duplicate, convert to invoice, print |
+| Invoices | Table; derived `overdue` badge; search and sort | Open a preview; edit in a sheet; duplicate, print, mark sent/paid |
 | Bill preview (`/estimates/:id`, `/invoices/:id`) | Responsive paper preview of the bill, status, number, client/project, dates, total, payment date | Edit (sheet), Print / PDF, Duplicate, Create invoice, Mark sent / Mark paid / Mark accepted, Delete |
 | Print (`/invoices/:id/print`, `/estimates/:id/print`) | A4 sheet: business header, billing details, lines, totals, notes, terms | Browser print / Save as PDF |
-| Documents | Table with All / Global / Client filters | Open the document page; create in the composer |
-| Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (full-page composer), print |
+| Documents | Table; search and sort; All / Global / Client filters | Open the document page; create in the composer |
+| Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (full-page composer), print, delete |
 | Document composer (`/documents/new`, `/documents/:id/edit`) | Borderless title, kind/scope/client row, Markdown body with Write / Preview / Split, variable reference | Write, preview, split view, save |
 | Document print (`/documents/:id/print`) | A4 sheet with logo, client block and rendered Markdown | Browser print / Save as PDF |
 | Settings | Business profile, logo, payment (link, QR or off), currency, `tax_rate_bps`, `commit_on_save`, CSV import, workspace/system facts | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; QR upload → POST `/api/config/qr`; import → POST `/api/import`; facts from GET `/api/health` + `/api/system` |
@@ -84,6 +84,15 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * Drag and drop: dropping on a card inserts the dragged card before it (`beforeId`), dropping on a column appends. Either way it is one `POST /api/tasks/:id/move`; no optimistic file writes.
 * Keyboard path: every card has a "Move to…" menu covering both column changes and in-column order ("Move up" / "Move down" use `beforeId` / `afterId`), so drag is never the only way to move or reorder a task.
 * The board re-renders when `record.upsert` replaces the task: the move response does it for local drags, and the watcher does it for external file moves (`record.moved` is published for other clients but the provider applies the accompanying upsert).
+
+## Table controls (lists and boards)
+
+* Every list — Contacts, Projects, Estimates, Invoices, Documents — shares one toolbar: search on the left (with an `N of M` count while filtering) and sort field + direction on the right. Column headers sort too; clicking the active header flips the direction and the `th` carries `aria-sort`, so the toolbar covers fields hidden on narrow screens.
+* Search fields: contacts name/company/email; projects project name/client; estimates and invoices number/client/title; documents title. Matching is a trimmed, case-insensitive substring over the records already in memory — no API call, works offline.
+* Defaults preserve the previous visual order: name/project/title ascending. Issued and Updated select newest-first.
+* Statuses sort by lifecycle, never alphabetically: contacts `lead → active → inactive → archived`, projects `active → completed → archived`, invoices `draft → sent → overdue → paid → cancelled`, estimates `draft → sent → accepted → declined → expired`. Unknown values sort last. **Status is the last column** of the billing tables.
+* A filter with no matches renders a table-level “No … match” row with **Clear search**; the page-level empty state stays reserved for a workspace with no records at all.
+* Task boards (All tasks and a project's board) search **title and body**, deferred with `useDeferredValue`; each column shows matching cards and its badge the matching count. **No sort control** — the column order is the manual `order` field. While a filter is active, drag-and-drop and “Order in column” are disabled and the toolbar says so, because insertion is computed against visible neighbours; changing a card's column still works.
 
 ## Money rendering
 
@@ -124,6 +133,7 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * `src/ui/lib/manual.ts` parses it once at module load: the `# ` title becomes the discarded page title, each `## N. Title` becomes a section with a slug (`N` kept as a reference number, the title slugified), `---` separators and repo-only `.md` links (demoted to their label) are stripped.
 * The view is a Read surface inside the Operate shell: a 68ch reading column, sticky contents rail on `lg+`, a Sheet under that width, and section headings with a hairline rule. Body copy uses ink (`--foreground`) instead of the muted note tone.
 * Section links are **router deep links**: `#/manual/<slug>` navigates the hash router, and the view then scrolls `<main>` by hand. Real `#anchor` links are impossible because the hash is the router.
+* **Diagrams:** ```` ```mermaid ```` fences render through [Pele](https://pele.run) (Mermaid syntax) only inside the manual — `Markdown` takes a `diagrams` flag, so record notes and document bodies keep showing source. Only the flowchart grammar is registered (`pele/core` + `pele/diagrams/flowchart`); the SVG is themed from the app tokens through Pele's CSS variables and adapts to the container width. If a diagram cannot be parsed, the fenced source is shown instead of an empty box.
 * The contents rail tracks the scroll position (rAF-throttled) and marks the active section with `aria-current`; clicks update the hash, so back/forward and bookmarks work.
 
 ## Import (P5)
@@ -144,8 +154,8 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 
 ## Git (M6)
 
-* Header badge states: `clean` (branch name, muted dot), `dirty` (accent dot, "Uncommitted"), `unpushed` ("N to push"), `syncing` (spinner), `error` (destructive dot).
-* Clicking opens the Git dialog: branch/remote/upstream/changed-files/last-commit rows, the last step log, failure output and conflicted paths, plus Sync, Initialize, Abort sync, Set upstream & push, and the remote URL form.
+* Header badge states: `clean` (branch name, muted dot), `dirty` (destructive button, "Uncommitted"), `unpushed` ("N to push"), `syncing` (spinner), `error` (destructive), `no-repo` (a yellow `warning` outline: no repository, or the workspace sits inside a parent one).
+* Clicking opens the Git dialog: branch/remote/upstream/changed-files/last-commit rows, the last step log, failure output and conflicted paths, plus Sync, Initialize, Abort sync, Set upstream & push, and the remote URL form. Values that can be long (the commit subject, the remote URL) truncate with the full text in a `title`, so the dialog never grows wider than `sm:max-w-lg`.
 * Status comes from `GET /api/git/status`: polled every 15 s while the tab is visible, on focus, immediately on `git.changed`, and 1 s after any record event (external edits do not touch the git service).
 * The dialog never auto-recovers. Abort and set-upstream are separate buttons; a failed sync is shown as data, not as a thrown error.
 * Settings → Git holds the `commit_on_save` switch (default on). Remote configuration lives in the dialog.
@@ -185,6 +195,7 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] New and existing documents are edited in a full-page composer with Write / Preview / Split modes; the list and detail page link to it.
 - [x] Marking an invoice paid writes `paid_at`, the bill preview shows the local payment time, and the dashboard's “This month” figure follows the payment month rather than the issue month.
 - [x] Dates render `dd/MM/yyyy` in the local calendar (timestamps with `HH:mm` in details).
+- [x] Estimate and invoice lists search by number/client and sort by issued date, client, total and status; status is the last column and the manual explains the client-first workflow with a Mermaid diagram.
 - [x] Documents list filters All/Global/Client, open a rendered detail page, and print to A4; templates resolve `{{business.*}}`, `{{client.*}}` and `{{today}}` with unknown keys left literal.
 - [x] Settings → Import creates contacts, projects and tasks from a CSV skeleton, reports skipped rows with their spreadsheet line, and leaves the UI lists updated without a reload.
 - [x] The dashboard shows paid revenue (total and current month by `issue_date`) and outstanding (sent/overdue) as integer-cent sums, and Settings → Workspace shows uptime, memory, CPU and disk from `GET /api/system`.

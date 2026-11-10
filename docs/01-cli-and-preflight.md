@@ -59,7 +59,7 @@ Output is a single aligned block of `[✓] / [!] / [✗]` lines. Machine-readabl
 
 ## Process lifecycle
 
-1. Parse args → 2. pre-flight → 3. canonicalize workspace → 4. acquire lock → 5. init if needed → 6. build index (full scan) → 7. start watcher → 8. bind server → 9. write `session.json` → 10. print URL → 11. optionally open browser.
+1. Parse args → 2. pre-flight → 3. canonicalize workspace → 4. acquire lock → 5. init if needed → 6. pull when clean and behind the remote (docs/09 §Pull before start) → 7. build index (full scan) → 8. start watcher → 9. bind server → 10. write `session.json` → 11. print URL → 12. optionally open browser.
 
 Shutdown order on `SIGINT`/`SIGTERM` (and on uncaught error):
 
@@ -68,6 +68,10 @@ SSE clients notified (server.closing) → server.close() → watcher.close() →
 ```
 
 Second `Ctrl+C` during shutdown exits immediately (`130`). A `SIGINT` before the server binds must still release the lock (register the handler *before* acquiring it).
+
+Step 6 is opportunistic: it runs only when the repository is clean and strictly behind its upstream,
+it never stages, commits or pushes, and any git failure is a note — the server still starts and the
+exit code stays `0`. `--no-git` skips it.
 
 ## Logging
 
@@ -80,3 +84,4 @@ Stdout carries human status lines only. Diagnostics, git argv, and watcher chatt
 - [ ] `--port 19731` with 19731 occupied prints the actual bound port and opens that URL. *(covered by `tests/workspace/port.test.ts`; auto-skips where `listen(2)` is forbidden)*
 - [ ] `Ctrl+C` at any phase leaves no `.ob/state/server.lock` and no listening socket.
 - [x] `ob check --json` is stable enough to assert in tests (versioned fields).
+- [x] Starting on an outdated clone fast-forwards the workspace before the index is built; a dirty, diverged or upstream-less workspace starts unchanged (docs/09 §Pull before start).

@@ -153,7 +153,7 @@ export const Manual = ({ section }: ManualProps) => {
         </aside>
 
         <article ref={article} className="manual flex min-w-0 max-w-[68ch] flex-col gap-8">
-          {MANUAL.intro === '' ? null : <Markdown>{MANUAL.intro}</Markdown>}
+          {MANUAL.intro === '' ? null : <Markdown diagrams>{MANUAL.intro}</Markdown>}
           {MANUAL.sections.map((item) => (
             <section
               key={item.id}
@@ -168,7 +168,7 @@ export const Manual = ({ section }: ManualProps) => {
                 )}
                 {item.title}
               </h2>
-              <Markdown>{item.body}</Markdown>
+              <Markdown diagrams>{item.body}</Markdown>
             </section>
           ))}
         </article>

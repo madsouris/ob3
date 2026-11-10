@@ -55,11 +55,32 @@ back from disk.
 
 ## 3. A five-minute tour
 
+### The workflow
+
+Every engagement starts on the **client page**. Projects, client documents and billing all hang off
+that one record, so start there and the rest lines up: create the project, capture the work, send an
+estimate, turn it into an invoice, mark it paid.
+
+```mermaid
+flowchart TD
+  Client[Client page] --> Project[Project and tasks]
+  Client --> Documents[Client documents]
+  Project --> Estimate[Estimate]
+  Estimate -->|Create invoice| Invoice[Invoice]
+  Documents -.->|Attach| Estimate
+  Documents -.->|Attach| Invoice
+  Invoice -->|Mark paid| Paid[Paid revenue]
+  Invoice --> Print[Print / PDF]
+```
+
+Bills can also be created straight from **Estimates** or **Invoices**, but they still point at a client.
+
 - The sidebar is the whole app: Dashboard, Contacts, Projects, All tasks, Estimates, Invoices,
   Documents, Needs attention, Settings. **User manual** sits in the sidebar footer.
 - `⌘K` / `Ctrl+K` opens the command palette for navigation and search.
 - `Shift+D` toggles light and dark mode (it is ignored while you type in a field).
-- The git badge in the header shows the branch, uncommitted work, or commits waiting to push.
+- The git badge in the header shows the branch, uncommitted work, or commits waiting to push. It is
+  red when there are uncommitted changes and yellow when the folder is not a git repository yet.
 - Every list row opens a detail view or editor; every sheet closes with `Esc` or **Cancel**.
 
 The dashboard shows counts, open tasks by column, paid revenue (total and this month) and
@@ -106,6 +127,9 @@ check that `ob` is looking at the folder you think it is.
 
 Contact status is `lead`, `active`, `inactive` or `archived`, shown as a badge and used by the dashboard's active-contact count.
 
+The list has a search box (name, company or email) and sortable columns — click a header, or use the
+sort control, to order by name, company, email, status or last update.
+
 ---
 
 ## 6. Projects and tasks
@@ -122,6 +146,13 @@ Contact status is `lead`, `active`, `inactive` or `archived`, shown as a badge a
 
 A move is one file operation — the file changes folder, nothing is duplicated. Due dates show a
 red badge once they pass on an open task.
+
+The project list searches by project or client and sorts from its headers; use the toolbar on narrow
+screens, where some columns are hidden. Both boards have a search box above the columns that matches
+a task's **title or its notes**. Filtering keeps the cards in their columns and updates the counts;
+while a filter is active, dragging and **Move up / Move down** are turned off (the toolbar says so)
+so a card cannot be placed relative to hidden neighbours — changing a card's column still works.
+Clear the search to move cards again.
 
 ---
 
@@ -140,6 +171,12 @@ the same client, project, lines and attachments, and the estimate is linked back
 once per estimate.
 
 Estimate statuses are `draft`, `sent`, `accepted`, `declined` and `expired`.
+
+The list above the editor is a working table: type an invoice/estimate number, a client name or a
+title into the search box to filter it, and use the sort control (or click a column header) to order
+by issued date, client, total or status. Status is the last column, and statuses sort by their
+lifecycle — draft, sent, paid — rather than alphabetically. Sorting starts with the newest issued
+bill; clicking the active header flips the direction.
 
 Opening an estimate or invoice shows a **preview** of the printed bill first, with **Edit**, **Print /
 PDF**, **Duplicate**, **Create invoice** (estimates) and a one-click status step: **Mark sent**, then
@@ -181,6 +218,13 @@ The composer is a full page: type a title, pick the kind and scope (and the clie
 document), then write in Markdown. **Write**, **Preview** and **Split** switch between the source, the
 rendered result and both side by side. Preview fills in template variables; the file keeps the raw
 template. **Save** returns to the document page, where **Edit** brings the composer back.
+
+The document list searches by title and sorts by title, kind, scope or last update — click a column
+header or use the sort control next to the search box.
+
+**Delete** on the document page removes the file after a confirmation. If the document is the default
+terms template that new bills attach, the dialog says so; deleting it is still allowed, and new
+estimates and invoices simply start without terms.
 
 Kinds are fixed: terms, proposal, contract, statement of work, NDA, brief, note, other. The editor's
 **Variable references** panel (collapsed by default) lists every placeholder you can use.
@@ -224,6 +268,9 @@ The limit is 1,000 rows per file.
 
 ## 12. Saving, committing and syncing
 
+- **Starting the app catches you up.** When the folder is clean and only behind your remote,
+  `filecrm .` fast-forwards before the app opens, so you never start editing stale files. With local
+  changes, diverged history, or no upstream it leaves the pull to you.
 - **Saving in the UI writes the file immediately.** With *Commit on save* on, `ob` also commits just
   that file after a short pause, so your working tree stays clean.
 - **Pushing is manual.** Click the git badge, then **Sync**: `add` → `commit` → `pull --rebase` →

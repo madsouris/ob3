@@ -1,11 +1,31 @@
-import { useEffect } from 'react';
-import { ArrowLeftIcon, CalendarIcon, PencilIcon, PrinterIcon, UserIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  ArrowLeftIcon,
+  CalendarIcon,
+  PencilIcon,
+  PrinterIcon,
+  Trash2Icon,
+  UserIcon,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Markdown } from '@/components/markdown';
 import { StatusBadge } from '@/components/status-badge';
+import { api } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { navigate } from '@/lib/router';
 import { templateVariablesFor } from '@/lib/document-variables';
@@ -17,7 +37,8 @@ export interface DocumentDetailProps {
 }
 
 export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
-  const { records, config, loading } = useWorkspace();
+  const { records, config, loading, remove } = useWorkspace();
+  const [deleting, setDeleting] = useState(false);
 
   const document = records.document.find((record) => record.id === documentId) ?? null;
   const client =
@@ -52,6 +73,21 @@ export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
   const variables = templateVariablesFor({ config, client });
   const content = renderTemplate(document.body, variables);
   const scopeLabel = document.scope === 'client' ? 'Client document' : 'Global template';
+  const isDefaultTerms = config?.default_terms_document === document.path;
+
+  const destroy = async (): Promise<void> => {
+    setDeleting(true);
+    try {
+      await api.remove('documents', document.id);
+      remove(document.id);
+      toast.success('Document deleted');
+      navigate('documents');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not delete the document');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,6 +110,29 @@ export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
             <PencilIcon data-icon="inline-start" />
             Edit
           </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" disabled={deleting}>
+                <Trash2Icon data-icon="inline-start" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this document?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {document.path} is removed from disk. Git keeps the previous version.
+                  {isDefaultTerms
+                    ? ' This is the template attached to new estimates and invoices; deleting it leaves them without default terms.'
+                    : ''}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => void destroy()}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

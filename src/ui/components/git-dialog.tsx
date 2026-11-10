@@ -25,10 +25,20 @@ import { Spinner } from '@/components/ui/spinner';
 import type { GitStep } from '@/lib/api';
 import { useWorkspace } from '@/lib/workspace';
 
-const StatusRow = ({ label, value }: { readonly label: string; readonly value: ReactNode }) => (
-  <div className="flex items-baseline justify-between gap-4 text-sm">
-    <span className="shrink-0 text-muted-foreground">{label}</span>
-    <span className="min-w-0 truncate text-right font-mono text-xs">{value}</span>
+const StatusRow = ({
+  label,
+  value,
+  title,
+}: {
+  readonly label: string;
+  readonly value: ReactNode;
+  readonly title?: string;
+}) => (
+  <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-4 text-sm">
+    <span className="text-muted-foreground">{label}</span>
+    <span title={title} className="min-w-0 truncate text-right font-mono text-xs">
+      {value}
+    </span>
   </div>
 );
 
@@ -128,7 +138,7 @@ export const GitDialog = ({ open, onOpenChange }: GitDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] grid-cols-1 overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitBranchIcon aria-hidden />
@@ -139,7 +149,7 @@ export const GitDialog = ({ open, onOpenChange }: GitDialogProps) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           {git === null ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner />
@@ -192,6 +202,7 @@ export const GitDialog = ({ open, onOpenChange }: GitDialogProps) => {
               <StatusRow label="Changed files" value={String(git.changedFiles)} />
               <StatusRow
                 label="Last commit"
+                title={git.lastCommit.replace(/\t/g, ' · ')}
                 value={git.lastCommit === '' ? 'none' : git.lastCommit.replace(/\t/g, ' · ')}
               />
             </div>
@@ -272,7 +283,7 @@ export const GitDialog = ({ open, onOpenChange }: GitDialogProps) => {
                     onChange={(event) => setRemoteUrl(event.target.value)}
                     placeholder="git@github.com:you/crm.git"
                     aria-label="Git remote URL"
-                    className="font-mono text-xs"
+                    className="min-w-0 font-mono text-xs"
                   />
                   <div className="flex gap-2">
                     <Button

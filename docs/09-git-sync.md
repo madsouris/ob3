@@ -62,6 +62,32 @@ save(record):
 * If `.ob/state/server.lock` is ignored (the normal case), staging is `git add -A -- .`, which also covers root-level user files.
 * If the user's `.gitignore` omits it, `git check-ignore` fails and staging is restricted to the managed roots plus `.ob/config.json` and `.gitignore`. `ensureGitignore` returns a warning instead of rewriting a user-authored file.
 
+## Pull before start
+
+`filecrm .` refreshes an outdated workspace **before the index is built**, so the first screen never
+shows files the remote already replaced (docs/01 §Process lifecycle). The user should not have to
+touch the terminal to avoid a push conflict.
+
+```
+start:
+  repo? → upstream? → tree clean? → git fetch (5 s) → behind > 0 and ahead = 0? → git pull --rebase
+```
+
+* Runs after pre-flight and the lock, before the index, watcher and server, so pulled records are in
+the first projection.
+* Only a **strictly behind** branch is pulled. With nothing local, `pull --rebase` is a fast-forward,
+  so this path cannot produce a conflict; a diverged branch (ahead > 0 **and** behind > 0) is left for
+  the user's Sync.
+* Untracked files count as dirty: the incoming commits may add the same paths and git would refuse the
+  checkout mid-pull.
+* Silent skips: no repository, a parent repository (unless `OB_ALLOW_PARENT_REPO=1`), detached HEAD,
+  no upstream, up to date, unreachable remote (the fetch is capped at 5 s; `--verbose` prints the note).
+* Spoken skips: uncommitted changes (“Skipped the pre-start pull…”), diverged history (“Local commits
+  and the remote have diverged. Sync from the git badge to reconcile.”).
+* Never stages, commits, pushes, aborts or resets. A failed pull prints its classified message and
+  startup continues with exit code 0 — the files on disk are always usable.
+* `--no-git` disables it, exactly as it disables git initialization.
+
 ## Manual sync (the only push path)
 
 ```
@@ -125,7 +151,7 @@ git status -> {
 * Status is cached for 500 ms server-side. The UI polls every 15 s while the tab is visible, refreshes on focus, applies `git.changed` immediately, and re-polls 1 s after any record event (external edits do not touch the git service).
 * `repoOutsideWorkspace` is reported instead of the absolute repo path — the API never leaks paths outside the workspace.
 
-Badge semantics (header): `clean` (branch name) · `dirty` (accent, "Uncommitted") · `unpushed` ("N to push") · `syncing` (spinner) · `error` (red dot). Clicking opens the Git dialog: status rows, step log, error output, conflict paths, remote form, Sync/Initialize/Abort/Set-upstream.
+Badge semantics (header): `clean` (branch name, muted dot) · `dirty` (**destructive**, “Uncommitted”) · `unpushed` (“N to push”) · `syncing` (spinner) · `error` (**destructive**) · `no-repo` (**warning**, a yellow outline, when there is no repository or the workspace sits inside a parent one). Clicking opens the Git dialog: status rows, step log, error output, conflict paths, remote form, Sync/Initialize/Abort/Set-upstream. Long values (the last commit subject, the remote URL) ellipsize with the full text in a `title`; the dialog never scrolls sideways.
 
 ## `beforeunload`
 
@@ -159,4 +185,6 @@ ob sync [path] [--dry-run] [--allow-parent-repo] [--verbose]
 - [x] `commit_on_save: false` produces no commit on save and reports `dirty`.
 - [x] A rejecting pre-commit hook keeps the file, reports `hook_rejected`, and clears after a successful commit.
 - [x] `.ob/state/` never reaches the remote, even when `.gitignore` omits it.
+- [x] A clean workspace that is only behind the remote is fast-forwarded before the index is built; a dirty, diverged, upstream-less or unreachable one is left untouched (`tests/git/start-sync.test.ts`).
+- [x] The badge is destructive for uncommitted work and yellow (`warning`) when there is no repository.
 - [ ] Killing the process mid-`pull --rebase` is verified manually; the code never aborts or resets, so recovery remains the user's `git` commands.

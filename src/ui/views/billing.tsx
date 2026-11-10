@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DocumentSheet } from '@/components/document-sheet';
+import { SortableHead, TableControls } from '@/components/table-controls';
 import { EmptyState } from '@/components/empty-state';
 import { DateField } from '@/components/date-field';
 import { Field } from '@/components/field';
@@ -55,6 +56,9 @@ import { SheetBody } from '@/components/sheet-body';
 import { StatusBadge, invoiceStatus } from '@/components/status-badge';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
+import { SORT_FIELDS, filterBills, sortBills } from '@/lib/billing-list';
+import type { BillRow, BillSortField } from '@/lib/billing-list';
+import { useTableControls } from '@/lib/table';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 import { valueLabel } from '@/lib/labels';
 import { navigate } from '@/lib/router';
@@ -520,7 +524,7 @@ export const BillingEditor = ({
                   />
                 </SheetBody>
 
-                <SheetFooter className="flex items-center justify-end gap-2">
+                <SheetFooter className="flex-row items-center justify-end gap-2">
                   <Button variant="ghost" size="sm" onClick={close}>
                     Cancel
                   </Button>
@@ -543,16 +547,45 @@ export interface BillingProps {
   readonly type: BillType;
 }
 
+const SORT_OPTIONS = SORT_FIELDS.map(({ field, label }) => ({ value: field, label }));
+
+const isSortField = (value: string): value is BillSortField =>
+  SORT_FIELDS.some((option) => option.field === value);
+
 export const Billing = ({ type }: BillingProps) => {
   const { records } = useWorkspace();
   const meta = LABELS[type];
   const list: readonly ApiRecord[] = type === 'estimate' ? records.estimate : records.invoice;
   const isInvoice = type === 'invoice';
   const [creating, setCreating] = useState(false);
+  const controls = useTableControls<BillSortField>('issued', { issued: 'desc' });
 
   const clients = new Map(
     records.contact.map((contact) => [contact.id, recordTitle(contact)] as const),
   );
+
+  const allRows: readonly BillRow[] = list.flatMap((record) => {
+    if (record.type !== 'invoice' && record.type !== 'estimate') return [];
+    return [
+      {
+        id: record.id,
+        type: record.type,
+        number: record.type === 'invoice' ? record.invoice_number : record.estimate_number,
+        title: record.title,
+        clientName: clients.get(record.client_id) ?? '',
+        issued: record.issue_date,
+        total: record.total_cents,
+        currency: record.currency === '' ? 'USD' : record.currency,
+        status: record.type === 'invoice' ? invoiceStatus(record) : record.status,
+      },
+    ];
+  });
+  const rows = sortBills(
+    filterBills(allRows, controls.query),
+    controls.field,
+    controls.direction,
+  );
+  const filtering = controls.query.trim() !== '';
 
   return (
     <div className="flex flex-col gap-6">
@@ -580,69 +613,110 @@ export const Billing = ({ type }: BillingProps) => {
           }
         />
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{meta.numberLabel}</TableHead>
-                <TableHead className="hidden md:table-cell">Client</TableHead>
-                <TableHead className="tabular text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Issued</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.map((record) => {
-                const currency =
-                  record.type === 'invoice' || record.type === 'estimate' ? record.currency : 'USD';
-                const total =
-                  record.type === 'invoice' || record.type === 'estimate' ? record.total_cents : 0;
-                const clientId =
-                  record.type === 'invoice' || record.type === 'estimate' ? record.client_id : '';
-                const issued =
-                  record.type === 'invoice' || record.type === 'estimate' ? record.issue_date : '';
-                const status =
-                  record.type === 'invoice'
-                    ? invoiceStatus(record)
-                    : record.type === 'estimate'
-                      ? record.status
-                      : 'draft';
+        <div className="flex flex-col gap-3">
+          <TableControls
+            search={{
+              value: controls.query,
+              onChange: controls.setQuery,
+              label: `Search ${meta.plural}`,
+              placeholder: 'Search number or client',
+              ...(filtering ? { count: `${rows.length} of ${list.length}` } : {}),
+            }}
+            sortOptions={SORT_OPTIONS}
+            sortField={controls.field}
+            onSortField={(value) => {
+              if (isSortField(value)) controls.selectField(value);
+            }}
+            direction={controls.direction}
+            onToggleDirection={controls.toggleDirection}
+          />
 
-                return (
-                  <TableRow
-                    key={record.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`${meta.plural}/${record.id}`)}
-                  >
-                    <TableCell>
-                      <button
-                        type="button"
-                        className="text-left font-mono text-sm font-medium hover:underline"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          navigate(`${meta.plural}/${record.id}`);
-                        }}
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{meta.numberLabel}</TableHead>
+                  <SortableHead
+                    label="Client"
+                    className="hidden md:table-cell"
+                    active={controls.field === 'client'}
+                    direction={controls.direction}
+                    onSort={() => controls.selectField('client')}
+                  />
+                  <SortableHead
+                    label="Total"
+                    className="tabular text-right"
+                    active={controls.field === 'total'}
+                    direction={controls.direction}
+                    onSort={() => controls.selectField('total')}
+                  />
+                  <SortableHead
+                    label="Issued"
+                    className="hidden sm:table-cell"
+                    active={controls.field === 'issued'}
+                    direction={controls.direction}
+                    onSort={() => controls.selectField('issued')}
+                  />
+                  <SortableHead
+                    label="Status"
+                    active={controls.field === 'status'}
+                    direction={controls.direction}
+                    onSort={() => controls.selectField('status')}
+                  />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                      No {meta.plural} match “{controls.query.trim()}”.
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="ml-1 h-auto px-0"
+                        onClick={() => controls.setQuery('')}
                       >
-                        {recordTitle(record)}
-                      </button>
-                    </TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">
-                      {clients.get(clientId) ?? '—'}
-                    </TableCell>
-                    <TableCell className="tabular text-right">
-                      {formatMoney(total, currency === '' ? 'USD' : currency)}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={status} />
-                    </TableCell>
-                    <TableCell className="tabular hidden text-xs text-muted-foreground sm:table-cell">
-                      {formatDate(issued)}
+                        Clear search
+                      </Button>
                     </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                ) : (
+                  rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`${meta.plural}/${row.id}`)}
+                    >
+                      <TableCell>
+                        <button
+                          type="button"
+                          className="text-left font-mono text-sm font-medium hover:underline"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`${meta.plural}/${row.id}`);
+                          }}
+                        >
+                          {row.number}
+                        </button>
+                      </TableCell>
+                      <TableCell className="hidden text-muted-foreground md:table-cell">
+                        {row.clientName === '' ? '—' : row.clientName}
+                      </TableCell>
+                      <TableCell className="tabular text-right">
+                        {formatMoney(row.total, row.currency)}
+                      </TableCell>
+                      <TableCell className="tabular hidden text-xs text-muted-foreground sm:table-cell">
+                        {formatDate(row.issued)}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={row.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
