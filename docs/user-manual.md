@@ -126,6 +126,9 @@ check that `ob` is looking at the folder you think it is.
 
 Contact status is `lead`, `active`, `inactive` or `archived`, shown as a badge and used by the dashboard's active-contact count.
 
+The list has a search box (name, company or email) and sortable columns — click a header, or use the
+sort control, to order by name, company, email, status or last update.
+
 ---
 
 ## 6. Projects and tasks
@@ -142,6 +145,13 @@ Contact status is `lead`, `active`, `inactive` or `archived`, shown as a badge a
 
 A move is one file operation — the file changes folder, nothing is duplicated. Due dates show a
 red badge once they pass on an open task.
+
+The project list searches by project or client and sorts from its headers; use the toolbar on narrow
+screens, where some columns are hidden. Both boards have a search box above the columns that matches
+a task's **title or its notes**. Filtering keeps the cards in their columns and updates the counts;
+while a filter is active, dragging and **Move up / Move down** are turned off (the toolbar says so)
+so a card cannot be placed relative to hidden neighbours — changing a card's column still works.
+Clear the search to move cards again.
 
 ---
 
@@ -207,6 +217,9 @@ The composer is a full page: type a title, pick the kind and scope (and the clie
 document), then write in Markdown. **Write**, **Preview** and **Split** switch between the source, the
 rendered result and both side by side. Preview fills in template variables; the file keeps the raw
 template. **Save** returns to the document page, where **Edit** brings the composer back.
+
+The document list searches by title and sorts by title, kind, scope or last update — click a column
+header or use the sort control next to the search box.
 
 Kinds are fixed: terms, proposal, contract, statement of work, NDA, brief, note, other. The editor's
 **Variable references** panel (collapsed by default) lists every placeholder you can use.

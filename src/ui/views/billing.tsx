@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowDownIcon,
   ArrowLeftIcon,
-  ArrowUpIcon,
   CopyIcon,
   FileTextIcon,
   PencilIcon,
   PlusIcon,
   PrinterIcon,
   ReceiptIcon,
-  SearchIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -46,6 +43,7 @@ import {
 } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DocumentSheet } from '@/components/document-sheet';
+import { SortableHead, TableControls } from '@/components/table-controls';
 import { EmptyState } from '@/components/empty-state';
 import { DateField } from '@/components/date-field';
 import { Field } from '@/components/field';
@@ -59,7 +57,8 @@ import { StatusBadge, invoiceStatus } from '@/components/status-badge';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
 import { SORT_FIELDS, filterBills, sortBills } from '@/lib/billing-list';
-import type { BillRow, BillSortField, SortDirection } from '@/lib/billing-list';
+import type { BillRow, BillSortField } from '@/lib/billing-list';
+import { useTableControls } from '@/lib/table';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 import { valueLabel } from '@/lib/labels';
 import { navigate } from '@/lib/router';
@@ -548,39 +547,10 @@ export interface BillingProps {
   readonly type: BillType;
 }
 
-interface SortHeaderProps {
-  readonly field: BillSortField;
-  readonly label: string;
-  readonly active: BillSortField;
-  readonly direction: SortDirection;
-  readonly className?: string;
-  readonly onSelect: (field: BillSortField) => void;
-}
+const SORT_OPTIONS = SORT_FIELDS.map(({ field, label }) => ({ value: field, label }));
 
-/** A th whose label sorts; `aria-sort` carries the state for screen readers. */
-const SortHeader = ({ field, label, active, direction, className, onSelect }: SortHeaderProps) => (
-  <TableHead
-    className={className}
-    aria-sort={
-      active === field ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'
-    }
-  >
-    <button
-      type="button"
-      onClick={() => onSelect(field)}
-      className="inline-flex items-center gap-1 text-left font-medium hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-    >
-      {label}
-      {active === field ? (
-        direction === 'asc' ? (
-          <ArrowUpIcon aria-hidden className="size-3.5" />
-        ) : (
-          <ArrowDownIcon aria-hidden className="size-3.5" />
-        )
-      ) : null}
-    </button>
-  </TableHead>
-);
+const isSortField = (value: string): value is BillSortField =>
+  SORT_FIELDS.some((option) => option.field === value);
 
 export const Billing = ({ type }: BillingProps) => {
   const { records } = useWorkspace();
@@ -588,9 +558,7 @@ export const Billing = ({ type }: BillingProps) => {
   const list: readonly ApiRecord[] = type === 'estimate' ? records.estimate : records.invoice;
   const isInvoice = type === 'invoice';
   const [creating, setCreating] = useState(false);
-  const [query, setQuery] = useState('');
-  const [sortField, setSortField] = useState<BillSortField>('issued');
-  const [direction, setDirection] = useState<SortDirection>('desc');
+  const controls = useTableControls<BillSortField>('issued', { issued: 'desc' });
 
   const clients = new Map(
     records.contact.map((contact) => [contact.id, recordTitle(contact)] as const),
@@ -612,18 +580,12 @@ export const Billing = ({ type }: BillingProps) => {
       },
     ];
   });
-  const rows = sortBills(filterBills(allRows, query), sortField, direction);
-  const filtering = query.trim() !== '';
-
-  /** First click sorts ascending; clicking the active column flips the direction. */
-  const selectSort = (field: BillSortField): void => {
-    if (field === sortField) {
-      setDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-    setSortField(field);
-    setDirection(field === 'issued' ? 'desc' : 'asc');
-  };
+  const rows = sortBills(
+    filterBills(allRows, controls.query),
+    controls.field,
+    controls.direction,
+  );
+  const filtering = controls.query.trim() !== '';
 
   return (
     <div className="flex flex-col gap-6">
@@ -652,92 +614,54 @@ export const Billing = ({ type }: BillingProps) => {
         />
       ) : (
         <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full min-w-48 sm:max-w-xs">
-              <SearchIcon
-                aria-hidden
-                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                aria-label={`Search ${meta.plural}`}
-                placeholder="Search number or client"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                className="pl-8"
-              />
-            </div>
-            {filtering ? (
-              <span className="tabular text-xs text-muted-foreground">
-                {rows.length} of {list.length}
-              </span>
-            ) : null}
-
-            <div className="ml-auto flex items-center gap-2">
-              <Select
-                value={sortField}
-                onValueChange={(value) => {
-                  if (value === 'issued' || value === 'client' || value === 'total' || value === 'status') {
-                    setSortField(value);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-40" aria-label="Sort by">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SORT_FIELDS.map((option) => (
-                    <SelectItem key={option.field} value={option.field}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="icon-sm"
-                aria-label={direction === 'asc' ? 'Sort descending' : 'Sort ascending'}
-                onClick={() => setDirection((current) => (current === 'asc' ? 'desc' : 'asc'))}
-              >
-                {direction === 'asc' ? <ArrowUpIcon aria-hidden /> : <ArrowDownIcon aria-hidden />}
-              </Button>
-            </div>
-          </div>
+          <TableControls
+            search={{
+              value: controls.query,
+              onChange: controls.setQuery,
+              label: `Search ${meta.plural}`,
+              placeholder: 'Search number or client',
+              ...(filtering ? { count: `${rows.length} of ${list.length}` } : {}),
+            }}
+            sortOptions={SORT_OPTIONS}
+            sortField={controls.field}
+            onSortField={(value) => {
+              if (isSortField(value)) controls.selectField(value);
+            }}
+            direction={controls.direction}
+            onToggleDirection={controls.toggleDirection}
+          />
 
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>{meta.numberLabel}</TableHead>
-                  <SortHeader
-                    field="client"
+                  <SortableHead
                     label="Client"
                     className="hidden md:table-cell"
-                    active={sortField}
-                    direction={direction}
-                    onSelect={selectSort}
+                    active={controls.field === 'client'}
+                    direction={controls.direction}
+                    onSort={() => controls.selectField('client')}
                   />
-                  <SortHeader
-                    field="total"
+                  <SortableHead
                     label="Total"
                     className="tabular text-right"
-                    active={sortField}
-                    direction={direction}
-                    onSelect={selectSort}
+                    active={controls.field === 'total'}
+                    direction={controls.direction}
+                    onSort={() => controls.selectField('total')}
                   />
-                  <SortHeader
-                    field="issued"
+                  <SortableHead
                     label="Issued"
                     className="hidden sm:table-cell"
-                    active={sortField}
-                    direction={direction}
-                    onSelect={selectSort}
+                    active={controls.field === 'issued'}
+                    direction={controls.direction}
+                    onSort={() => controls.selectField('issued')}
                   />
-                  <SortHeader
-                    field="status"
+                  <SortableHead
                     label="Status"
-                    active={sortField}
-                    direction={direction}
-                    onSelect={selectSort}
+                    active={controls.field === 'status'}
+                    direction={controls.direction}
+                    onSort={() => controls.selectField('status')}
                   />
                 </TableRow>
               </TableHeader>
@@ -745,12 +669,12 @@ export const Billing = ({ type }: BillingProps) => {
                 {rows.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
-                      No {meta.plural} match “{query.trim()}”.
+                      No {meta.plural} match “{controls.query.trim()}”.
                       <Button
                         variant="link"
                         size="sm"
                         className="ml-1 h-auto px-0"
-                        onClick={() => setQuery('')}
+                        onClick={() => controls.setQuery('')}
                       >
                         Clear search
                       </Button>

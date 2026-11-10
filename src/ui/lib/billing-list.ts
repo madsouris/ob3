@@ -1,6 +1,8 @@
+import type { SortDirection } from './table.js';
+export type { SortDirection };
+
 export type BillType = 'invoice' | 'estimate';
 export type BillSortField = 'issued' | 'client' | 'total' | 'status';
-export type SortDirection = 'asc' | 'desc';
 
 /** One table row, resolved from a record plus the client map. */
 export interface BillRow {

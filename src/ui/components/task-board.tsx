@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { TableSearch } from '@/components/table-controls';
 import type { ApiRecordOf } from '@/lib/api';
 import { formatDate, formatToday } from '@/lib/format';
 import { recordTitle } from '@/lib/workspace';
@@ -33,6 +34,8 @@ interface TaskCardProps {
   readonly projectName: string | null;
   readonly showProject: boolean;
   readonly dragging: boolean;
+  /** False while a search is active: drag and manual reordering are disabled. */
+  readonly movable: boolean;
   /** Neighbours in the same column, for the keyboard reorder path. */
   readonly previousId: string | null;
   readonly nextId: string | null;
@@ -48,6 +51,7 @@ const TaskCard = ({
   projectName,
   showProject,
   dragging,
+  movable,
   previousId,
   nextId,
   onOpen,
@@ -63,18 +67,21 @@ const TaskCard = ({
 
   return (
     <div
-      draggable
+      draggable={movable}
       onDragStart={(event) => {
+        if (!movable) return;
         event.dataTransfer.setData('text/plain', task.id);
         event.dataTransfer.effectAllowed = 'move';
         onDragStart(task.id);
       }}
       onDragEnd={onDragEnd}
       onDragOver={(event) => {
+        if (!movable) return;
         event.preventDefault();
         event.stopPropagation();
       }}
       onDrop={(event) => {
+        if (!movable) return;
         event.preventDefault();
         event.stopPropagation();
         onDropBefore(task.id, status);
@@ -127,22 +134,26 @@ const TaskCard = ({
             ))}
             {previousId === null && nextId === null ? null : (
               <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Order in column</DropdownMenuLabel>
-                {previousId === null ? null : (
-                  <DropdownMenuItem
-                    onSelect={() => onMove(task.id, { to: status, beforeId: previousId })}
-                  >
-                    Move up
-                  </DropdownMenuItem>
-                )}
-                {nextId === null ? null : (
-                  <DropdownMenuItem
-                    onSelect={() => onMove(task.id, { to: status, afterId: nextId })}
-                  >
-                    Move down
-                  </DropdownMenuItem>
-                )}
+                {movable ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Order in column</DropdownMenuLabel>
+                    {previousId === null ? null : (
+                      <DropdownMenuItem
+                        onSelect={() => onMove(task.id, { to: status, beforeId: previousId })}
+                      >
+                        Move up
+                      </DropdownMenuItem>
+                    )}
+                    {nextId === null ? null : (
+                      <DropdownMenuItem
+                        onSelect={() => onMove(task.id, { to: status, afterId: nextId })}
+                      >
+                        Move down
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                ) : null}
               </>
             )}
           </DropdownMenuContent>
@@ -175,9 +186,30 @@ export const TaskBoard = ({
   emptyHint = 'Nothing here.',
 }: TaskBoardProps) => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
+  const needle = deferredQuery.trim().toLowerCase();
+  const filtering = needle !== '';
+
+  /** Title and body, pre-lowercased once per workspace change. */
+  const indexed = useMemo(
+    () =>
+      tasks.map((task) => ({
+        task,
+        haystack: `${recordTitle(task)}\n${task.body}`.toLowerCase(),
+      })),
+    [tasks],
+  );
+  const visible = useMemo(
+    () =>
+      needle === ''
+        ? tasks
+        : indexed.filter((row) => row.haystack.includes(needle)).map((row) => row.task),
+    [indexed, needle, tasks],
+  );
 
   const drop = (status: TaskStatus, beforeId?: string): void => {
-    if (draggingId === null || draggingId === beforeId) {
+    if (filtering || draggingId === null || draggingId === beforeId) {
       setDraggingId(null);
       return;
     }
@@ -186,59 +218,91 @@ export const TaskBoard = ({
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {COLUMNS.map((column) => {
-        const columnTasks = tasks
-          .filter((task) => (task.status ?? 'todo') === column.status)
-          .sort((left, right) => left.order - right.order);
+    <div className="flex flex-col gap-4">
+      <TableSearch
+        value={query}
+        onChange={setQuery}
+        label="Search tasks"
+        placeholder="Search title or body"
+        {...(filtering ? { count: `${visible.length} of ${tasks.length}` } : {})}
+        {...(filtering ? { hint: 'Moving is disabled while filtering.' } : {})}
+      />
 
-        return (
-          <section
-            key={column.status}
-            aria-label={column.label}
-            onDragOver={(event) => {
-              event.preventDefault();
-              event.dataTransfer.dropEffect = 'move';
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              drop(column.status);
-            }}
-            className="flex min-h-40 flex-col gap-3 rounded-lg border bg-muted/30 p-3"
+      {filtering && visible.length === 0 ? (
+        <div className="rounded-lg border p-8 text-center text-sm text-muted-foreground">
+          No tasks match “{query.trim()}”.
+          <Button
+            variant="link"
+            size="sm"
+            className="ml-1 h-auto px-0"
+            onClick={() => setQuery('')}
           >
-            <header className="flex items-center justify-between gap-2 px-1">
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">{column.label}</span>
-                <span className="font-mono text-[11px] text-muted-foreground">{column.hint}</span>
-              </div>
-              <Badge variant="secondary">{columnTasks.length}</Badge>
-            </header>
+            Clear search
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-3">
+          {COLUMNS.map((column) => {
+            const columnTasks = visible
+              .filter((task) => (task.status ?? 'todo') === column.status)
+              .sort((left, right) => left.order - right.order);
 
-            <div className="flex flex-col gap-2">
-              {columnTasks.length === 0 ? (
-                <p className="px-1 py-6 text-center text-xs text-muted-foreground">{emptyHint}</p>
-              ) : (
-                columnTasks.map((task, index) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    projectName={projects?.get(task.project_id) ?? null}
-                    showProject={showProject}
-                    dragging={draggingId === task.id}
-                    previousId={columnTasks[index - 1]?.id ?? null}
-                    nextId={columnTasks[index + 1]?.id ?? null}
-                    onOpen={onOpen}
-                    onMove={onMove}
-                    onDragStart={setDraggingId}
-                    onDragEnd={() => setDraggingId(null)}
-                    onDropBefore={(beforeId, status) => drop(status, beforeId)}
-                  />
-                ))
-              )}
-            </div>
-          </section>
-        );
-      })}
+            return (
+              <section
+                key={column.status}
+                aria-label={column.label}
+                onDragOver={(event) => {
+                  if (filtering) return;
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = 'move';
+                }}
+                onDrop={(event) => {
+                  if (filtering) return;
+                  event.preventDefault();
+                  drop(column.status);
+                }}
+                className="flex min-h-40 flex-col gap-3 rounded-lg border bg-muted/30 p-3"
+              >
+                <header className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{column.label}</span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {column.hint}
+                    </span>
+                  </div>
+                  <Badge variant="secondary">{columnTasks.length}</Badge>
+                </header>
+
+                <div className="flex flex-col gap-2">
+                  {columnTasks.length === 0 ? (
+                    <p className="px-1 py-6 text-center text-xs text-muted-foreground">
+                      {filtering ? 'No match.' : emptyHint}
+                    </p>
+                  ) : (
+                    columnTasks.map((task, index) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        projectName={projects?.get(task.project_id) ?? null}
+                        showProject={showProject}
+                        dragging={draggingId === task.id}
+                        movable={!filtering}
+                        previousId={columnTasks[index - 1]?.id ?? null}
+                        nextId={columnTasks[index + 1]?.id ?? null}
+                        onOpen={onOpen}
+                        onMove={onMove}
+                        onDragStart={setDraggingId}
+                        onDragEnd={() => setDraggingId(null)}
+                        onDropBefore={(beforeId, status) => drop(status, beforeId)}
+                      />
+                    ))
+                  )}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

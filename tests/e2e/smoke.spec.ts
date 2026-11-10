@@ -90,6 +90,73 @@ test('paying an invoice moves this month’s revenue', async ({ page }) => {
   await expect(thisMonth).not.toContainText('0.00');
 });
 
+test('the contacts table searches and sorts', async ({ page }) => {
+  await page.goto('/#/contacts');
+
+  const search = page.getByLabel('Search contacts');
+  await search.fill('acme');
+  await expect(page.locator('tbody tr')).toHaveCount(1);
+  await expect(page.getByText('1 of 2')).toBeVisible();
+  await expect(page.locator('tbody tr').first()).toContainText('Priya');
+
+  await search.fill('');
+  await expect(page.locator('tbody tr')).toHaveCount(2);
+
+  const name = page.getByRole('columnheader', { name: 'Name' });
+  await expect(name).toHaveAttribute('aria-sort', 'ascending');
+  await name.getByRole('button').click();
+  await expect(name).toHaveAttribute('aria-sort', 'descending');
+});
+
+test('the projects table searches by client', async ({ page }) => {
+  await page.goto('/#/projects');
+
+  await page.getByLabel('Search projects').fill('priya');
+  await expect(page.locator('tbody tr')).toHaveCount(1);
+  await expect(page.locator('tbody tr').first()).toContainText('Website Redesign');
+  await expect(page.getByText('1 of 2')).toBeVisible();
+});
+
+test('the documents table searches by title', async ({ page }) => {
+  await page.goto('/#/documents');
+
+  await page.getByLabel('Search documents').fill('scope');
+  await expect(page.locator('tbody tr')).toHaveCount(1);
+  await expect(page.locator('tbody tr').first()).toContainText('Website Redesign — Scope');
+  await expect(page.getByText('1 of 3')).toBeVisible();
+});
+
+test('task boards search title and body, and disable moving', async ({ page }) => {
+  await page.goto('/#/tasks');
+
+  const search = page.getByLabel('Search tasks');
+  await search.fill('webhook');
+  await expect(page.getByText('1 of 5')).toBeVisible();
+  await expect(page.getByText('Moving is disabled while filtering.')).toBeVisible();
+  await expect(page.locator('section[aria-label="Doing"]')).toContainText(
+    'Integrate contact form API',
+  );
+  await expect(page.locator('section[aria-label="To do"]')).toContainText('No match.');
+
+  await search.fill('zzz');
+  await expect(page.getByText(/No tasks match/)).toBeVisible();
+  await page.getByRole('button', { name: 'Clear search' }).click();
+  await expect(page.locator('section[aria-label="To do"]')).toContainText(
+    'Build homepage hero component',
+  );
+});
+
+test('the manual renders the workflow diagram', async ({ page }) => {
+  await page.goto('/#/manual/a-five-minute-tour');
+
+  const diagram = page.locator('.pele-diagram svg.pele');
+  await expect(diagram).toBeVisible();
+  await expect(page.locator('.pele-diagram')).toContainText('Client page');
+  await expect(page.locator('.pele-diagram')).toContainText('Invoice');
+});
+
+// Kept last: this test creates a document, so the document-list assertions above
+// must see only the seeded three.
 test('the document composer writes, previews and saves', async ({ page }) => {
   await page.goto('/#/documents');
   await page.getByRole('button', { name: 'New document' }).first().click();
@@ -104,13 +171,4 @@ test('the document composer writes, previews and saves', async ({ page }) => {
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(page).toHaveURL(/documents\/doc_/);
   await expect(page.getByRole('heading', { name: 'E2E scope' })).toBeVisible();
-});
-
-test('the manual renders the workflow diagram', async ({ page }) => {
-  await page.goto('/#/manual/a-five-minute-tour');
-
-  const diagram = page.locator('.pele-diagram svg.pele');
-  await expect(diagram).toBeVisible();
-  await expect(page.locator('.pele-diagram')).toContainText('Client page');
-  await expect(page.locator('.pele-diagram')).toContainText('Invoice');
 });

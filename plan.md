@@ -133,8 +133,10 @@ existing records. Revenue is paid invoices, bucketed by the server-owned `paid_a
 fallback) in the **local** month; outstanding is `sent` + derived `overdue`. Dates display as
 `dd/MM/yyyy` local, timestamps add `HH:mm` in details. Bills open as a preview and print from the same
 `DocumentSheet`; documents are written in a full-page composer. A local Playwright smoke test runs from
-the pre-push hook, never from CI. Billing lists filter and sort in the browser, status last and ordered
-by lifecycle. Manual diagrams are Mermaid source rendered with Pele's flowchart grammar (Pele adds
+the pre-push hook, never from CI. Every list filters and sorts through one shared toolbar
+(`useTableControls` + `TableControls`), in the browser over indexed records; boards search title and
+body and disable dragging while filtering because insertion is computed against visible neighbours.
+Manual diagrams are Mermaid source rendered with Pele's flowchart grammar (Pele adds
 ~165 KB; Mermaid.js would add ~1.6 MB to an offline bundle); diagrams render only in the manual.
 System facts are read on demand, never polled. Document kinds are a
 fixed set with `other` as the catch-all. Payment info is one active mode (`link`, `qr` or off) and the

@@ -40,16 +40,16 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | View | Contents | Key interactions |
 |---|---|---|
 | Dashboard | Counts, open tasks by column, outstanding total, paid revenue (total + this month), recent activity, issue banner | Click-through to filtered lists |
-| Contacts | Table; click a row → contact page | Create; edit from the contact page |
+| Contacts | Table; search and sort | Create; open a contact page; edit from there |
 | Contact page (`/contacts/:id`) | Avatar, name, role/company, status, project/document/billing badges, rendered notes, projects, client documents, billing, primary-link button and contact facts | Edit (sheet), jump to project/document/invoice/estimate |
-| Projects | Table; linked client; task count | Pick a project → its board; create; edit |
-| Project workspace (`/projects/:id`) | Header, client, status, task counts, project body, that project's board | Add/edit task, drag or "Move to…", edit project |
-| All tasks (`/tasks`) | Cross-project board with the project name on each card | Drag or "Move to…", open task |
+| Projects | Table; search and sort; linked client; task count | Pick a project → its board; create; edit |
+| Project workspace (`/projects/:id`) | Header, client, status, task counts, project body, that project's searchable board | Add/edit task, drag or "Move to…", edit project |
+| All tasks (`/tasks`) | Cross-project board with the project name on each card, searchable by title and body | Drag or "Move to…", open task |
 | Estimates | Table; status last; search and sort | Open a preview; edit in a sheet; duplicate, convert to invoice, print |
 | Invoices | Table; derived `overdue` badge; search and sort | Open a preview; edit in a sheet; duplicate, print, mark sent/paid |
 | Bill preview (`/estimates/:id`, `/invoices/:id`) | Responsive paper preview of the bill, status, number, client/project, dates, total, payment date | Edit (sheet), Print / PDF, Duplicate, Create invoice, Mark sent / Mark paid / Mark accepted, Delete |
 | Print (`/invoices/:id/print`, `/estimates/:id/print`) | A4 sheet: business header, billing details, lines, totals, notes, terms | Browser print / Save as PDF |
-| Documents | Table with All / Global / Client filters | Open the document page; create in the composer |
+| Documents | Table; search and sort; All / Global / Client filters | Open the document page; create in the composer |
 | Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (full-page composer), print |
 | Document composer (`/documents/new`, `/documents/:id/edit`) | Borderless title, kind/scope/client row, Markdown body with Write / Preview / Split, variable reference | Write, preview, split view, save |
 | Document print (`/documents/:id/print`) | A4 sheet with logo, client block and rendered Markdown | Browser print / Save as PDF |
@@ -85,13 +85,14 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * Keyboard path: every card has a "Move to…" menu covering both column changes and in-column order ("Move up" / "Move down" use `beforeId` / `afterId`), so drag is never the only way to move or reorder a task.
 * The board re-renders when `record.upsert` replaces the task: the move response does it for local drags, and the watcher does it for external file moves (`record.moved` is published for other clients but the provider applies the accompanying upsert).
 
-## Billing lists
+## Table controls (lists and boards)
 
-* Estimates and invoices share one toolbar: a **search** box (number, client or title, case-insensitive substring), a **sort field** select and a **direction** toggle.
-* Sortable fields are Issued, Client, Total and Status. Clicking a column header sorts by it and flips the direction on a second click; the `th` carries `aria-sort`. The toolbar exposes the same fields on narrow screens, where Client and Issued columns are hidden.
-* Default order is **Issued, newest first**. Statuses sort by lifecycle — invoice `draft → sent → overdue → paid → cancelled`, estimate `draft → sent → accepted → declined → expired` — not alphabetically; unknown values sort last. Ties break by number, numerically.
-* **Status is the last column.** Filtering and sorting run in the browser over the already-indexed records: no API call, instant, works offline.
-* A filter with no matches shows a table-level “No … match” row with **Clear search**; the page-level empty state remains reserved for a workspace with no bills at all.
+* Every list — Contacts, Projects, Estimates, Invoices, Documents — shares one toolbar: search on the left (with an `N of M` count while filtering) and sort field + direction on the right. Column headers sort too; clicking the active header flips the direction and the `th` carries `aria-sort`, so the toolbar covers fields hidden on narrow screens.
+* Search fields: contacts name/company/email; projects project name/client; estimates and invoices number/client/title; documents title. Matching is a trimmed, case-insensitive substring over the records already in memory — no API call, works offline.
+* Defaults preserve the previous visual order: name/project/title ascending. Issued and Updated select newest-first.
+* Statuses sort by lifecycle, never alphabetically: contacts `lead → active → inactive → archived`, projects `active → completed → archived`, invoices `draft → sent → overdue → paid → cancelled`, estimates `draft → sent → accepted → declined → expired`. Unknown values sort last. **Status is the last column** of the billing tables.
+* A filter with no matches renders a table-level “No … match” row with **Clear search**; the page-level empty state stays reserved for a workspace with no records at all.
+* Task boards (All tasks and a project's board) search **title and body**, deferred with `useDeferredValue`; each column shows matching cards and its badge the matching count. **No sort control** — the column order is the manual `order` field. While a filter is active, drag-and-drop and “Order in column” are disabled and the toolbar says so, because insertion is computed against visible neighbours; changing a card's column still works.
 
 ## Money rendering
 
