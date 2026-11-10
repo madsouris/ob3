@@ -78,7 +78,7 @@ export const ContactDetail = ({ contactId }: ContactDetailProps) => {
   if (contact === null) {
     return (
       <div className="flex flex-col gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('contacts')}>
+        <Button variant="outline" size="sm" onClick={() => navigate('contacts')}>
           <ArrowLeftIcon data-icon="inline-start" />
           All contacts
         </Button>
@@ -108,9 +108,9 @@ export const ContactDetail = ({ contactId }: ContactDetailProps) => {
   return (
     <div className="flex flex-col gap-6">
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
-        className="h-auto self-start px-0 text-muted-foreground"
+        className="self-start"
         onClick={() => navigate('contacts')}
       >
         <ArrowLeftIcon data-icon="inline-start" />

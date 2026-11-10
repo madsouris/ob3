@@ -308,6 +308,58 @@ describe('estimate conversion', () => {
   });
 });
 
+describe('invoice payment date', () => {
+  const draftInvoice = 'inv_01J8X7400AQ4M2N8V3R5T7W9Y0';
+
+  it('stamps paid_at when the status becomes paid and clears it when it leaves', async () => {
+    const test = await server('demo');
+    const path = join(test.root, 'invoices/inv_2026-001.md');
+
+    const initial = (await (await test.req(`/api/invoices/${draftInvoice}`)).json()) as {
+      record: { paid_at: string };
+    };
+    expect(initial.record.paid_at).toBe('');
+
+    const paid = await test.mutate('PATCH', `/api/invoices/${draftInvoice}`, { status: 'paid' });
+    expect(paid.status).toBe(200);
+    const paidBody = (await paid.json()) as { record: { paid_at: string } };
+    expect(paidBody.record.paid_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(await readFile(path, 'utf8')).toContain('paid_at:');
+
+    // An unrelated edit keeps the original payment date.
+    const edited = await test.mutate('PATCH', `/api/invoices/${draftInvoice}`, { title: 'Renamed' });
+    const editedBody = (await edited.json()) as { record: { paid_at: string } };
+    expect(editedBody.record.paid_at).toBe(paidBody.record.paid_at);
+
+    const sent = await test.mutate('PATCH', `/api/invoices/${draftInvoice}`, { status: 'sent' });
+    const sentBody = (await sent.json()) as { record: { paid_at: string } };
+    expect(sentBody.record.paid_at).toBe('');
+    expect(await readFile(path, 'utf8')).not.toContain('paid_at:');
+  });
+
+  it('ignores a client-supplied paid_at', async () => {
+    const test = await server('demo');
+    const response = await test.mutate('PATCH', `/api/invoices/${draftInvoice}`, {
+      paid_at: '2000-01-01T00:00:00.000Z',
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { record: { paid_at: string } };
+    expect(body.record.paid_at).toBe('');
+  });
+
+  it('stamps paid_at when an invoice is created as paid', async () => {
+    const test = await server('demo');
+    const response = await test.mutate('POST', '/api/invoices', {
+      invoice_number: 'INV-PAID-001',
+      status: 'paid',
+    });
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { record: { status: string; paid_at: string } };
+    expect(body.record.status).toBe('paid');
+    expect(body.record.paid_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+});
+
 describe('duplicate', () => {
   const sourceEstimate = 'est_01J8X7000AQ4M2N8V3R5T7W9Y0';
   const sourceInvoice = 'inv_01J8X7400AQ4M2N8V3R5T7W9Y0';

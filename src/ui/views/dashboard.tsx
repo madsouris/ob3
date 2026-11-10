@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { StatusBadge, invoiceStatus } from '@/components/status-badge';
-import { formatDate, formatMoney, pluralize } from '@/lib/format';
+import { formatDate, formatMoney, formatMonthYear, pluralize } from '@/lib/format';
+import { monthInvoiceCount, monthRevenue } from '@/lib/revenue';
 import { navigate } from '@/lib/router';
 import { recordTitle, useWorkspace } from '@/lib/workspace';
 
@@ -25,7 +26,8 @@ export const Dashboard = () => {
   const activeProjects = records.project.filter((project) => project.status === 'active');
   const openTasks = records.task.filter((task) => task.status !== 'done');
 
-  // Revenue is paid invoices, bucketed by `issue_date` (UTC). Outstanding is
+  // Revenue is paid invoices. The month figure uses the payment date (with the
+  // issue date as a fallback for files that predate `paid_at`). Outstanding is
   // issued but unpaid: sent or derived-overdue. Drafts are not owed yet.
   const paidInvoices = records.invoice.filter((invoice) => invoice.status === 'paid');
   const openInvoices = records.invoice.filter((invoice) => {
@@ -33,17 +35,11 @@ export const Dashboard = () => {
     return status === 'sent' || status === 'overdue';
   });
 
-  const monthPrefix = new Date().toISOString().slice(0, 7);
   const totalRevenue = sumTotals(paidInvoices);
-  const monthRevenue = sumTotals(
-    paidInvoices.filter((invoice) => invoice.issue_date.startsWith(monthPrefix)),
-  );
+  const thisMonthRevenue = monthRevenue(paidInvoices);
+  const thisMonthCount = monthInvoiceCount(paidInvoices);
   const outstanding = sumTotals(openInvoices);
-  const monthLabel = new Intl.DateTimeFormat(undefined, {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date());
+  const monthLabel = formatMonthYear();
 
   const clients = new Map(
     records.contact.map((contact) => [contact.id, recordTitle(contact)] as const),
@@ -84,8 +80,8 @@ export const Dashboard = () => {
     },
     {
       label: 'This month',
-      value: formatMoney(monthRevenue, currency),
-      hint: monthLabel,
+      value: formatMoney(thisMonthRevenue, currency),
+      hint: `${monthLabel} · ${pluralize(thisMonthCount, 'paid invoice')}`,
     },
   ] as const;
 
@@ -158,8 +154,7 @@ export const Dashboard = () => {
         <CardHeader>
           <CardTitle>Revenue</CardTitle>
           <CardDescription>
-            Paid invoices, by issue date (UTC). Outstanding counts invoices that are sent or
-            overdue.
+            Paid invoices, by payment date. Outstanding counts invoices that are sent or overdue.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">

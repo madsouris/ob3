@@ -45,7 +45,7 @@ export const ProjectWorkspace = ({ projectId }: ProjectWorkspaceProps) => {
   if (project === null) {
     return (
       <div className="flex flex-col gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('projects')}>
+        <Button variant="outline" size="sm" onClick={() => navigate('projects')}>
           <ArrowLeftIcon data-icon="inline-start" />
           All projects
         </Button>
@@ -68,9 +68,9 @@ export const ProjectWorkspace = ({ projectId }: ProjectWorkspaceProps) => {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="h-auto self-start px-0 text-muted-foreground"
+          className="self-start"
           onClick={() => navigate('projects')}
         >
           <ArrowLeftIcon data-icon="inline-start" />

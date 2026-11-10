@@ -1,5 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { formatBytes, formatDuration } from '../../src/ui/lib/format.js';
+import { formatBytes, formatDate, formatDateTime, formatDuration } from '../../src/ui/lib/format.js';
+
+describe('formatDate', () => {
+  it('renders date-only values as dd/MM/yyyy', () => {
+    expect(formatDate('2026-10-28')).toBe('28/10/2026');
+    expect(formatDate('2026-01-05')).toBe('05/01/2026');
+    expect(formatDate('1999-12-31')).toBe('31/12/1999');
+  });
+
+  it('renders timestamps in local time, without a day shift', () => {
+    // Built from a local noon so the calendar day holds in every time zone.
+    expect(formatDate(new Date(2026, 9, 28, 12, 0, 0).toISOString())).toBe('28/10/2026');
+  });
+
+  it('returns a dash for empty input and the raw value when unparseable', () => {
+    expect(formatDate('')).toBe('—');
+    expect(formatDate('soon')).toBe('soon');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('adds local hours and minutes to timestamps', () => {
+    const date = new Date(2026, 9, 28, 14, 5);
+    expect(formatDateTime(date.toISOString())).toBe('28/10/2026 14:05');
+  });
+
+  it('handles date-only input and empties', () => {
+    expect(formatDateTime('2026-10-28')).toBe('28/10/2026 00:00');
+    expect(formatDateTime('')).toBe('—');
+  });
+});
 
 describe('formatBytes', () => {
   it('uses whole bytes below 1 KB', () => {

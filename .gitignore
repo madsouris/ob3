@@ -30,3 +30,7 @@ coverage/
 
 .DS_Store
 *.log
+
+# Playwright artifacts (local browser smoke test)
+/test-results/
+/playwright-report/

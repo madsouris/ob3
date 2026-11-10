@@ -166,7 +166,8 @@
   --print-muted: #6a6459;
   --print-rule: #ddd7ca;
   --print-paper: #fffdf7;
-  background: #e8e5dd;
+  background: transparent;
+  border: 1px solid var(--border);
   color: var(--print-ink);
 }
 
@@ -186,6 +187,39 @@
   color: var(--print-ink);
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+}
+
+/* The same sheet inside the app: paper, not a page. Fluid width, no forced
+   297 mm height, and a table that wraps on narrow screens. */
+.print-sheet--preview {
+  min-height: 0;
+  padding: 18mm 16mm;
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .print-sheet--preview {
+    padding: 6mm;
+    font-size: 11px;
+  }
+
+  .print-sheet--preview .print-table th,
+  .print-sheet--preview .print-table td {
+    padding: 5px 5px;
+  }
+
+  .print-sheet--preview .print-cell-num {
+    white-space: normal;
+  }
+
+  .print-sheet--preview header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .print-sheet--preview .text-right {
+    text-align: left;
+  }
 }
 
 .print-business {

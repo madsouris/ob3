@@ -1,3 +1,6 @@
+import { format } from 'date-fns';
+import { parseLocalDate, todayLocal } from '../../model/dates.js';
+
 export const formatMoney = (cents: number, currency = 'USD'): string => {
   try {
     return new Intl.NumberFormat(undefined, {
@@ -11,21 +14,24 @@ export const formatMoney = (cents: number, currency = 'USD'): string => {
   }
 };
 
-/** Accepts `2026-11-05` and `2026-11-05T00:00:00Z`; renders UTC to avoid off-by-one days. */
+/** `YYYY-MM-DD` or an ISO timestamp → local `dd/MM/yyyy`. */
 export const formatDate = (value: string): string => {
   if (value === '') return '—';
-  const iso = value.length <= 10 ? `${value}T00:00:00Z` : value;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(date);
+  const date = parseLocalDate(value);
+  return date === null ? value : format(date, 'dd/MM/yyyy');
 };
 
-export const formatToday = (): string => new Date().toISOString().slice(0, 10);
+/** Timestamps in local time: `dd/MM/yyyy HH:mm`. */
+export const formatDateTime = (value: string): string => {
+  if (value === '') return '—';
+  const date = parseLocalDate(value);
+  return date === null ? value : format(date, 'dd/MM/yyyy HH:mm');
+};
+
+/** Local month heading, e.g. `November 2026`. */
+export const formatMonthYear = (value: Date = new Date()): string => format(value, 'MMMM yyyy');
+
+export const formatToday = (): string => todayLocal();
 
 export const locationPath = (path: string): string => path;
 

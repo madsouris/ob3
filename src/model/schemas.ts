@@ -102,6 +102,8 @@ export interface InvoiceRecord extends BaseRecord {
   readonly status: string;
   readonly issue_date: string;
   readonly due_date: string;
+  /** When the status last became `paid` (ISO instant); `''` while unpaid. Server-owned. */
+  readonly paid_at: string;
   readonly currency: string;
   readonly terms_document: string;
   /** Attached document records, by id. Empty falls back to `terms_document`. */
@@ -196,6 +198,7 @@ const KNOWN_KEYS: Readonly<Record<RecordType, readonly string[]>> = {
     'status',
     'issue_date',
     'due_date',
+    'paid_at',
     'currency',
     'terms_document',
     'document_ids',
@@ -410,6 +413,7 @@ export const projectRecord = (input: ProjectionInput): ProjectionResult => {
           status,
           issue_date: asString(fm['issue_date']),
           due_date: asString(fm['due_date']),
+          paid_at: asString(fm['paid_at']),
           currency: asString(fm['currency'], 'USD'),
           terms_document: asString(fm['terms_document']),
           document_ids: asStringArray(fm['document_ids']),

@@ -45,11 +45,13 @@ A single-file SPA that is a *view* of the filesystem, never a second source of t
 | Projects | Table; linked client; task count | Pick a project → its board; create; edit |
 | Project workspace (`/projects/:id`) | Header, client, status, task counts, project body, that project's board | Add/edit task, drag or "Move to…", edit project |
 | All tasks (`/tasks`) | Cross-project board with the project name on each card | Drag or "Move to…", open task |
-| Estimates | Table; status; total | Edit line items, duplicate, convert to invoice, print |
-| Invoices | Table; derived `overdue` badge | Edit, duplicate, print, mark sent/paid |
+| Estimates | Table; status; total | Open a preview; edit in a sheet; duplicate, convert to invoice, print |
+| Invoices | Table; derived `overdue` badge | Open a preview; edit in a sheet; duplicate, print, mark sent/paid |
+| Bill preview (`/estimates/:id`, `/invoices/:id`) | Responsive paper preview of the bill, status, number, client/project, dates, total, payment date | Edit (sheet), Print / PDF, Duplicate, Create invoice, Mark sent / Mark paid / Mark accepted, Delete |
 | Print (`/invoices/:id/print`, `/estimates/:id/print`) | A4 sheet: business header, billing details, lines, totals, notes, terms | Browser print / Save as PDF |
-| Documents | Table with All / Global / Client filters | Create; open the document page |
-| Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (sheet), print |
+| Documents | Table with All / Global / Client filters | Open the document page; create in the composer |
+| Document page (`/documents/:id`) | Rendered template content, kind/scope/client, metadata | Edit (full-page composer), print |
+| Document composer (`/documents/new`, `/documents/:id/edit`) | Borderless title, kind/scope/client row, Markdown body with Write / Preview / Split, variable reference | Write, preview, split view, save |
 | Document print (`/documents/:id/print`) | A4 sheet with logo, client block and rendered Markdown | Browser print / Save as PDF |
 | Settings | Business profile, logo, payment (link, QR or off), currency, `tax_rate_bps`, `commit_on_save`, CSV import, workspace/system facts | Save → PATCH `/api/config`; logo upload → POST `/api/config/logo`; QR upload → POST `/api/config/qr`; import → POST `/api/import`; facts from GET `/api/health` + `/api/system` |
 | User manual (`/manual`) | `docs/user-manual.md` split into sections, sticky contents rail, numbered sections | Jump to a section (deep link `#/manual/<slug>`), mobile contents sheet |
@@ -109,6 +111,13 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 * Saving `link` with an empty URL, or `qr` with no uploaded image, is rejected with a toast rather than writing a mode that cannot print. Removing the QR also turns the printed block off.
 * The form has a dirty-guard: once a field is edited, `config.changed` broadcasts (including the ones an upload triggers) no longer overwrite it, so uploading a QR does not discard unsaved business details.
 
+## Dates
+
+* Dates on disk stay calendar dates (`YYYY-MM-DD`); timestamps stay ISO 8601 instants in UTC.
+* Display is always the **local** calendar, `dd/MM/yyyy` (date-fns). Timestamps in details panels add local hours and minutes: `dd/MM/yyyy HH:mm`.
+* Date-only values parse as local midnight, so no value shifts a day when formatted; `today`, the numbering year, `{{today}}` and new record defaults all use the local date.
+* `src/model/dates.ts` owns the helpers (`todayLocal`, `addDaysIso`, `monthKeyOf`) and is used by both the server and the UI.
+
 ## Manual (Read)
 
 * The guide is `docs/user-manual.md`, imported at build time (`?raw`) into the single-file bundle. There is no manual route on the server and no runtime file read, so it works offline and cannot drift from the shipped file.
@@ -127,7 +136,7 @@ useWorkspace() -> { records, issues, config, generation, loading, error, refresh
 
 ## Dashboard money (P6)
 
-* **Revenue** is `status: paid` invoices summed by `total_cents`, bucketed by `issue_date` (UTC month). There is no `paid_at` field, so the month is the issue month — documented, not guessed.
+* **Revenue** is `status: paid` invoices summed by `total_cents`. The month figure buckets by `paid_at` — the server-owned timestamp written when the status becomes `paid` — and falls back to `issue_date` for files that have no `paid_at` (hand-edited, or paid before the field existed). Only `paid` invoices count, whatever their issue date. The month is the **local** calendar month.
 * **Outstanding** is issued but unpaid: `sent`, plus the derived `overdue` state (`sent` past `due_date`). Drafts and cancelled invoices are excluded because neither is owed yet.
 * The stats row shows Outstanding as a money card with the open-invoice count in its hint; the Revenue card shows total and current month. Amounts are formatted with `business.currency` using integer cents.
 * Settings → Workspace adds server uptime, process memory (RSS + heap), system memory, CPU cores/load and workspace disk from `GET /api/system`. Disk renders "Unavailable" when `statfs` cannot answer; Windows load averages are always 0 and are shown as reported.
@@ -172,6 +181,10 @@ if (dirty || unpushed) e.preventDefault(); e.returnValue = ''
 - [x] Uploading a logo in Settings previews it immediately, stores `.ob/assets/logo.png`, and prints it on invoices/estimates; with no logo, a monogram is used.
 - [x] Settings → Payment switches between a link, an uploaded QR (stored once at `.ob/assets/qr.jpg` and overwritten on replace) and off; the selected mode is what prints on invoices, estimates and documents, and an unreadable QR falls back to the saved link.
 - [x] The user manual opens from the sidebar footer and `⌘K`, renders as numbered sections with a contents rail, and each section is deep-linkable at `#/manual/<slug>`; repo-only `.md` links render as plain text.
+- [x] Opening an estimate or invoice shows a responsive preview first; **Edit** opens the sheet, and the print route renders the same `DocumentSheet` markup.
+- [x] New and existing documents are edited in a full-page composer with Write / Preview / Split modes; the list and detail page link to it.
+- [x] Marking an invoice paid writes `paid_at`, the bill preview shows the local payment time, and the dashboard's “This month” figure follows the payment month rather than the issue month.
+- [x] Dates render `dd/MM/yyyy` in the local calendar (timestamps with `HH:mm` in details).
 - [x] Documents list filters All/Global/Client, open a rendered detail page, and print to A4; templates resolve `{{business.*}}`, `{{client.*}}` and `{{today}}` with unknown keys left literal.
 - [x] Settings → Import creates contacts, projects and tasks from a CSV skeleton, reports skipped rows with their spreadsheet line, and leaves the UI lists updated without a reload.
 - [x] The dashboard shows paid revenue (total and current month by `issue_date`) and outstanding (sent/overdue) as integer-cent sums, and Settings → Workspace shows uptime, memory, CPU and disk from `GET /api/system`.

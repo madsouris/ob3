@@ -15,10 +15,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 | White paper, decisions, feature docs | `[x]` |
 | M0–M6 implementation | `[x]` |
 | Pre-M7 polish (P0–P7) | `[x]` |
-| M7 packaging & release | `[~]` — `filecrm@1.0.0` published; CI/release workflow pending |
-| Post-v1 backlog | recorded below, not started |
+| M7 packaging & release | `[x]` — `filecrm@1.1.1` published through the tag workflow |
 | Post-v1: payment info on prints | `[x]` — link or QR, one active mode |
 | Post-v1: in-app user manual | `[x]` — `#/manual`, per-section deep links |
+| Post-v1: local dates + paid revenue | `[x]` — `dd/MM/yyyy` local, month by `paid_at` |
+| Post-v1: bill preview + document composer | `[x]` — preview-first bills, Notion-style editor |
+| Post-v1: local Playwright smoke test | `[x]` — `pnpm test:e2e`, pre-push hook, CI unchanged |
 
 ---
 
@@ -125,10 +127,13 @@ Logo lives in the user's repo under `.ob/assets/` (only `.ob/state/` is ignored)
 normalised client-side to PNG and re-validated server-side. Attachments are document **ids**; the
 legacy `terms_document` path stays readable. Document templates render at view/print time and are
 never written back. CSV import always creates, never merges, and resolves references only against
-existing records. Revenue is paid invoices by `issue_date` (UTC); outstanding is `sent` + derived
-`overdue`. System facts are read on demand, never polled. Document kinds are a fixed set with
-`other` as the catch-all. Payment info is one active mode (`link`, `qr` or off) and the QR is a single
-fixed JPEG that every upload overwrites. The user manual ships inside the bundle from
+existing records. Revenue is paid invoices, bucketed by the server-owned `paid_at` (issue date as the
+fallback) in the **local** month; outstanding is `sent` + derived `overdue`. Dates display as
+`dd/MM/yyyy` local, timestamps add `HH:mm` in details. Bills open as a preview and print from the same
+`DocumentSheet`; documents are written in a full-page composer. A local Playwright smoke test runs from
+the pre-push hook, never from CI. System facts are read on demand, never polled. Document kinds are a
+fixed set with `other` as the catch-all. Payment info is one active mode (`link`, `qr` or off) and the
+QR is a single fixed JPEG that every upload overwrites. The user manual ships inside the bundle from
 `docs/user-manual.md`, parsed into deep-linkable `#/manual/<slug>` sections. The package is `filecrm`;
 the repo is `ob3`. Schema changes follow [`docs/15`](./docs/15-data-migration.md).
 
@@ -163,4 +168,4 @@ the repo is `ob3`. Schema changes follow [`docs/15`](./docs/15-data-migration.md
 **Data**
 
 - `ob migrate` per [`docs/15`](./docs/15-data-migration.md) when the first `ob_schema` bump lands
-- `paid_at` on invoices so revenue can be bucketed by payment date, not issue date
+- `paid_at` on invoices so revenue can be bucketed by payment date, not issue date — **done** in 1.2.0 (`paid_at`, server-owned)

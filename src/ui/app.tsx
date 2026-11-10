@@ -34,12 +34,13 @@ import { navigate, useRoute } from '@/lib/router';
 import type { Route } from '@/lib/router';
 import { useTheme } from '@/lib/theme';
 import { useWorkspace } from '@/lib/workspace';
-import { Billing } from '@/views/billing';
+import { Billing, BillingDetail } from '@/views/billing';
 import { ContactDetail } from '@/views/contact-detail';
 import { Contacts } from '@/views/contacts';
 import { Dashboard } from '@/views/dashboard';
 import { Documents } from '@/views/documents';
 import { DocumentDetail } from '@/views/document-detail';
+import { DocumentComposer } from '@/views/document-composer';
 import { DocumentPrint } from '@/views/document-print';
 import { Issues } from '@/views/issues';
 import { Manual } from '@/views/manual';
@@ -130,11 +131,22 @@ const renderView = (route: Route): ReactNode => {
     case 'tasks':
       return <Tasks initialId={route.id} />;
     case 'estimates':
-      return <Billing type="estimate" initialId={route.id} />;
+      return route.id === null ? (
+        <Billing type="estimate" />
+      ) : (
+        <BillingDetail type="estimate" id={route.id} />
+      );
     case 'invoices':
-      return <Billing type="invoice" initialId={route.id} />;
+      return route.id === null ? (
+        <Billing type="invoice" />
+      ) : (
+        <BillingDetail type="invoice" id={route.id} />
+      );
     case 'documents':
-      return route.id === null ? <Documents /> : <DocumentDetail documentId={route.id} />;
+      if (route.id === null) return <Documents />;
+      if (route.id === 'new') return <DocumentComposer documentId={null} />;
+      if (route.section === 'edit') return <DocumentComposer documentId={route.id} />;
+      return <DocumentDetail documentId={route.id} />;
     case 'settings':
       return <Settings />;
     case 'issues':

@@ -1,6 +1,7 @@
 import type { ApiRecordOf } from '@/lib/api';
 import { recordTitle } from '@/lib/workspace';
 import type { ObConfig } from '../../workspace/config.js';
+import { todayLocal } from '../../model/dates.js';
 import { buildTemplateVariables } from '@/lib/template';
 
 export interface TemplateContextInput {
@@ -36,7 +37,7 @@ export const templateVariablesFor = (input: TemplateContextInput): Record<string
       address: input.config?.business.address ?? '',
     },
     client,
-    today: input.today ?? new Date().toISOString().slice(0, 10),
+    today: input.today ?? todayLocal(),
     ...(input.project === null || input.project === undefined
       ? {}
       : { projectName: recordTitle(input.project) }),

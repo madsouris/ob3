@@ -37,7 +37,7 @@ Define exactly what a record is, what is authoritative, and how numbers are stor
 
 `ob_schema`, `id`, `type`, then type-specific semantic fields, then money fields, then `created_at`, `updated_at`, then any **unknown** keys (preserved in their original relative order).
 
-Timestamps: `created_at` set once at creation; `updated_at` bumped on every `ob`-initiated write. Never rewritten when `ob` only reads. `updated_at` is *not* bumped by external edits (the filesystem is not the database — if the user edits `updated_at` by hand, that value is preserved and respected).
+Timestamps: `created_at` set once at creation; `updated_at` bumped on every `ob`-initiated write. Never rewritten when `ob` only reads. `updated_at` is *not* bumped by external edits (the filesystem is not the database — if the user edits `updated_at` by hand, that value is preserved and respected). Display is local; storage is UTC. `paid_at` is server-owned (a client-sent value is ignored) and only a `status` change writes it.
 
 ## Validation policy
 
@@ -63,7 +63,7 @@ Sorting within a column: `order` asc → `created_at` asc → `id` asc.
 `estimate_number` (req), `client_id`, `project_id`, `title`, `status` ∈ `draft|sent|accepted|declined|expired`, `issue_date`, `valid_until` (date `YYYY-MM-DD`), `currency`, `terms_document` (legacy single path), `document_ids` (attached document ids, ordered), money block, `line_items`, `converted_invoice_id`.
 
 ### invoice
-`invoice_number` (req), `client_id`, `project_id`, `estimate_id`, `title`, `status` ∈ `draft|sent|paid|overdue|cancelled`, `issue_date`, `due_date`, `currency`, `terms_document` (legacy single path), `document_ids` (attached document ids, ordered), money block, `line_items`.
+`invoice_number` (req), `client_id`, `project_id`, `estimate_id`, `title`, `status` ∈ `draft|sent|paid|overdue|cancelled`, `issue_date`, `due_date`, `paid_at` (ISO instant, server-owned: set when the status becomes `paid`, deleted when it leaves; `''` when absent), `currency`, `terms_document` (legacy single path), `document_ids` (attached document ids, ordered), money block, `line_items`.
 
 ### document
 `title` (req), `kind` ∈ `terms|proposal|contract|sow|nda|brief|note|other`, `scope` ∈ `global|client` (default `global`), `client_id` (soft reference, required by the UI for client scope). Body is the content. Templates use `{{variable}}` placeholders rendered at view/print time (see `docs/13-documents.md`).
