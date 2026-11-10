@@ -55,6 +55,26 @@ back from disk.
 
 ## 3. A five-minute tour
 
+### The workflow
+
+Every engagement starts on the **client page**. Projects, client documents and billing all hang off
+that one record, so start there and the rest lines up: create the project, capture the work, send an
+estimate, turn it into an invoice, mark it paid.
+
+```mermaid
+flowchart TD
+  Client[Client page] --> Project[Project and tasks]
+  Client --> Documents[Client documents]
+  Project --> Estimate[Estimate]
+  Estimate -->|Create invoice| Invoice[Invoice]
+  Documents -.->|Attach| Estimate
+  Documents -.->|Attach| Invoice
+  Invoice -->|Mark paid| Paid[Paid revenue]
+  Invoice --> Print[Print / PDF]
+```
+
+Bills can also be created straight from **Estimates** or **Invoices**, but they still point at a client.
+
 - The sidebar is the whole app: Dashboard, Contacts, Projects, All tasks, Estimates, Invoices,
   Documents, Needs attention, Settings. **User manual** sits in the sidebar footer.
 - `⌘K` / `Ctrl+K` opens the command palette for navigation and search.
@@ -140,6 +160,12 @@ the same client, project, lines and attachments, and the estimate is linked back
 once per estimate.
 
 Estimate statuses are `draft`, `sent`, `accepted`, `declined` and `expired`.
+
+The list above the editor is a working table: type an invoice/estimate number, a client name or a
+title into the search box to filter it, and use the sort control (or click a column header) to order
+by issued date, client, total or status. Status is the last column, and statuses sort by their
+lifecycle — draft, sent, paid — rather than alphabetically. Sorting starts with the newest issued
+bill; clicking the active header flips the direction.
 
 Opening an estimate or invoice shows a **preview** of the printed bill first, with **Edit**, **Print /
 PDF**, **Duplicate**, **Create invoice** (estimates) and a one-click status step: **Mark sent**, then

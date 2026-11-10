@@ -19,7 +19,7 @@ Everything else (CRUD, UI) gets standard coverage.
 | Integration (FS) | vitest + temp dirs | indexer, watcher, atomic write, issues, round-trip against real files | < 10 s |
 | Integration (HTTP) | vitest + `app.request()` | routes, validation, token/host checks, 409 conflicts | < 10 s |
 | Integration (Git) | vitest + bare repo fixture | commit-on-save, sync chain, conflict recovery | < 20 s |
-| E2E-ish | Playwright + Chromium | four smoke flows: dashboard, bill preview → print, marking an invoice paid, document composer | < 60 s |
+| E2E-ish | Playwright + Chromium | six smoke flows: dashboard, bill preview → print, billing search/sort, marking an invoice paid, document composer, manual diagram | < 60 s |
 | Manual QA | checklist below | print rendering, OS file manager, Windows paths | per release |
 
 ## Fixtures (`fixtures/workspaces/`)

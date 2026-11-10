@@ -21,6 +21,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 | Post-v1: local dates + paid revenue | `[x]` — `dd/MM/yyyy` local, month by `paid_at` |
 | Post-v1: bill preview + document composer | `[x]` — preview-first bills, Notion-style editor |
 | Post-v1: local Playwright smoke test | `[x]` — `pnpm test:e2e`, pre-push hook, CI unchanged |
+| Post-v1: billing list search/sort | `[x]` — in-browser filter, lifecycle sort, status last |
+| Post-v1: manual workflow diagram | `[x]` — Mermaid source, rendered by Pele |
 
 ---
 
@@ -131,7 +133,10 @@ existing records. Revenue is paid invoices, bucketed by the server-owned `paid_a
 fallback) in the **local** month; outstanding is `sent` + derived `overdue`. Dates display as
 `dd/MM/yyyy` local, timestamps add `HH:mm` in details. Bills open as a preview and print from the same
 `DocumentSheet`; documents are written in a full-page composer. A local Playwright smoke test runs from
-the pre-push hook, never from CI. System facts are read on demand, never polled. Document kinds are a
+the pre-push hook, never from CI. Billing lists filter and sort in the browser, status last and ordered
+by lifecycle. Manual diagrams are Mermaid source rendered with Pele's flowchart grammar (Pele adds
+~165 KB; Mermaid.js would add ~1.6 MB to an offline bundle); diagrams render only in the manual.
+System facts are read on demand, never polled. Document kinds are a
 fixed set with `other` as the catch-all. Payment info is one active mode (`link`, `qr` or off) and the
 QR is a single fixed JPEG that every upload overwrites. The user manual ships inside the bundle from
 `docs/user-manual.md`, parsed into deep-linkable `#/manual/<slug>` sections. The package is `filecrm`;

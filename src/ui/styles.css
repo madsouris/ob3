@@ -368,6 +368,26 @@
   background: color-mix(in oklab, var(--foreground) 14%, transparent);
 }
 
+/* Mermaid diagrams in the manual are drawn by Pele, themed from the app tokens
+   so they follow light/dark like the rest of the reading surface. */
+.manual .pele {
+  --pele-bg: transparent;
+  --pele-fg: var(--foreground);
+  --pele-muted: var(--muted-foreground);
+  --pele-line: var(--border);
+  --pele-surface: var(--muted);
+  --pele-surface-alt: var(--card);
+  --pele-border: var(--border);
+  --pele-accent: var(--primary);
+  --pele-font: inherit;
+  --pele-radius: 6px;
+}
+
+.manual .pele-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
 .print-payment {
   padding-top: 10px;
   border-top: 1px solid var(--print-rule);

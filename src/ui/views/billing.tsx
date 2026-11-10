@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import {
+  ArrowDownIcon,
   ArrowLeftIcon,
+  ArrowUpIcon,
   CopyIcon,
   FileTextIcon,
   PencilIcon,
   PlusIcon,
   PrinterIcon,
   ReceiptIcon,
+  SearchIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -55,6 +58,8 @@ import { SheetBody } from '@/components/sheet-body';
 import { StatusBadge, invoiceStatus } from '@/components/status-badge';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
+import { SORT_FIELDS, filterBills, sortBills } from '@/lib/billing-list';
+import type { BillRow, BillSortField, SortDirection } from '@/lib/billing-list';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 import { valueLabel } from '@/lib/labels';
 import { navigate } from '@/lib/router';
@@ -543,16 +548,82 @@ export interface BillingProps {
   readonly type: BillType;
 }
 
+interface SortHeaderProps {
+  readonly field: BillSortField;
+  readonly label: string;
+  readonly active: BillSortField;
+  readonly direction: SortDirection;
+  readonly className?: string;
+  readonly onSelect: (field: BillSortField) => void;
+}
+
+/** A th whose label sorts; `aria-sort` carries the state for screen readers. */
+const SortHeader = ({ field, label, active, direction, className, onSelect }: SortHeaderProps) => (
+  <TableHead
+    className={className}
+    aria-sort={
+      active === field ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'
+    }
+  >
+    <button
+      type="button"
+      onClick={() => onSelect(field)}
+      className="inline-flex items-center gap-1 text-left font-medium hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+    >
+      {label}
+      {active === field ? (
+        direction === 'asc' ? (
+          <ArrowUpIcon aria-hidden className="size-3.5" />
+        ) : (
+          <ArrowDownIcon aria-hidden className="size-3.5" />
+        )
+      ) : null}
+    </button>
+  </TableHead>
+);
+
 export const Billing = ({ type }: BillingProps) => {
   const { records } = useWorkspace();
   const meta = LABELS[type];
   const list: readonly ApiRecord[] = type === 'estimate' ? records.estimate : records.invoice;
   const isInvoice = type === 'invoice';
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState('');
+  const [sortField, setSortField] = useState<BillSortField>('issued');
+  const [direction, setDirection] = useState<SortDirection>('desc');
 
   const clients = new Map(
     records.contact.map((contact) => [contact.id, recordTitle(contact)] as const),
   );
+
+  const allRows: readonly BillRow[] = list.flatMap((record) => {
+    if (record.type !== 'invoice' && record.type !== 'estimate') return [];
+    return [
+      {
+        id: record.id,
+        type: record.type,
+        number: record.type === 'invoice' ? record.invoice_number : record.estimate_number,
+        title: record.title,
+        clientName: clients.get(record.client_id) ?? '',
+        issued: record.issue_date,
+        total: record.total_cents,
+        currency: record.currency === '' ? 'USD' : record.currency,
+        status: record.type === 'invoice' ? invoiceStatus(record) : record.status,
+      },
+    ];
+  });
+  const rows = sortBills(filterBills(allRows, query), sortField, direction);
+  const filtering = query.trim() !== '';
+
+  /** First click sorts ascending; clicking the active column flips the direction. */
+  const selectSort = (field: BillSortField): void => {
+    if (field === sortField) {
+      setDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setDirection(field === 'issued' ? 'desc' : 'asc');
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -580,69 +651,148 @@ export const Billing = ({ type }: BillingProps) => {
           }
         />
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{meta.numberLabel}</TableHead>
-                <TableHead className="hidden md:table-cell">Client</TableHead>
-                <TableHead className="tabular text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Issued</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.map((record) => {
-                const currency =
-                  record.type === 'invoice' || record.type === 'estimate' ? record.currency : 'USD';
-                const total =
-                  record.type === 'invoice' || record.type === 'estimate' ? record.total_cents : 0;
-                const clientId =
-                  record.type === 'invoice' || record.type === 'estimate' ? record.client_id : '';
-                const issued =
-                  record.type === 'invoice' || record.type === 'estimate' ? record.issue_date : '';
-                const status =
-                  record.type === 'invoice'
-                    ? invoiceStatus(record)
-                    : record.type === 'estimate'
-                      ? record.status
-                      : 'draft';
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full min-w-48 sm:max-w-xs">
+              <SearchIcon
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                aria-label={`Search ${meta.plural}`}
+                placeholder="Search number or client"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="pl-8"
+              />
+            </div>
+            {filtering ? (
+              <span className="tabular text-xs text-muted-foreground">
+                {rows.length} of {list.length}
+              </span>
+            ) : null}
 
-                return (
-                  <TableRow
-                    key={record.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`${meta.plural}/${record.id}`)}
-                  >
-                    <TableCell>
-                      <button
-                        type="button"
-                        className="text-left font-mono text-sm font-medium hover:underline"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          navigate(`${meta.plural}/${record.id}`);
-                        }}
+            <div className="ml-auto flex items-center gap-2">
+              <Select
+                value={sortField}
+                onValueChange={(value) => {
+                  if (value === 'issued' || value === 'client' || value === 'total' || value === 'status') {
+                    setSortField(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-40" aria-label="Sort by">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_FIELDS.map((option) => (
+                    <SelectItem key={option.field} value={option.field}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                aria-label={direction === 'asc' ? 'Sort descending' : 'Sort ascending'}
+                onClick={() => setDirection((current) => (current === 'asc' ? 'desc' : 'asc'))}
+              >
+                {direction === 'asc' ? <ArrowUpIcon aria-hidden /> : <ArrowDownIcon aria-hidden />}
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{meta.numberLabel}</TableHead>
+                  <SortHeader
+                    field="client"
+                    label="Client"
+                    className="hidden md:table-cell"
+                    active={sortField}
+                    direction={direction}
+                    onSelect={selectSort}
+                  />
+                  <SortHeader
+                    field="total"
+                    label="Total"
+                    className="tabular text-right"
+                    active={sortField}
+                    direction={direction}
+                    onSelect={selectSort}
+                  />
+                  <SortHeader
+                    field="issued"
+                    label="Issued"
+                    className="hidden sm:table-cell"
+                    active={sortField}
+                    direction={direction}
+                    onSelect={selectSort}
+                  />
+                  <SortHeader
+                    field="status"
+                    label="Status"
+                    active={sortField}
+                    direction={direction}
+                    onSelect={selectSort}
+                  />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                      No {meta.plural} match “{query.trim()}”.
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="ml-1 h-auto px-0"
+                        onClick={() => setQuery('')}
                       >
-                        {recordTitle(record)}
-                      </button>
-                    </TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">
-                      {clients.get(clientId) ?? '—'}
-                    </TableCell>
-                    <TableCell className="tabular text-right">
-                      {formatMoney(total, currency === '' ? 'USD' : currency)}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={status} />
-                    </TableCell>
-                    <TableCell className="tabular hidden text-xs text-muted-foreground sm:table-cell">
-                      {formatDate(issued)}
+                        Clear search
+                      </Button>
                     </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                ) : (
+                  rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`${meta.plural}/${row.id}`)}
+                    >
+                      <TableCell>
+                        <button
+                          type="button"
+                          className="text-left font-mono text-sm font-medium hover:underline"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`${meta.plural}/${row.id}`);
+                          }}
+                        >
+                          {row.number}
+                        </button>
+                      </TableCell>
+                      <TableCell className="hidden text-muted-foreground md:table-cell">
+                        {row.clientName === '' ? '—' : row.clientName}
+                      </TableCell>
+                      <TableCell className="tabular text-right">
+                        {formatMoney(row.total, row.currency)}
+                      </TableCell>
+                      <TableCell className="tabular hidden text-xs text-muted-foreground sm:table-cell">
+                        {formatDate(row.issued)}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={row.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 

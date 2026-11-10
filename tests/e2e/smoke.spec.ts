@@ -39,6 +39,41 @@ test('a bill opens as a preview, and print renders the A4 sheet', async ({ page 
   await expect(page.locator('.print-sheet')).toContainText('Invoice');
 });
 
+test('billing tables search and sort', async ({ page }) => {
+  await page.goto('/#/invoices');
+
+  // Status is the last column, and the default order is issued date, newest first.
+  await expect(page.getByRole('columnheader')).toHaveText([
+    'Invoice',
+    'Client',
+    'Total',
+    'Issued',
+    'Status',
+  ]);
+  await expect(page.locator('tbody tr').first()).toContainText('INV-2026-001');
+
+  // Search by client, then by number.
+  const search = page.getByLabel('Search invoices');
+  await search.fill('Priya');
+  await expect(page.locator('tbody tr')).toHaveCount(2);
+  await expect(page.getByText('2 of 3')).toBeVisible();
+
+  await search.fill('INV-2026-002');
+  await expect(page.locator('tbody tr')).toHaveCount(1);
+  await expect(page.locator('tbody tr').first()).toContainText('Jane Doe');
+
+  await search.fill('');
+  await expect(page.locator('tbody tr')).toHaveCount(3);
+
+  // Clicking a header sorts; clicking it again flips the direction.
+  const totalHeader = page.getByRole('columnheader', { name: 'Total' });
+  await expect(totalHeader).toHaveAttribute('aria-sort', 'none');
+  await totalHeader.getByRole('button').click();
+  await expect(totalHeader).toHaveAttribute('aria-sort', 'ascending');
+  await totalHeader.getByRole('button').click();
+  await expect(totalHeader).toHaveAttribute('aria-sort', 'descending');
+});
+
 test('paying an invoice moves this month’s revenue', async ({ page }) => {
   // The demo's draft invoice (the file path is the seed for the fixture id).
   await page.goto('/#/invoices/inv_01J8X7400AQ4M2N8V3R5T7W9Y0');
@@ -69,4 +104,13 @@ test('the document composer writes, previews and saves', async ({ page }) => {
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(page).toHaveURL(/documents\/doc_/);
   await expect(page.getByRole('heading', { name: 'E2E scope' })).toBeVisible();
+});
+
+test('the manual renders the workflow diagram', async ({ page }) => {
+  await page.goto('/#/manual/a-five-minute-tour');
+
+  const diagram = page.locator('.pele-diagram svg.pele');
+  await expect(diagram).toBeVisible();
+  await expect(page.locator('.pele-diagram')).toContainText('Client page');
+  await expect(page.locator('.pele-diagram')).toContainText('Invoice');
 });
