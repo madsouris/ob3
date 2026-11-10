@@ -9,6 +9,7 @@ import { rememberSelfWrite } from '../../io/self-writes.js';
 import { writeFileAtomic } from '../../io/atomic.js';
 import type { RecordIndex, IndexedRecord } from '../../index/indexer.js';
 import { parseFrontmatter, replaceBody, updateFrontmatter } from '../../model/frontmatter.js';
+import { addDaysIso, todayLocal } from '../../model/dates.js';
 import { createId, type RecordPrefix } from '../../model/ids.js';
 import { lineTotalCents, sumLineTotals, taxCents } from '../../model/money.js';
 import {
@@ -233,6 +234,8 @@ export const createRecord = async (
   const config = await context.config();
   const fields = applyMoney(type, parseFields(type, input.fields, false), config);
   const now = nowIso();
+  // Payment date is server-owned: it records when the status became `paid`.
+  if (type === 'invoice' && fields['status'] === 'paid') fields['paid_at'] = now;
   const id = createId(PREFIX[type]);
 
   const column: TaskStatus = type === 'task' ? (input.column ?? 'todo') : 'todo';
@@ -308,6 +311,18 @@ export const updateRecord = async (
     patch['tax_rate_bps'] = recomputed['tax_rate_bps'];
     patch['tax_amount_cents'] = recomputed['tax_amount_cents'];
     patch['total_cents'] = recomputed['total_cents'];
+  }
+
+  if (type === 'invoice') {
+    const requestedStatus = typeof patch['status'] === 'string' ? patch['status'] : null;
+    const paidAt = typeof current['paid_at'] === 'string' ? current['paid_at'] : '';
+    // Only a status change writes the payment date. A legacy `paid` file keeps
+    // its empty value (revenue falls back to the issue date) rather than being
+    // silently rebucketed by an unrelated edit.
+    if (requestedStatus === 'paid' && paidAt === '') patch['paid_at'] = nowIso();
+    if (requestedStatus !== null && requestedStatus !== 'paid' && paidAt !== '') {
+      patch['paid_at'] = undefined;
+    }
   }
 
   patch['updated_at'] = nowIso();
@@ -500,11 +515,7 @@ const nextDocumentNumber = (
   return `${prefix}-${year}-${String(highest + 1).padStart(3, '0')}`;
 };
 
-const addDays = (isoDate: string, days: number): string => {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-};
+const addDays = (isoDate: string, days: number): string => addDaysIso(isoDate, days);
 
 /** Creates an invoice from an estimate and back-links `converted_invoice_id`. */
 export const createInvoiceFromEstimate = async (
@@ -523,7 +534,7 @@ export const createInvoiceFromEstimate = async (
     });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   const year = Number(today.slice(0, 4));
 
   const invoice = await createRecord(context, 'invoice', {
@@ -565,7 +576,7 @@ export const duplicateRecord = async (
 
   const entry = requireEntry(context, type, id);
   const record = entry.record;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   const year = Number(today.slice(0, 4));
   const title = record.type === 'estimate' || record.type === 'invoice' ? record.title : '';
 

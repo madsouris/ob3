@@ -110,11 +110,17 @@ pnpm typecheck
 pnpm test
 pnpm lint
 
+# browser smoke test (local; also runs from the pre-push hook)
+pnpm exec playwright install chromium   # once
+pnpm test:e2e
+
 # add a shadcn/ui primitive (never hand-write one)
 pnpm dlx shadcn@latest add <component>
 ```
 
 Notes:
+
+- `pnpm install` enables `.githooks/pre-push`, which runs `pnpm test:e2e` before a push. Skip one push with `SKIP_E2E=1 git push`; CI keeps its own vitest matrix and never downloads a browser.
 
 - ESM only. Relative imports keep an explicit `.js` extension.
 - Frontmatter uses the `yaml` Document API; `js-yaml` is banned and lint-enforced.

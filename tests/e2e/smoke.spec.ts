@@ -1,0 +1,72 @@
+import { expect, test } from '@playwright/test';
+
+/**
+ * Smoke flow over the shipped bundle: the dashboard, a bill's preview page and
+ * A4 print, and the document composer. Selectors use roles and labels, so a
+ * rename in the UI fails loudly here instead of silently degrading the test.
+ */
+
+test('dashboard renders the seeded workspace with local dates', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { name: 'Acme Digital Studio' })).toBeVisible();
+  await expect(page.getByText('This month')).toBeVisible();
+  await expect(page.getByText('Workspace is consistent')).toBeVisible();
+
+  // Dates are rendered dd/MM/yyyy in the local calendar.
+  await expect(page.locator('body')).toContainText(/\d{2}\/\d{2}\/\d{4}/);
+});
+
+test('a bill opens as a preview, and print renders the A4 sheet', async ({ page }) => {
+  await page.goto('/#/invoices');
+
+  await page.getByRole('button', { name: 'INV-2026-001' }).first().click();
+
+  // Preview first: the sheet is visible and no form is open.
+  await expect(page.locator('.print-sheet--preview')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible();
+
+  // Editing opens the sheet over the preview.
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Print / PDF' }).click();
+  await expect(page).toHaveURL(/\/print$/);
+  await expect(page.locator('.print-sheet')).toBeVisible();
+  await expect(page.locator('.print-sheet')).toContainText('Invoice');
+});
+
+test('paying an invoice moves this month’s revenue', async ({ page }) => {
+  // The demo's draft invoice (the file path is the seed for the fixture id).
+  await page.goto('/#/invoices/inv_01J8X7400AQ4M2N8V3R5T7W9Y0');
+
+  await page.getByRole('button', { name: 'Mark sent' }).click();
+  await expect(page.getByRole('button', { name: 'Mark paid' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Mark paid' }).click();
+  await expect(page.getByText(/Paid \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark paid' })).toHaveCount(0);
+
+  await page.goto('/');
+  const thisMonth = page.getByText('This month').locator('..');
+  await expect(thisMonth).not.toContainText('0.00');
+});
+
+test('the document composer writes, previews and saves', async ({ page }) => {
+  await page.goto('/#/documents');
+  await page.getByRole('button', { name: 'New document' }).first().click();
+  await expect(page).toHaveURL(/#\/documents\/new$/);
+
+  await page.getByLabel('Document title').fill('E2E scope');
+  await page.getByLabel('Document body').fill('## Scope\n\nA short engagement.');
+  await page.getByRole('radio', { name: 'Split' }).click();
+
+  await expect(page.locator('.markdown').filter({ hasText: 'A short engagement.' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page).toHaveURL(/documents\/doc_/);
+  await expect(page.getByRole('heading', { name: 'E2E scope' })).toBeVisible();
+});

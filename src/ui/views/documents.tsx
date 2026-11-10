@@ -11,7 +11,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DocumentEditor } from '@/components/document-editor';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
@@ -24,7 +23,6 @@ type ScopeFilter = 'all' | 'global' | 'client';
 /** Document list. Opening a row goes to the rendered document page. */
 export const Documents = () => {
   const { records } = useWorkspace();
-  const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<ScopeFilter>('all');
 
   const clients = new Map(
@@ -47,7 +45,7 @@ export const Documents = () => {
         title="Documents"
         description="Global templates and client-scoped contracts. Open one to render it or print it to A4."
         actions={
-          <Button onClick={() => setCreating(true)} size="sm">
+          <Button onClick={() => navigate('documents/new')} size="sm">
             <PlusIcon data-icon="inline-start" />
             New document
           </Button>
@@ -77,7 +75,7 @@ export const Documents = () => {
               : 'Keep reusable terms and proposal templates here; attach them to estimates and invoices.'
           }
           action={
-            <Button onClick={() => setCreating(true)} size="sm">
+            <Button onClick={() => navigate('documents/new')} size="sm">
               <PlusIcon data-icon="inline-start" />
               New document
             </Button>
@@ -137,8 +135,6 @@ export const Documents = () => {
           </Table>
         </div>
       )}
-
-      <DocumentEditor documentId={null} open={creating} onOpenChange={setCreating} />
     </div>
   );
 };

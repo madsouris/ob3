@@ -50,7 +50,7 @@ export const DocumentPrint = ({ documentId }: DocumentPrintProps) => {
   return (
     <div className="print-shell flex min-h-dvh flex-col bg-muted/40">
       <div className="no-print mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-4 py-4">
-        <Button variant="ghost" size="sm" onClick={back}>
+        <Button variant="outline" size="sm" onClick={back}>
           <ArrowLeftIcon data-icon="inline-start" />
           Back
         </Button>

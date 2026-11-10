@@ -1,13 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ArrowLeftIcon, CalendarIcon, PencilIcon, PrinterIcon, UserIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DocumentEditor } from '@/components/document-editor';
 import { Markdown } from '@/components/markdown';
 import { StatusBadge } from '@/components/status-badge';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { navigate } from '@/lib/router';
 import { templateVariablesFor } from '@/lib/document-variables';
 import { renderTemplate } from '@/lib/template';
@@ -19,7 +18,6 @@ export interface DocumentDetailProps {
 
 export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
   const { records, config, loading } = useWorkspace();
-  const [editing, setEditing] = useState(false);
 
   const document = records.document.find((record) => record.id === documentId) ?? null;
   const client =
@@ -37,7 +35,7 @@ export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
   if (document === null) {
     return (
       <div className="flex flex-col gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('documents')}>
+        <Button variant="outline" size="sm" onClick={() => navigate('documents')}>
           <ArrowLeftIcon data-icon="inline-start" />
           All documents
         </Button>
@@ -58,12 +56,7 @@ export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-auto px-0 text-muted-foreground"
-          onClick={() => navigate('documents')}
-        >
+        <Button variant="outline" size="sm" onClick={() => navigate('documents')}>
           <ArrowLeftIcon data-icon="inline-start" />
           All documents
         </Button>
@@ -77,7 +70,7 @@ export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
             <PrinterIcon data-icon="inline-start" />
             Print / PDF
           </Button>
-          <Button size="sm" onClick={() => setEditing(true)}>
+          <Button size="sm" onClick={() => navigate(`documents/${document.id}/edit`)}>
             <PencilIcon data-icon="inline-start" />
             Edit
           </Button>
@@ -123,7 +116,7 @@ export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
           </CardContent>
         </Card>
 
-        <Card className="self-start">
+        <Card className="self-start bg-transparent shadow-none border">
           <CardHeader>
             <CardTitle>Details</CardTitle>
             <CardDescription>From the frontmatter.</CardDescription>
@@ -152,14 +145,14 @@ export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
                 <CalendarIcon aria-hidden />
                 Created
               </span>
-              <span>{formatDate(document.created_at)}</span>
+              <span>{formatDateTime(document.created_at)}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2 text-muted-foreground">
                 <CalendarIcon aria-hidden />
                 Updated
               </span>
-              <span>{formatDate(document.updated_at)}</span>
+              <span>{formatDateTime(document.updated_at)}</span>
             </div>
             <div className="border-t pt-3">
               <p className="mb-1 text-xs text-muted-foreground">File</p>
@@ -168,8 +161,6 @@ export const DocumentDetail = ({ documentId }: DocumentDetailProps) => {
           </CardContent>
         </Card>
       </div>
-
-      <DocumentEditor documentId={document.id} open={editing} onOpenChange={setEditing} />
     </div>
   );
 };

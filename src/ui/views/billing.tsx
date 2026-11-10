@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
-import { CopyIcon, FileTextIcon, PlusIcon, PrinterIcon, ReceiptIcon, Trash2Icon } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  CopyIcon,
+  FileTextIcon,
+  PencilIcon,
+  PlusIcon,
+  PrinterIcon,
+  ReceiptIcon,
+  Trash2Icon,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,6 +42,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DocumentSheet } from '@/components/document-sheet';
 import { EmptyState } from '@/components/empty-state';
 import { DateField } from '@/components/date-field';
 import { Field } from '@/components/field';
@@ -46,16 +55,14 @@ import { SheetBody } from '@/components/sheet-body';
 import { StatusBadge, invoiceStatus } from '@/components/status-badge';
 import { api } from '@/lib/api';
 import type { ApiRecord } from '@/lib/api';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 import { valueLabel } from '@/lib/labels';
 import { navigate } from '@/lib/router';
 import { recordTitle, useWorkspace } from '@/lib/workspace';
+import { addDaysIso, todayLocal } from '../../model/dates.js';
 import { parseMoney } from '../../model/money.js';
 
-export interface BillingProps {
-  readonly type: 'estimate' | 'invoice';
-  readonly initialId: string | null;
-}
+export type BillType = 'estimate' | 'invoice';
 
 const LABELS = {
   estimate: {
@@ -99,18 +106,11 @@ interface BillingForm {
   items: LineItemDraft[];
 }
 
-const today = (): string => new Date().toISOString().slice(0, 10);
+const today = (): string => todayLocal();
 
-const addDays = (date: string, days: number): string => {
-  const value = new Date(`${date}T00:00:00Z`);
-  value.setUTCDate(value.getUTCDate() + days);
-  return value.toISOString().slice(0, 10);
-};
+const addDays = (isoDate: string, days: number): string => addDaysIso(isoDate, days);
 
-const formFrom = (
-  record: ApiRecord,
-  documents: readonly ApiRecord[],
-): BillingForm | null => {
+const formFrom = (record: ApiRecord, documents: readonly ApiRecord[]): BillingForm | null => {
   if (record.type !== 'estimate' && record.type !== 'invoice') return null;
   const ids = [...record.document_ids];
   if (ids.length === 0 && record.terms_document !== '') {
@@ -136,7 +136,7 @@ const formFrom = (
   };
 };
 
-const nextNumber = (type: 'estimate' | 'invoice', list: readonly ApiRecord[]): string => {
+const nextNumber = (type: BillType, list: readonly ApiRecord[]): string => {
   const prefix = type === 'invoice' ? 'INV' : 'EST';
   const year = new Date().getFullYear();
   let highest = 0;
@@ -155,20 +155,37 @@ const nextNumber = (type: 'estimate' | 'invoice', list: readonly ApiRecord[]): s
   return `${prefix}-${year}-${String(highest + 1).padStart(3, '0')}`;
 };
 
-export const Billing = ({ type, initialId }: BillingProps) => {
-  const { records, upsert, remove, refresh, config } = useWorkspace();
+/* ── Editor (sheet) ────────────────────────────────────────────────────────── */
+
+interface BillingEditorProps {
+  readonly type: BillType;
+  /** `null` creates a new record; an id edits the existing one. */
+  readonly recordId: string | null;
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onSaved?: (record: ApiRecord) => void;
+}
+
+/** The billing form. Opened by the list (create) and by the preview page (edit). */
+export const BillingEditor = ({
+  type,
+  recordId,
+  open,
+  onOpenChange,
+  onSaved,
+}: BillingEditorProps) => {
+  const { records, upsert, config } = useWorkspace();
   const meta = LABELS[type];
   const list: readonly ApiRecord[] = type === 'estimate' ? records.estimate : records.invoice;
   const isInvoice = type === 'invoice';
+  const creating = recordId === null;
+  const editing =
+    recordId === null ? null : (list.find((record) => record.id === recordId) ?? null);
 
-  const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<BillingForm | null>(null);
   const [hash, setHash] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [converting, setConverting] = useState(false);
 
-  const open = creating || initialId !== null;
-  const editing = initialId === null ? null : (list.find((record) => record.id === initialId) ?? null);
   const totals = form === null ? null : computeTotals(form.items, form.taxPercent);
 
   const emptyForm = (): BillingForm => {
@@ -199,38 +216,33 @@ export const Billing = ({ type, initialId }: BillingProps) => {
       return;
     }
 
-    if (initialId === null) {
+    if (recordId === null) {
       setForm(emptyForm());
       setHash(null);
       return;
     }
 
-    const current = list.find((record) => record.id === initialId);
+    const current = list.find((record) => record.id === recordId);
     const fromList = current === undefined ? null : formFrom(current, records.document);
     if (fromList !== null) setForm(fromList);
 
     void api
-      .get(meta.plural, initialId)
+      .get(meta.plural, recordId)
       .then((response) => {
         setHash(response.hash);
         const loaded = formFrom(response.record, records.document);
         if (loaded !== null) setForm(loaded);
       })
       .catch(() => undefined);
-  }, [open, initialId, type, records.estimate, records.invoice]);
+    // `emptyForm` reads config and the document list; both are covered below.
+  }, [open, recordId, type, records.estimate, records.invoice]);
 
-  const close = (): void => {
-    setCreating(false);
-    navigate(meta.plural);
-  };
+  const close = (): void => onOpenChange(false);
 
-  const startCreate = (): void => {
-    setForm(emptyForm());
-    setHash(null);
-    setCreating(true);
-  };
-
-  const payload = (current: BillingForm, computed: NonNullable<typeof totals>): Record<string, unknown> => ({
+  const payload = (
+    current: BillingForm,
+    computed: NonNullable<typeof totals>,
+  ): Record<string, unknown> => ({
     [isInvoice ? 'invoice_number' : 'estimate_number']: current.number,
     title: current.title,
     client_id: current.client_id,
@@ -265,6 +277,7 @@ export const Billing = ({ type, initialId }: BillingProps) => {
         upsert(response.record);
         toast.success(`${meta.numberLabel} created`);
         close();
+        onSaved?.(response.record);
       } else if (editing !== null) {
         const response = await api.update(meta.plural, editing.id, {
           ...payload(form, totals),
@@ -273,6 +286,7 @@ export const Billing = ({ type, initialId }: BillingProps) => {
         upsert(response.record);
         toast.success(`${meta.numberLabel} saved`);
         close();
+        onSaved?.(response.record);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not save');
@@ -281,158 +295,22 @@ export const Billing = ({ type, initialId }: BillingProps) => {
     }
   };
 
-  const duplicate = async (): Promise<void> => {
-    if (editing === null) return;
-    try {
-      const response = await api.duplicate(meta.plural, editing.id);
-      upsert(response.record);
-      toast.success('Duplicated as a draft');
-      navigate(`${meta.plural}/${response.record.id}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not duplicate');
-    }
-  };
-
-  const convert = async (): Promise<void> => {
-    if (editing === null) return;
-    setConverting(true);
-    try {
-      const response = await api.invoiceFromEstimate(editing.id);
-      upsert(response.record);
-      await refresh();
-      toast.success('Invoice created from estimate');
-      navigate(`invoices/${response.record.id}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not create the invoice');
-    } finally {
-      setConverting(false);
-    }
-  };
-
-  const destroy = async (): Promise<void> => {
-    if (editing === null) return;
-    try {
-      await api.remove(meta.plural, editing.id, hash ?? undefined);
-      remove(editing.id);
-      toast.success(`${meta.numberLabel} deleted`);
-      close();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not delete');
-    }
-  };
-
-  const clients = new Map(
-    records.contact.map((contact) => [contact.id, recordTitle(contact)] as const),
-  );
-
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={meta.title}
-        description={meta.description}
-        actions={
-          <Button size="sm" onClick={startCreate}>
-            <PlusIcon data-icon="inline-start" />
-            New {type}
-          </Button>
-        }
-      />
+    <Sheet open={open} onOpenChange={(next) => (next ? undefined : close())}>
+      <SheetContent className="w-full sm:max-w-3xl">
+        <ScrollArea className="h-full">
+          <div className="flex flex-col gap-3 pb-6">
+            <SheetHeader>
+              <SheetTitle>{creating ? `New ${type}` : `Edit ${type}`}</SheetTitle>
+              <SheetDescription className="font-mono text-xs">
+                {editing?.path ?? meta.folder}
+              </SheetDescription>
+            </SheetHeader>
 
-      {list.length === 0 ? (
-        <EmptyState
-          icon={isInvoice ? ReceiptIcon : FileTextIcon}
-          title={meta.emptyTitle}
-          description={meta.emptyDescription}
-          action={
-            <Button size="sm" onClick={startCreate}>
-              <PlusIcon data-icon="inline-start" />
-              New {type}
-            </Button>
-          }
-        />
-      ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{meta.numberLabel}</TableHead>
-                <TableHead className="hidden md:table-cell">Client</TableHead>
-                <TableHead className="tabular text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Issued</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.map((record) => {
-                const currency = record.type === 'invoice' || record.type === 'estimate' ? record.currency : 'USD';
-                const total = record.type === 'invoice' || record.type === 'estimate' ? record.total_cents : 0;
-                const clientId = record.type === 'invoice' || record.type === 'estimate' ? record.client_id : '';
-                const issued = record.type === 'invoice' || record.type === 'estimate' ? record.issue_date : '';
-                const status =
-                  record.type === 'invoice'
-                    ? invoiceStatus(record)
-                    : record.type === 'estimate'
-                      ? record.status
-                      : 'draft';
-
-                return (
-                  <TableRow
-                    key={record.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`${meta.plural}/${record.id}`)}
-                  >
-                    <TableCell>
-                      <button
-                        type="button"
-                        className="text-left font-mono text-sm font-medium hover:underline"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          navigate(`${meta.plural}/${record.id}`);
-                        }}
-                      >
-                        {recordTitle(record)}
-                      </button>
-                    </TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">
-                      {clients.get(clientId) ?? '—'}
-                    </TableCell>
-                    <TableCell className="tabular text-right">
-                      {new Intl.NumberFormat(undefined, {
-                        style: 'currency',
-                        currency: currency === '' ? 'USD' : currency,
-                      }).format(total / 100)}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={status} />
-                    </TableCell>
-                    <TableCell className="tabular hidden text-xs text-muted-foreground sm:table-cell">
-                      {formatDate(issued)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      <Sheet open={open} onOpenChange={(next) => (next ? undefined : close())}>
-        <SheetContent className="w-full sm:max-w-3xl">
-          <ScrollArea className="h-full">
-            <div className="flex flex-col gap-3 pb-6">
-              <SheetHeader>
-                <SheetTitle>
-                  {creating ? `New ${type}` : `Edit ${type}`}
-                </SheetTitle>
-                <SheetDescription className="font-mono text-xs">
-                  {editing?.path ?? meta.folder}
-                </SheetDescription>
-              </SheetHeader>
-
-              {form === null ? null : (
-                <>
-                  <SheetBody>
-                    {editing?.type === 'estimate' && editing.converted_invoice_id !== '' ? (
+            {form === null || totals === null ? null : (
+              <>
+                <SheetBody>
+                  {editing?.type === 'estimate' && editing.converted_invoice_id !== '' ? (
                     <Alert>
                       <AlertTitle>Already converted</AlertTitle>
                       <AlertDescription>
@@ -589,7 +467,9 @@ export const Billing = ({ type, initialId }: BillingProps) => {
                         value={form.taxPercent}
                         onChange={(event) =>
                           setForm((current) =>
-                            current === null ? current : { ...current, taxPercent: event.target.value },
+                            current === null
+                              ? current
+                              : { ...current, taxPercent: event.target.value },
                           )
                         }
                         className="tabular"
@@ -638,85 +518,359 @@ export const Billing = ({ type, initialId }: BillingProps) => {
                     rows={5}
                     hint="Markdown body, preserved as written."
                   />
+                </SheetBody>
 
-                  </SheetBody>
+                <SheetFooter className="flex items-center justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={close}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={() => void save()} disabled={saving}>
+                    {saving ? 'Saving…' : 'Save'}
+                  </Button>
+                </SheetFooter>
+              </>
+            )}
+          </div>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  );
+};
 
-                  <SheetFooter className="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-wrap items-center gap-1">
-                      {editing === null ? null : (
-                        <>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => void duplicate()}
-                          >
-                            <CopyIcon data-icon="inline-start" />
-                            Duplicate
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`${meta.plural}/${editing.id}/print`)}
-                          >
-                            <PrinterIcon data-icon="inline-start" />
-                            Print / PDF
-                          </Button>
-                          {editing.type === 'estimate' && editing.converted_invoice_id === '' ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={converting}
-                              onClick={() => void convert()}
-                            >
-                              <ReceiptIcon data-icon="inline-start" />
-                              {converting ? 'Creating…' : 'Create invoice'}
-                            </Button>
-                          ) : null}
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <Trash2Icon data-icon="inline-start" />
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete this {type}?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  {editing.path} is removed from disk. Git keeps the previous
-                                  version.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => void destroy()}>
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </>
-                      )}
-                    </div>
+/* ── List ──────────────────────────────────────────────────────────────────── */
 
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={close}>
-                        Cancel
-                      </Button>
-                      <Button size="sm" onClick={() => void save()} disabled={saving}>
-                        {saving ? 'Saving…' : 'Save'}
-                      </Button>
-                    </div>
-                  </SheetFooter>
-                </>
-              )}
-            </div>
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
+export interface BillingProps {
+  readonly type: BillType;
+}
+
+export const Billing = ({ type }: BillingProps) => {
+  const { records } = useWorkspace();
+  const meta = LABELS[type];
+  const list: readonly ApiRecord[] = type === 'estimate' ? records.estimate : records.invoice;
+  const isInvoice = type === 'invoice';
+  const [creating, setCreating] = useState(false);
+
+  const clients = new Map(
+    records.contact.map((contact) => [contact.id, recordTitle(contact)] as const),
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={meta.title}
+        description={meta.description}
+        actions={
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <PlusIcon data-icon="inline-start" />
+            New {type}
+          </Button>
+        }
+      />
+
+      {list.length === 0 ? (
+        <EmptyState
+          icon={isInvoice ? ReceiptIcon : FileTextIcon}
+          title={meta.emptyTitle}
+          description={meta.emptyDescription}
+          action={
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <PlusIcon data-icon="inline-start" />
+              New {type}
+            </Button>
+          }
+        />
+      ) : (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{meta.numberLabel}</TableHead>
+                <TableHead className="hidden md:table-cell">Client</TableHead>
+                <TableHead className="tabular text-right">Total</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Issued</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.map((record) => {
+                const currency =
+                  record.type === 'invoice' || record.type === 'estimate' ? record.currency : 'USD';
+                const total =
+                  record.type === 'invoice' || record.type === 'estimate' ? record.total_cents : 0;
+                const clientId =
+                  record.type === 'invoice' || record.type === 'estimate' ? record.client_id : '';
+                const issued =
+                  record.type === 'invoice' || record.type === 'estimate' ? record.issue_date : '';
+                const status =
+                  record.type === 'invoice'
+                    ? invoiceStatus(record)
+                    : record.type === 'estimate'
+                      ? record.status
+                      : 'draft';
+
+                return (
+                  <TableRow
+                    key={record.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`${meta.plural}/${record.id}`)}
+                  >
+                    <TableCell>
+                      <button
+                        type="button"
+                        className="text-left font-mono text-sm font-medium hover:underline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(`${meta.plural}/${record.id}`);
+                        }}
+                      >
+                        {recordTitle(record)}
+                      </button>
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
+                      {clients.get(clientId) ?? '—'}
+                    </TableCell>
+                    <TableCell className="tabular text-right">
+                      {formatMoney(total, currency === '' ? 'USD' : currency)}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={status} />
+                    </TableCell>
+                    <TableCell className="tabular hidden text-xs text-muted-foreground sm:table-cell">
+                      {formatDate(issued)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <BillingEditor
+        type={type}
+        recordId={null}
+        open={creating}
+        onOpenChange={setCreating}
+        onSaved={(record) => navigate(`${meta.plural}/${record.id}`)}
+      />
+    </div>
+  );
+};
+
+/* ── Preview ───────────────────────────────────────────────────────────────── */
+
+export interface BillingDetailProps {
+  readonly type: BillType;
+  readonly id: string;
+}
+
+export const BillingDetail = ({ type, id }: BillingDetailProps) => {
+  const { records, config, loading, upsert, remove, refresh } = useWorkspace();
+  const meta = LABELS[type];
+  const isInvoice = type === 'invoice';
+  const record =
+    type === 'invoice'
+      ? (records.invoice.find((item) => item.id === id) ?? null)
+      : (records.estimate.find((item) => item.id === id) ?? null);
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!loading && record === null) navigate(meta.plural);
+  }, [loading, record, meta.plural]);
+
+  if (record === null) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Button variant="outline" size="sm" onClick={() => navigate(meta.plural)}>
+          <ArrowLeftIcon data-icon="inline-start" />
+          All {meta.plural}
+        </Button>
+        {loading ? null : (
+          <Alert>
+            <AlertTitle>{meta.numberLabel} not found</AlertTitle>
+            <AlertDescription>Returning to the list…</AlertDescription>
+          </Alert>
+        )}
+      </div>
+    );
+  }
+
+  const client = records.contact.find((contact) => contact.id === record.client_id) ?? null;
+  const project = records.project.find((item) => item.id === record.project_id) ?? null;
+  const currency = record.currency === '' ? (config?.business.currency ?? 'USD') : record.currency;
+  const status = record.type === 'invoice' ? invoiceStatus(record) : record.status;
+  const number = record.type === 'invoice' ? record.invoice_number : record.estimate_number;
+  const secondDate = record.type === 'invoice' ? record.due_date : record.valid_until;
+  const converted = record.type === 'estimate' && record.converted_invoice_id !== '';
+
+  const setStatus = async (next: string): Promise<void> => {
+    setBusy(true);
+    try {
+      const response = await api.update(meta.plural, record.id, { status: next });
+      upsert(response.record);
+      toast.success(`Marked ${valueLabel(next).toLowerCase()}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not update the status');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const duplicate = async (): Promise<void> => {
+    try {
+      const response = await api.duplicate(meta.plural, record.id);
+      upsert(response.record);
+      toast.success('Duplicated as a draft');
+      navigate(`${meta.plural}/${response.record.id}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not duplicate');
+    }
+  };
+
+  const convert = async (): Promise<void> => {
+    if (record.type !== 'estimate') return;
+    setBusy(true);
+    try {
+      const response = await api.invoiceFromEstimate(record.id);
+      upsert(response.record);
+      await refresh();
+      toast.success('Invoice created from estimate');
+      navigate(`invoices/${response.record.id}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not create the invoice');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const destroy = async (): Promise<void> => {
+    try {
+      await api.remove(meta.plural, record.id);
+      remove(record.id);
+      toast.success(`${meta.numberLabel} deleted`);
+      navigate(meta.plural);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not delete');
+    }
+  };
+
+  const quickAction = (): { label: string; next: string } | null => {
+    if (isInvoice) {
+      if (status === 'draft') return { label: 'Mark sent', next: 'sent' };
+      if (status === 'sent' || status === 'overdue') return { label: 'Mark paid', next: 'paid' };
+      return null;
+    }
+    if (status === 'draft') return { label: 'Mark sent', next: 'sent' };
+    if (status === 'sent') return { label: 'Mark accepted', next: 'accepted' };
+    return null;
+  };
+  const action = quickAction();
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="outline" size="sm" onClick={() => navigate(meta.plural)}>
+          <ArrowLeftIcon data-icon="inline-start" />
+          All {meta.plural}
+        </Button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {action === null ? null : (
+            <Button size="sm" disabled={busy} onClick={() => void setStatus(action.next)}>
+              {action.label}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" disabled={busy} onClick={() => void duplicate()}>
+            <CopyIcon data-icon="inline-start" />
+            Duplicate
+          </Button>
+          {record.type === 'estimate' && !converted ? (
+            <Button variant="outline" size="sm" disabled={busy} onClick={() => void convert()}>
+              <ReceiptIcon data-icon="inline-start" />
+              {busy ? 'Creating…' : 'Create invoice'}
+            </Button>
+          ) : null}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`${meta.plural}/${record.id}/print`)}
+          >
+            <PrinterIcon data-icon="inline-start" />
+            Print / PDF
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+            <PencilIcon data-icon="inline-start" />
+            Edit
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Trash2Icon data-icon="inline-start" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this {type}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {record.path} is removed from disk. Git keeps the previous version.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => void destroy()}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="font-mono text-xl font-semibold tracking-tight">{number}</h1>
+          <StatusBadge status={status} />
+          {record.title === '' ? null : (
+            <span className="text-sm text-muted-foreground">{record.title}</span>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span>
+            {client === null ? 'No client' : recordTitle(client)}
+            {project === null ? '' : ` · ${recordTitle(project)}`}
+          </span>
+          <span className="tabular">Issued {formatDate(record.issue_date)}</span>
+          <span className="tabular">
+            {isInvoice ? 'Due' : 'Valid until'} {formatDate(secondDate)}
+          </span>
+          <span className="tabular font-medium text-foreground">
+            {formatMoney(record.total_cents, currency)}
+          </span>
+          {record.type === 'invoice' && record.paid_at !== '' ? (
+            <span className="tabular">Paid {formatDateTime(record.paid_at)}</span>
+          ) : null}
+          <span className="font-mono text-[11px]">{record.path}</span>
+        </div>
+      </div>
+
+      <div className="print-shell rounded-lg bg-muted/40 p-3 md:p-6">
+        <DocumentSheet
+          type={type}
+          record={record}
+          client={client}
+          project={project}
+          documents={records.document}
+          config={config}
+          variant="preview"
+        />
+      </div>
+
+      <BillingEditor
+        type={type}
+        recordId={record.id}
+        open={editing}
+        onOpenChange={setEditing}
+      />
     </div>
   );
 };

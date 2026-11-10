@@ -63,7 +63,10 @@ back from disk.
 - Every list row opens a detail view or editor; every sheet closes with `Esc` or **Cancel**.
 
 The dashboard shows counts, open tasks by column, paid revenue (total and this month) and
-outstanding invoices. Click any figure to jump to its list.
+outstanding invoices. **This month** follows the payment date (the month you marked an invoice paid),
+falling back to its issue date for files that have no payment date. Click any figure to jump to its list.
+
+Dates are shown day/month/year in your own time zone (`31/01/2026`); timestamps add the local time.
 
 ---
 
@@ -138,6 +141,11 @@ once per estimate.
 
 Estimate statuses are `draft`, `sent`, `accepted`, `declined` and `expired`.
 
+Opening an estimate or invoice shows a **preview** of the printed bill first, with **Edit**, **Print /
+PDF**, **Duplicate**, **Create invoice** (estimates) and a one-click status step: **Mark sent**, then
+**Mark paid** (or **Mark accepted** on an estimate). Marking an invoice paid records the payment time,
+which is what the dashboard's “This month” figure uses.
+
 **Invoices**
 
 - Statuses are `draft`, `sent`, `paid`, `overdue`, `cancelled`. *Overdue* is derived automatically
@@ -168,6 +176,11 @@ header; totals stay together.
 - **Global template** — reusable terms or a proposal skeleton, attachable to any bill.
 - **Client document** — a contract, statement of work, NDA, brief, proposal or note for one client.
   Client documents appear on that client's page.
+
+The composer is a full page: type a title, pick the kind and scope (and the client, for a client
+document), then write in Markdown. **Write**, **Preview** and **Split** switch between the source, the
+rendered result and both side by side. Preview fills in template variables; the file keeps the raw
+template. **Save** returns to the document page, where **Edit** brings the composer back.
 
 Kinds are fixed: terms, proposal, contract, statement of work, NDA, brief, note, other. The editor's
 **Variable references** panel (collapsed by default) lists every placeholder you can use.

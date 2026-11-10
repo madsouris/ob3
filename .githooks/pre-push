@@ -1,0 +1,13 @@
+#!/bin/sh
+# Local guard only: runs the browser smoke test before a push. CI keeps its own
+# vitest matrix. Bypass with SKIP_E2E=1 when you are pushing something unrelated.
+if [ "${SKIP_E2E:-}" = "1" ]; then
+  echo "ob: skipping the Playwright smoke test (SKIP_E2E=1)"
+  exit 0
+fi
+
+echo "ob: running the Playwright smoke test before push…"
+if ! pnpm test:e2e; then
+  echo "ob: Playwright failed. Fix it, or push with SKIP_E2E=1 to bypass."
+  exit 1
+fi

@@ -44,6 +44,13 @@ The read path is permissive by design and must stay that way:
 This is why widening the schema is safe: an older `ob` can still open, list, edit and save records
 that contain fields or enum values it does not understand.
 
+### Additive example: `paid_at` (1.2.0)
+
+Invoice files may contain `paid_at` (ISO instant). It is optional: a file without it reads as `''`, the
+dashboard falls back to `issue_date` for the month bucket, and the key is written the next time the
+status becomes `paid`. No `ob_schema` bump is needed, and no migration step runs — the field is
+created by ordinary editing.
+
 ## Writing in a newer schema
 
 A newer `ob` may write new fields on records it edits, while leaving untouched records alone.

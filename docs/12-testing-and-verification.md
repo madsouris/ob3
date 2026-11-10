@@ -19,7 +19,7 @@ Everything else (CRUD, UI) gets standard coverage.
 | Integration (FS) | vitest + temp dirs | indexer, watcher, atomic write, issues, round-trip against real files | < 10 s |
 | Integration (HTTP) | vitest + `app.request()` | routes, validation, token/host checks, 409 conflicts | < 10 s |
 | Integration (Git) | vitest + bare repo fixture | commit-on-save, sync chain, conflict recovery | < 20 s |
-| E2E-ish | Playwright (M4+) | one smoke flow: create contact → drag task → sync | < 60 s |
+| E2E-ish | Playwright + Chromium | four smoke flows: dashboard, bill preview → print, marking an invoice paid, document composer | < 60 s |
 | Manual QA | checklist below | print rendering, OS file manager, Windows paths | per release |
 
 ## Fixtures (`fixtures/workspaces/`)
@@ -111,9 +111,19 @@ Fixtures are committed; the 10k one is generated (`pnpm fixture:large`). Nothing
 * Deterministic ULIDs in fixtures; the ULID generator takes an injectable clock + randomness source.
 * No network access in any test. Git tests use local bare repos only.
 * `.gitattributes` pins text checkouts to LF, so the committed fixtures are byte-identical on Windows; the parser still accepts CRLF and mixed-EOL user files (unit-tested in `tests/model/frontmatter.test.ts`, integration-tested by duplicating a mixed-EOL estimate in `tests/server/api.test.ts`).
-* Workspace paths are POSIX everywhere (index, git, API). Test helpers that read the disk convert native separators — `listFiles` in `tests/helpers/tmp.ts` is the canonical example, because Windows `readdir` returns `\\`.
+* Workspace paths are POSIX everywhere (index, git, API). Test helpers that read the disk convert native separators — `listFiles` in `tests/helpers/tmp.ts` is the canonical example, because Windows `readdir` returns backslashes.
+* The Playwright `webServer` (`scripts/e2e-server.mjs`) seeds a demo workspace in the OS temp dir and starts the built CLI on port 19871, so a browser run never touches the developer's workspace and every run starts from the same files.
 * `tests/setup-git.ts` points `GIT_CONFIG_GLOBAL` at a throwaway config (`user.name`/`email`, `init.defaultBranch=main`, no signing) and sets `GIT_CONFIG_NOSYSTEM=1`. `ob` reads identity from git **config**, not from `GIT_AUTHOR_*`, so without this a runner with no global config fails `POST /api/git/init` with `identity_missing` while a developer laptop passes — and a developer's `init.defaultBranch` would silently decide the branch assertion.
 * A failing test must print the offending file diff (helper `expectFileBytes(path).toEqual(expected)`).
+
+## Browser smoke test (local)
+
+`pnpm test:e2e` builds the app, then runs `tests/e2e/*.spec.ts` in Chromium against the built CLI:
+
+1. One-time: `pnpm exec playwright install chromium` (script alias: `pnpm e2e:install`).
+2. `pnpm test:e2e` — about a minute; traces land in `test-results/` (gitignored).
+
+`.githooks/pre-push` runs it before every push. `pnpm install` enables the hook through `core.hooksPath` (`scripts/install-hooks.mjs`); bypass a push with `SKIP_E2E=1 git push`. CI does **not** run Playwright — the workflow keeps the vitest matrix, so a browser download is never a merge blocker.
 
 ## Manual QA checklist (per release)
 
